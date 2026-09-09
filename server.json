@@ -1,0 +1,54 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "holdings.proof/mcp-server",
+  "title": "Proof Holdings",
+  "description": "One API, all things verified — control, delegation, human approval, anti-impersonation.",
+  "version": "1.1.0",
+  "websiteUrl": "https://proof.holdings",
+  "icons": [
+    {
+      "src": "https://proof.holdings/favicon-512x512.png",
+      "mimeType": "image/png",
+      "sizes": ["512x512"]
+    },
+    {
+      "src": "https://proof.holdings/mark.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": ["any"]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/ProofHoldings/mcp-server",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://api.proof.holdings/mcp"
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@proof-holdings/mcp-server",
+      "version": "1.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PROOF_API_KEY",
+          "description": "Proof Holdings API key (Bearer). Optional: without it the server runs in public mode, where account creation, login and public verification tools work and every other tool asks for a key. Create one in the dashboard at https://proof.holdings. A key minted from inside a session with create_api_key takes effect only once it is set here and the server is restarted — this value is read at startup and has no runtime setter.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "PROOF_BASE_URL",
+          "description": "API base URL. Defaults to https://api.proof.holdings.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

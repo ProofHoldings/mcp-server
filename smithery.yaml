@@ -1,0 +1,29 @@
+# Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
+
+startCommand:
+  type: stdio
+
+configSchema:
+  type: object
+  properties:
+    apiKey:
+      type: string
+      description: "Optional. Your proof.holdings API key (pk_live_ / pk_test_). Without it the server runs in public mode: account creation, login and public verification work; other tools ask for a key."
+    baseUrl:
+      type: string
+      description: "Custom API base URL (default: https://api.proof.holdings)"
+      default: "https://api.proof.holdings"
+
+commandFunction: |-
+  (config) => ({
+    command: 'npx',
+    args: ['-y', '@proof-holdings/mcp-server'],
+    env: {
+      // Guarded like baseUrl below: with apiKey now optional, an absent value must not reach the
+      // env as the STRING "undefined" — the server would take that for a key and send
+      // `Bearer undefined` on every call, which is the exact failure public mode exists to avoid,
+      // on the installer path a first-time user is most likely to take.
+      ...(config.apiKey ? { PROOF_API_KEY: config.apiKey } : {}),
+      ...(config.baseUrl ? { PROOF_BASE_URL: config.baseUrl } : {}),
+    },
+  })

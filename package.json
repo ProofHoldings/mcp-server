@@ -1,0 +1,63 @@
+{
+  "name": "@proof-holdings/mcp-server",
+  "version": "1.1.0",
+  "mcpName": "holdings.proof/mcp-server",
+  "description": "MCP server for the proof.holdings API — 176 tools for identity verification, proofs, and asset management",
+  "type": "module",
+  "license": "MIT",
+  "author": "proof.holdings <hello@proof.holdings> (https://proof.holdings)",
+  "homepage": "https://proof.holdings",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ProofHoldings/mcp-server.git"
+  },
+  "bugs": {
+    "email": "hello@proof.holdings",
+    "url": "https://proof.holdings/support"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "proof-holdings",
+    "identity-verification",
+    "ai-tools",
+    "claude",
+    "llm"
+  ],
+  "main": "dist/server.js",
+  "bin": {
+    "mcp-server": "dist/server.js",
+    "proof-mcp": "dist/server.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@proof-holdings/delegation-verifier": "^0.1.0",
+    "qrcode": "^1.5.4",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/qrcode": "^1.5.6",
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
