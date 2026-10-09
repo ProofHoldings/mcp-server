@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, pollUntilTerminal, BSUID_REGEX, WAIT_DEFAULT_SECONDS } from '../types.js';
+import { jsonResult, errorResult, pollUntilTerminal, BSUID_REGEX, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
 import { ApiError } from '../http.js';
 
 const hitlStatusEnum = z.enum(['active', 'archived']);
@@ -142,7 +142,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'create_chat_id_discovery',
-    'Create a Telegram chat ID discovery token. Returns a deep_link, qr_code (base64 PNG), and qr_text (UTF-8 text QR for terminal display). The user opens the link in Telegram, which reveals their chat ID for HITL config setup.\n\nAgent usage: pass the response\'s `deep_link` to render_auth_link so the user can click or scan it. Never hand `qr_text` to a link renderer — it is that same link already rendered as QR art. Print it verbatim inside a fenced code block only when a real terminal needs the QR. Then poll poll_chat_id_discovery with the returned token until the chat_id appears. Use the discovered chat_id when creating a HITL config with a Telegram channel.',
+    'Create a Telegram chat ID discovery token. Returns a deep_link, qr_code (base64 PNG), and qr_text (UTF-8 text QR for terminal display). The user opens the link in Telegram, which reveals their chat ID for HITL config setup.\n\nAgent usage: pass the response\'s `deep_link` to render_auth_link so the user can click or scan it. Never hand `qr_text` to a link renderer — it is that same link already rendered as QR art. Print it verbatim inside a fenced code block only when a real terminal needs the QR. Then poll poll_chat_id_discovery with the returned token until the chat_id appears. Use the discovered chat_id when creating a HITL config with a Telegram channel.\n\n' + CHALLENGE_IN_REPLY,
     {},
     async () => {
       try {
@@ -157,7 +157,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'poll_chat_id_discovery',
-    'Poll a chat ID discovery token. Returns the discovered Telegram chat ID, user ID, and username once the user interacts with the bot.',
+    'Poll a chat ID discovery token. Returns the discovered Telegram chat ID, user ID, and username once the user interacts with the bot.\n\n' + WAIT_AFTER_REPLY,
     {
       token: z.string().describe('Discovery token from create_chat_id_discovery'),
     },
@@ -174,7 +174,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'wait_for_chat_id_discovery',
-    'Poll a chat ID discovery token until the user interacts with the Telegram bot. Uses exponential backoff (2s initial, 1.5x, 30s max) with jitter.\n\nAgent usage: Call this after create_chat_id_discovery. Present the discovery response\'s `deep_link` with render_auth_link first, then poll with the returned token. Terminal states: "completed" (chat_id discovered — use it when creating a HITL config with a Telegram channel), "expired". While "pending", the user has not yet opened the Telegram link.',
+    'Poll a chat ID discovery token until the user interacts with the Telegram bot. Uses exponential backoff (2s initial, 1.5x, 30s max) with jitter.\n\nAgent usage: Call this after create_chat_id_discovery. Present the discovery response\'s `deep_link` with render_auth_link first, then poll with the returned token. Terminal states: "completed" (chat_id discovered — use it when creating a HITL config with a Telegram channel), "expired". While "pending", the user has not yet opened the Telegram link.\n\n' + CHALLENGE_IN_REPLY,
     {
       token: z.string().describe('Discovery token from create_chat_id_discovery'),
       timeout_seconds: z.number().int().min(1).max(600).optional().describe(`Maximum wait time in seconds (default: ${WAIT_DEFAULT_SECONDS}, max: 600). Keep it under your MCP client's request timeout (the SDK default is 60 s) — a longer wait is cut off by the client while the server is still polling. On timeout the tool answers status "pending"; call it again with the same identifier.`),

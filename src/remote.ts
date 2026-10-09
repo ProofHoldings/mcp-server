@@ -80,6 +80,8 @@ export interface RemoteServer {
 interface Session {
   transport: StreamableHTTPServerTransport;
   http: HttpClient;
+  /** The names this session's server registers — what lets the gate tell a typo from a keyed tool. */
+  toolNames: ReadonlySet<string>;
   close: () => Promise<void>;
   lastSeen: number;
   /**
@@ -687,9 +689,10 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // THE GATE, and the whole reason it sits here rather than in a tool handler: a 401 with
       // `WWW-Authenticate` is an HTTP answer, and once the message reaches the transport the reply
       // is a JSON-RPC result no client's OAuth stack will read. A session with NO account behind it
-      // may run the keyless surface; anything else is refused with the challenge that starts the
-      // ceremony. For a session with no account behind it `initialize` and `tools/list` are never
-      // refused — the control measurement for that arrangement was a connection timeout, not a login
+      // may run the keyless surface; a registered tool outside it is refused with the challenge that
+      // starts the ceremony, and a name the session's server does not register goes on to the SDK,
+      // which answers it as an unknown tool (`keyedToolsIn` with `existing.toolNames`). For a session
+      // with no account behind it `initialize` and `tools/list` are never refused — the control measurement for that arrangement was a connection timeout, not a login
       // prompt. THREE things do answer 401 at the handshake, and the third is on the anonymous
       // road, so "never refused" needs all of them: a PRESENTED token that fails to resolve
       // (`resolvePresentedToken`), a credential that does not match this session (above), and a
@@ -712,7 +715,7 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // challenge that would restart the ceremony. It grants nothing — it is a worse error message,
       // not a hole.
       if (!existing.keyFingerprint && !existing.http.hasSessionToken()) {
-        const keyed = keyedToolsIn(body);
+        const keyed = keyedToolsIn(body, existing.toolNames);
         if (keyed.length > 0) {
           // Symmetric with `rejectBody` above: the counter was taken before the body was read, and
           // an unbalanced exit would leave this session permanently "busy" for the sweeper.
@@ -822,7 +825,7 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // cheapest request an attacker can send.
       if (presented && !(await resolvePresentedToken(presented, options.baseUrl, res, resolveBudget))) return;
 
-      const { server, http } = createProofServer({ baseUrl: options.baseUrl, apiKey: presented, remote: true });
+      const { server, http, toolNames } = createProofServer({ baseUrl: options.baseUrl, apiKey: presented, remote: true });
 
       const transport = new StreamableHTTPServerTransport({
         // `<replica>.<uuid>` — the prefix is what the proxy routes on. See `replicaId` above.
@@ -831,6 +834,7 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
           sessions.set(id, {
             transport,
             http,
+            toolNames,
             close: async () => {
               await transport.close().catch(() => undefined);
               await server.close().catch(() => undefined);

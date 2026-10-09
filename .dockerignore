@@ -1,0 +1,21 @@
+# Governs the `mcp/` build context of `mcp/Dockerfile` (the repository-root `.dockerignore` does not
+# apply to it). A superset of that file's entries that can occur here, plus `.npmrc` and nested
+# env files, since the runner copies the built tree whole. Do not add an
+# `mcp/Dockerfile.dockerignore`: Docker would read it INSTEAD of this one.
+node_modules
+**/node_modules
+dist
+**/dist
+coverage
+npm-debug.log
+*.log
+.env
+.env.*
+*.md
+.git
+.DS_Store
+**/.DS_Store
+**/._*
+.npmrc
+**/.env
+**/.env.*

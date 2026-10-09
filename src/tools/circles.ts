@@ -8,6 +8,10 @@ const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/);
 const circleChannel = z.enum(['telegram', 'whatsapp']);
 const e164 = z.string().regex(/^\+[1-9]\d{7,14}$/, 'must be E.164 with a leading +');
 
+const ownerName = z.string().max(100).nullable().optional().describe(
+  'How this Circle\'s members know its owner ("Dad", "Giorgi"). The bots name the owner by it; while it is empty they name nobody — the Circle\'s name labels the group, never the person. Trimmed by the API; null or an empty value clears it.',
+);
+
 // A contact at create time: name + OPTIONAL flat channel identifiers (mirrors the backend
 // circleMemberInputSchema). A member may be added by name only and enrolled later.
 const circleMemberInput = z.object({
@@ -22,6 +26,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'Create a Circle — a named group of trusted contacts (the people-primitive powering Proof-Me and Approvals-on-Circle). Optionally seed initial members; each member\'s declared channels are stored so they can be invited to enroll.\n\nAgent usage: after creating a Circle, add members with add_circle_member (or seed them here), then invite_circle_member to mint the enrollment deep link each contact taps to bind their messenger identity.',
     {
       name: z.string().min(1).max(200).describe('Human-readable name for the Circle'),
+      owner_name: ownerName,
       profile_id: objectId.optional().describe('Public profile (sub-account) to bind for branded messages — create-only'),
       proof_me_enabled: z.boolean().optional().describe('Enable Proof-Me drills for this Circle'),
       members: z.array(circleMemberInput).max(100).optional().describe('Initial members (name + optional declared channels)'),
@@ -83,10 +88,11 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'update_circle',
-    'Update a Circle\'s name. Only the display name is mutable — the profile/identity binding is create-only.',
+    'Update a Circle\'s name and/or owner name. Omitted fields are left unchanged; the profile/identity binding is create-only.',
     {
       id: objectId.describe('Circle ID'),
       name: z.string().min(1).max(200).optional().describe('New name for the Circle'),
+      owner_name: ownerName,
     },
     async ({ id, ...body }) => {
       try {
@@ -137,7 +143,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'list_circle_members',
-    'List a Circle\'s members. Each member carries channel-presence booleans only (has_telegram / has_whatsapp) — an identifier is NEVER returned (SEC-PM-006).',
+    'List a Circle\'s members. Each member carries channel-presence booleans (has_telegram / has_whatsapp) and the masked phone they enrolled from (enrolled_phone_hint, e.g. +9••••••4171) — a full identifier is NEVER returned (SEC-PM-006).',
     {
       id: objectId.describe('Circle ID'),
     },

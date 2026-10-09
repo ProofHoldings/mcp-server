@@ -56,4 +56,16 @@ describe('FAILURE_REASON_OUTCOME exhaustiveness', () => {
   it('a genuine negative verdict (revoked) is confirmed_invalid', () => {
     expect(FAILURE_REASON_OUTCOME.revoked).toBe('confirmed_invalid');
   });
+
+  it('key rotation: a revoked signing key is confirmed_invalid, a stale key set is unconfirmed — two distinct outcomes (h-verifier-jwks-multikey SC-10)', () => {
+    expect(FAILURE_REASON_OUTCOME.key_revoked).toBe('confirmed_invalid');
+    expect(FAILURE_REASON_OUTCOME.jwks_stale).toBe('unconfirmed');
+    expect(FAILURE_REASON_OUTCOME.key_revoked).not.toBe(FAILURE_REASON_OUTCOME.jwks_stale);
+  });
+
+  it('key rotation: a key-policy violation is a genuine negative verdict', () => {
+    for (const reason of ['wrong_key_purpose', 'outside_key_window', 'token_lifetime_exceeded'] as const) {
+      expect(FAILURE_REASON_OUTCOME[reason]).toBe('confirmed_invalid');
+    }
+  });
 });

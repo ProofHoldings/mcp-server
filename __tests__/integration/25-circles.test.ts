@@ -99,7 +99,7 @@ describe('Circles (13 tools)', () => {
 
   // list_circle_members
   describe('list_circle_members', () => {
-    it('lists members with presence booleans only', async () => {
+    it('lists members with presence booleans and a masked enrollment phone only', async () => {
       expect(circleId).toBeDefined();
       const result = await callTool('list_circle_members', { id: circleId! });
       const data = parseJsonResult(result) as Record<string, unknown>;

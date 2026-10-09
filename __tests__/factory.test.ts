@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { createProofServer } from '../src/factory.js';
 import { KEYLESS_TOOLS } from '../src/authBoundary.js';
+import { READ_ONLY_TOOLS, DESTRUCTIVE_TOOLS, annotationsFor } from '../src/toolAnnotations.js';
 
 /**
  * Guards for the per-connection server factory (`h-mcp-remote`, SC-4).
@@ -109,15 +110,11 @@ describe('createProofServer — SC-4: one connection cannot inherit another conn
     const aliceAuth = fetchMock.mock.calls[1][1].headers['Authorization'];
     expect(aliceAuth).toBe('Bearer ALICE_SESSION_JWT');
 
-    // ...and Bob, hitting the same route, must NOT travel as Alice.
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ data: [] }), { status: 200, headers: { 'content-type': 'application/json' } }),
-    );
-    await bob.http.get('/api/v1/me/emails');
-    const bobAuth = fetchMock.mock.calls[2][1].headers['Authorization'];
-
-    expect(bobAuth).not.toContain('ALICE_SESSION_JWT');
-    expect(bobAuth).toBe('Bearer pk_bob');
+    // ...and Bob, hitting the same route, must NOT travel as Alice. Holding no session of his own,
+    // he is told to sign in before anything leaves the process — had he inherited Alice's session
+    // the call would have gone out carrying her token.
+    await expect(bob.http.get('/api/v1/me/emails')).rejects.toMatchObject({ code: 'user_session_required' });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 
@@ -293,5 +290,144 @@ describe('createProofServer — SC-4: the stdio entrypoint goes through the fact
     // work on the day it is written and diverge one module at a time afterwards.
     const registerCalls = source.match(/^\s*register[A-Z][A-Za-z]*\(/gm) ?? [];
     expect(registerCalls).toEqual([]);
+  });
+});
+
+/**
+ * Tool annotations (live review 2026-09-26, M5).
+ *
+ * The table in `toolAnnotations.ts` is names; the truth is what each handler SENDS. So the split is
+ * derived here from the HTTP method each registration's handler calls, and the two must agree both
+ * ways — a new DELETE tool left out of `DESTRUCTIVE_TOOLS` would otherwise advertise itself to every
+ * client as additive, and a new write left in `READ_ONLY_TOOLS` would be auto-approved as a read.
+ */
+describe('createProofServer — every tool tells the client what it does to the account', () => {
+  /** Names whose meaning the method alone gets wrong, each with the reason it is an exception. */
+  const READ_ONLY_POSTS = new Set(['validate_proof', 'preview_template', 'preview_profile_template', 'render_template']);
+  const SIDE_EFFECT_GETS = new Set(['export_data']); // spends the once-per-24h export allowance
+  const DESTRUCTIVE_POSTS = new Set([
+    'revoke_delegation', // terminal
+    'revoke_proof', // terminal
+    'regenerate_api_key', // invalidates the old key
+    // Upsert the account-level DnsProviderCredential, replacing the token every other domain uses.
+    'connect_cloudflare',
+    'connect_godaddy',
+    'connect_dns_provider',
+    'add_verification_provider',
+    'create_dns_credential',
+    // Demote the current primary profile (`PublicProfile.ensureSinglePrimary`).
+    'set_primary_profile',
+    'create_profile',
+  ]);
+  const LOCAL_TOOLS = new Set(['render_auth_link', 'verify_delegation', 'verify_delegations']);
+
+  /** tool name → the `http.<verb>(` calls inside its registration, read from the module source. */
+  function methodsByTool(): Map<string, Set<string>> {
+    const out = new Map<string, Set<string>>();
+    for (const file of fs.readdirSync(TOOLS_DIR).filter((f) => f.endsWith('.ts'))) {
+      const source = fs.readFileSync(path.join(TOOLS_DIR, file), 'utf-8');
+      const starts = [...source.matchAll(/\btool\(\s*['"`]([a-zA-Z_][a-zA-Z0-9_]*)['"`]/g)];
+      starts.forEach((m, i) => {
+        const block = source.slice(m.index, i + 1 < starts.length ? starts[i + 1].index : source.length);
+        out.set(m[1], new Set([...block.matchAll(/\bhttp\.(get|post|put|patch|del)\s*[<(]/g)].map((c) => c[1])));
+      });
+    }
+    return out;
+  }
+
+  it('stamps annotationsFor() onto every registration', () => {
+    const { server } = createProofServer({ baseUrl: 'https://api.proof.holdings' });
+    const tools = (server as unknown as { _registeredTools: Record<string, { annotations?: unknown }> })._registeredTools;
+    const wrong = Object.entries(tools)
+      .filter(([name, t]) => JSON.stringify(t.annotations) !== JSON.stringify(annotationsFor(name)))
+      .map(([name, t]) => `${name}: ${JSON.stringify(t.annotations)}`);
+    expect(Object.keys(tools).length).toBeGreaterThan(100);
+    expect(wrong).toEqual([]);
+  });
+
+  it('names only registered tools, and no tool is both a read and destructive', () => {
+    const registered = registeredNames(createProofServer({ baseUrl: 'https://api.proof.holdings' }).server);
+    const unknown = [...READ_ONLY_TOOLS, ...DESTRUCTIVE_TOOLS].filter((n) => !registered.has(n));
+    const both = [...READ_ONLY_TOOLS].filter((n) => DESTRUCTIVE_TOOLS.has(n));
+    expect({ unknown, both }).toEqual({ unknown: [], both: [] });
+  });
+
+  it('agrees with the HTTP method each handler calls, both ways', () => {
+    const methods = methodsByTool();
+    const registered = registeredNames(createProofServer({ baseUrl: 'https://api.proof.holdings' }).server);
+
+    // Anti-vacuity: the parse must see every registration, and "calls no HTTP" must mean the three
+    // local tools and nothing else — a handler the regex failed to read would otherwise pass as a read.
+    expect([...methods.keys()].sort()).toEqual([...registered].sort());
+    const silent = [...methods].filter(([, m]) => m.size === 0).map(([n]) => n).sort();
+    expect(silent).toEqual([...LOCAL_TOOLS].sort());
+
+    const expectedReadOnly = new Set<string>();
+    const expectedDestructive = new Set<string>();
+    for (const [name, m] of methods) {
+      const onlyGets = [...m].every((verb) => verb === 'get');
+      const readOnly = (onlyGets && !SIDE_EFFECT_GETS.has(name)) || READ_ONLY_POSTS.has(name);
+      if (readOnly) expectedReadOnly.add(name);
+      else if (m.has('put') || m.has('patch') || m.has('del') || DESTRUCTIVE_POSTS.has(name)) expectedDestructive.add(name);
+    }
+
+    expect({
+      readOnly: [...READ_ONLY_TOOLS].sort(),
+      destructive: [...DESTRUCTIVE_TOOLS].sort(),
+    }).toEqual({
+      readOnly: [...expectedReadOnly].sort(),
+      destructive: [...expectedDestructive].sort(),
+    });
+  });
+});
+
+describe('createProofServer — the API learns which agent is calling', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    fetchMock = vi.fn(() =>
+      Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } })),
+    );
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  /** A real MCP handshake over an in-memory pair, by a client that calls itself `name`. */
+  async function connect(instance: ReturnType<typeof createProofServer>, name: string) {
+    const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js');
+    const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    await instance.server.connect(serverSide);
+    await new Client({ name, version: '2.0.0' }).connect(clientSide);
+  }
+
+  const agentNameOfCall = (index: number) => fetchMock.mock.calls[index][1].headers['X-Proof-Agent-Name'];
+
+  it('sends no name before the client has introduced itself', async () => {
+    const instance = createProofServer({ apiKey: 'pk_test', baseUrl: 'https://api.proof.holdings' });
+    await instance.http.get('/api/v1/test');
+    expect(agentNameOfCall(0)).toBeUndefined();
+  });
+
+  it('sends the name the client gave in its handshake', async () => {
+    const instance = createProofServer({ apiKey: 'pk_test', baseUrl: 'https://api.proof.holdings' });
+    await connect(instance, 'claude-code');
+    await instance.http.get('/api/v1/test');
+    expect(agentNameOfCall(0)).toBe('claude-code');
+  });
+
+  it('keeps each connection to its own client name', async () => {
+    const first = createProofServer({ apiKey: 'pk_a', baseUrl: 'https://api.proof.holdings', remote: true });
+    const second = createProofServer({ apiKey: 'pk_b', baseUrl: 'https://api.proof.holdings', remote: true });
+    await connect(first, 'claude-code');
+    await connect(second, 'cursor-vscode');
+
+    await first.http.get('/api/v1/test');
+    await second.http.get('/api/v1/test');
+    expect([agentNameOfCall(0), agentNameOfCall(1)]).toEqual(['claude-code', 'cursor-vscode']);
   });
 });

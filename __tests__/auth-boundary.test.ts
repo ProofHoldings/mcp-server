@@ -9,6 +9,7 @@ import {
   authorizationRequiredBody,
   keyedToolsIn,
   resourceMetadataUrl,
+  serverInstructions,
 } from '../src/authBoundary.js';
 
 /**
@@ -67,6 +68,20 @@ describe('authBoundary — SC-1: what needs an account, named on both sides', ()
 
   it('treats an unknown name as keyed — a typo must break a tool, never open a hole', () => {
     expect(keyedToolsIn(call('not_a_tool'))).toEqual([{ name: 'not_a_tool', malformed: false }]);
+  });
+
+  it('given the names the server registers, lets a name it does not register through to be answered "no such tool"', () => {
+    // M9 (live review 2026-09-26): an anonymous caller who mistyped a tool was sent to sign in. With
+    // the registered set in hand the call can reach the SDK, which refuses the name itself. Nothing
+    // opens: a name the server does not register has no handler to run. The fail-closed rule for a
+    // name the server DOES register is unchanged, and so is the no-set form above.
+    const registered = new Set(['list_verifications', 'start_login']);
+    expect(keyedToolsIn(call('not_a_tool'), registered)).toEqual([]);
+    expect(keyedToolsIn(call('list_verifications'), registered)).toEqual([{ name: 'list_verifications', malformed: false }]);
+    expect(keyedToolsIn(call('start_login'), registered)).toEqual([]);
+    expect(keyedToolsIn({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: {} }, registered)).toEqual([
+      { name: '<unnamed>', malformed: true },
+    ]);
   });
 
   it('treats a malformed tool name as keyed too, rather than letting it walk past', () => {
@@ -166,5 +181,25 @@ describe('authBoundary — SC-2: the refusal names the action and carries a link
 
     // The other direction — that every tool the client signs with the session IS listed — is the
     // map's business: src/__tests__/drift/api-parity.test.ts joins this set to docs/api-map.yaml.
+  });
+});
+
+describe('serverInstructions — a connected client is told the account records need a sign-in (W6)', () => {
+  // Walkthrough 2026-10-02: right after the browser "Authenticate", list_api_keys was refused and
+  // nothing the client had been told explained why a second sign-in was needed.
+  const surfaceIn = (text: string) => text.match(/emails, phones,[^.);]*/)?.[0];
+
+  it.each([false, true])('keyed (remote=%s) names the refusal, the road, and the same records', (remote) => {
+    const text = serverInstructions({ remote, hasCredential: true });
+    expect(text).toContain('user_session_required');
+    expect(text).toContain('start_login');
+    expect(text).toContain('wait_for_login');
+    const canonical = surfaceIn(serverInstructions({ remote, hasCredential: false }));
+    expect(canonical).toBeTruthy();
+    expect(surfaceIn(text)).toBe(canonical);
+  });
+
+  it.each([false, true])('anonymous (remote=%s) does not gain the keyed sentence', (remote) => {
+    expect(serverInstructions({ remote, hasCredential: false })).not.toContain('user_session_required');
   });
 });

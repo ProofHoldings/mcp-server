@@ -29,7 +29,7 @@ describe('User Requests (7 tools)', () => {
   describe('create_user_request', () => {
     it('creates a verification request', async () => {
       const result = await callTool('create_user_request', {
-        assets: ['email'],
+        assets: [{ type: 'email' }],
       });
       const data = parseJsonResult(result) as Record<string, unknown>;
       expect(data).toHaveProperty('id');
@@ -38,7 +38,7 @@ describe('User Requests (7 tools)', () => {
 
     it('creates a request with options', async () => {
       const result = await callTool('create_user_request', {
-        assets: ['email', 'phone'],
+        assets: [{ type: 'email' }, { type: 'phone', required: false }],
         action_type: 'verification',
         expires_in_hours: 48,
         partial_ok: true,

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { z } from 'zod';
 import { HttpClient, ApiError } from '../src/http.js';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -58,7 +59,7 @@ describe('verifications tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 14 verification tools', () => {
+  it('registers all 15 verification tools', () => {
     const names = tools.map(t => t.name);
     expect(names).toContain('create_verification');
     expect(names).toContain('get_verification');
@@ -71,10 +72,11 @@ describe('verifications tools', () => {
     expect(names).toContain('get_verified_user');
     expect(names).toContain('start_domain_verification');
     expect(names).toContain('check_domain_verification');
+    expect(names).toContain('delete_domain_verification');
     expect(names).toContain('wait_for_verification');
     expect(names).toContain('create_multi_channel_verification');
     expect(names).toContain('get_multi_channel_verification_status');
-    expect(tools).toHaveLength(14);
+    expect(tools).toHaveLength(15);
   });
 
   it('create_verification schema mirrors the REST contract (type/channel/identifier)', () => {
@@ -191,6 +193,35 @@ describe('verifications tools', () => {
     await tool.handler({ id: 'ver_d1' });
 
     expect(http.post).toHaveBeenCalledWith('/api/v1/verifications/domain/ver_d1/check');
+  });
+
+  it('delete_domain_verification calls DELETE /verifications/domain/:id', async () => {
+    http.del.mockResolvedValueOnce(undefined);
+    const tool = findTool(tools, 'delete_domain_verification');
+    const result = await tool.handler({ id: '65f0c0ffee0123456789abcd' });
+
+    expect(http.del).toHaveBeenCalledWith('/api/v1/verifications/domain/65f0c0ffee0123456789abcd');
+    expect(result.isError).toBeFalsy();
+  });
+
+  it('delete_domain_verification takes only a domain id — a destructive call never leaves on a malformed one', () => {
+    const tool = findTool(tools, 'delete_domain_verification');
+    const input = z.object(tool.schema as z.ZodRawShape);
+
+    expect(input.safeParse({ id: '65f0c0ffee0123456789abcd' }).success).toBe(true);
+    for (const id of ['', 'dom_1', '../circles', '65f0c0ffee0123456789abc', '65f0c0ffee0123456789abcdz']) {
+      expect(input.safeParse({ id }).success).toBe(false);
+    }
+  });
+
+  it('delete_domain_verification reports a refused delete as an error', async () => {
+    const { ApiError } = await import('../src/http.js');
+    http.del.mockRejectedValueOnce(new ApiError('A verified domain cannot be deleted with an API key', 'domain_verified', 409));
+    const tool = findTool(tools, 'delete_domain_verification');
+    const result = await tool.handler({ id: '65f0c0ffee0123456789abcd' });
+
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain('domain_verified');
   });
 
   it('wait_for_verification polls until terminal state', async () => {
@@ -659,6 +690,32 @@ describe('settings tools', () => {
 
     expect(http.patch).toHaveBeenCalledWith('/api/v1/me/settings', {
       branding: { business_name: 'Test' },
+    });
+  });
+
+  it('update_settings accepts the webhook object the REST endpoint accepts', () => {
+    // The parity map records settings.update as `mcp: available`, and `parity:validate` compares
+    // tool NAMES and routes — never request shapes — so without this case the tool could stay
+    // narrower than the endpoint with every check green.
+    const tool = findTool(tools, 'update_settings');
+    expect(Object.keys(tool.schema).sort()).toEqual(['branding', 'proof_expiry_days', 'webhook']);
+
+    const webhook = tool.schema.webhook as unknown as { safeParse: (v: unknown) => { success: boolean } };
+    const parsed = webhook.safeParse({
+      url: 'https://receiver.example/hook',
+      events: ['proof.*'],
+      rotate_secret: false,
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it('update_settings PATCHes the webhook block through', async () => {
+    http.patch.mockResolvedValueOnce({ success: true });
+    const tool = findTool(tools, 'update_settings');
+    await tool.handler({ webhook: { url: 'https://receiver.example/hook' } });
+
+    expect(http.patch).toHaveBeenCalledWith('/api/v1/me/settings', {
+      webhook: { url: 'https://receiver.example/hook' },
     });
   });
 
@@ -1603,11 +1660,98 @@ describe('user requests tools', () => {
     expect(http.get).toHaveBeenCalledWith('/api/v1/me/verification-requests/incoming');
   });
 
+  // The body the controller stores, shared with the backend suite that answers it 201
+  // (`src/__tests__/controllers/me-agent-attribution.test.ts`).
+  const CREATE_USER_REQUEST_EXAMPLE = JSON.parse(
+    fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'create-user-request.json'), 'utf8'),
+  ) as Record<string, unknown>;
+
   it('create_user_request calls POST /api/v1/me/verification-requests', async () => {
     http.post.mockResolvedValueOnce({ id: 'req_1', status: 'pending' });
     const tool = findTool(tools, 'create_user_request');
-    await tool.handler({ assets: ['email'], action_type: 'verification' });
-    expect(http.post).toHaveBeenCalledWith('/api/v1/me/verification-requests', { assets: ['email'], action_type: 'verification' });
+    await tool.handler(CREATE_USER_REQUEST_EXAMPLE);
+    expect(http.post).toHaveBeenCalledWith('/api/v1/me/verification-requests', CREATE_USER_REQUEST_EXAMPLE);
+  });
+
+  it('create_user_request takes the body the API stores', () => {
+    const input = z.object(findTool(tools, 'create_user_request').schema as z.ZodRawShape);
+    expect(input.safeParse(CREATE_USER_REQUEST_EXAMPLE).success).toBe(true);
+  });
+
+  it.each([
+    ['asset types as bare strings', { assets: ['email'] }],
+    ['an asset type the API does not have', { assets: [{ type: 'passport' }] }],
+    ['an action type the API does not have', { assets: [{ type: 'email' }], action_type: 'onboarding' }],
+    ['a string action_context', { assets: [{ type: 'email' }], action_context: 'why we ask' }],
+    ['a validity requirement outside <n>h|d|w|m', { assets: [{ type: 'email' }], validity_requirement: 'recent' }],
+    ['a channel the API does not have', { assets: [{ type: 'email', channel: 'carrier-pigeon' }] }],
+    ['an allowed channel the API does not have', { assets: [{ type: 'phone', allowed_channels: ['sms', 'fax'] }] }],
+    ['an action_context title over 100 characters', { assets: [{ type: 'email' }], action_context: { title: 't'.repeat(101) } }],
+    ['an action_context description over 500 characters', { assets: [{ type: 'email' }], action_context: { description: 'd'.repeat(501) } }],
+    ['an action_context currency over 10 characters', { assets: [{ type: 'email' }], action_context: { currency: 'c'.repeat(11) } }],
+    ['an action_context entity over 200 characters', { assets: [{ type: 'email' }], action_context: { entity: 'e'.repeat(201) } }],
+    ['a reference_id over 255 characters', { assets: [{ type: 'email' }], reference_id: 'r'.repeat(256) }],
+    ['a redirect_url that is not https', { assets: [{ type: 'email' }], redirect_url: 'http://proof.holdings/done' }],
+    ['a callback_url that is not https', { assets: [{ type: 'email' }], callback_url: 'http://proof.holdings/hook' }],
+    ['a redirect_url over 2000 characters', { assets: [{ type: 'email' }], redirect_url: `https://proof.holdings/${'p'.repeat(1978)}` }],
+    ['a callback_url over 2000 characters', { assets: [{ type: 'email' }], callback_url: `https://proof.holdings/${'p'.repeat(1978)}` }],
+  ])('create_user_request refuses %s, which the API cannot store', (_label, body) => {
+    const input = z.object(findTool(tools, 'create_user_request').schema as z.ZodRawShape);
+    expect(input.safeParse(body).success).toBe(false);
+  });
+
+  // The API-key route's schema for the same body (`createVerificationRequestSchema`) holds these; the
+  // session route has no validator and reads an empty string as the field left out, so an empty
+  // identifier would ask the recipient for ANY email instead of the one meant.
+  it.each([
+    ['an empty identifier', { assets: [{ type: 'email', identifier: '' }] }],
+    ['an identifier over 500 characters', { assets: [{ type: 'email', identifier: 'i'.repeat(501) }] }],
+    ['more than 10 allowed channels', { assets: [{ type: 'phone', allowed_channels: Array(11).fill('sms') }] }],
+    ['an empty reference_id', { assets: [{ type: 'email' }], reference_id: '' }],
+    ['an empty public_profile_id', { assets: [{ type: 'email' }], public_profile_id: '' }],
+    ['a public_profile_id that is not a profile ID', { assets: [{ type: 'email' }], public_profile_id: 'not-an-object-id' }],
+    ['an empty action_context title', { assets: [{ type: 'email' }], action_context: { title: '' } }],
+    ['an action_context amount that is not positive', { assets: [{ type: 'email' }], action_context: { amount: 0 } }],
+  ])('create_user_request refuses %s, as the API-key route does', (_label, body) => {
+    const input = z.object(findTool(tools, 'create_user_request').schema as z.ZodRawShape);
+    expect(input.safeParse(body).success).toBe(false);
+  });
+
+  // The API-key route refuses these (`missing_action_context`); the session route does not, and would
+  // store a request that tells the recipient nothing about what they are approving.
+  it.each([
+    ['custom', undefined],
+    ['custom', {}],
+    ['confirmation', { description: 'Release 2.4 to production' }],
+  ])('create_user_request refuses a %s request whose action_context has no title, without calling the API', async (actionType, context) => {
+    const tool = findTool(tools, 'create_user_request');
+    const result = await tool.handler({ assets: [{ type: 'email' }], action_type: actionType, action_context: context }) as {
+      isError?: boolean; content: Array<{ text: string }>;
+    };
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/^missing_action_context: /);
+    expect(http.post).not.toHaveBeenCalled();
+  });
+
+  it('create_user_request sends a custom request that carries a title', async () => {
+    http.post.mockResolvedValueOnce({ id: 'req_1', status: 'pending' });
+    const body = { assets: [{ type: 'email' }], action_type: 'custom', action_context: { title: 'Approve the release' } };
+    await findTool(tools, 'create_user_request').handler(body);
+    expect(http.post).toHaveBeenCalledWith('/api/v1/me/verification-requests', body);
+  });
+
+  it('create_user_request takes channels and strings at the API’s own limits', () => {
+    const input = z.object(findTool(tools, 'create_user_request').schema as z.ZodRawShape);
+    const longest = `https://proof.holdings/${'p'.repeat(1977)}`;
+    expect(longest).toHaveLength(2000);
+    expect(input.safeParse({
+      assets: [{ type: 'phone', identifier: 'i'.repeat(500), channel: 'whatsapp', allowed_channels: Array(10).fill('sms') }],
+      reference_id: 'r'.repeat(255),
+      public_profile_id: '507f1f77bcf86cd799439011',
+      action_context: { title: 't'.repeat(100), description: 'd'.repeat(500), currency: 'c'.repeat(10), entity: 'e'.repeat(200) },
+      redirect_url: longest,
+      callback_url: longest,
+    }).success).toBe(true);
   });
 
   it('claim_request_assets calls POST /api/v1/me/verification-requests/:id/claim', async () => {
@@ -2124,6 +2268,30 @@ describe('render-auth-link tools', () => {
   });
 });
 
+describe('multi-channel billing claim (m-usage-overage-and-upgrade, SC-3)', () => {
+  /**
+   * This tool's description told agents "Quota is charged per channel" — false since the meter
+   * moved to proof ISSUANCE: one group can only ever produce ONE proof, and it is billed at
+   * whichever channel completes. The description is what an agent reads BEFORE calling, so a
+   * false billing claim here reaches a caller that never sees our docs.
+   *
+   * It is asserted HERE rather than in the issuer repo's own guard because this is where the
+   * registered tool RESOLVES: `findTool` returns the object the server hands out, so the claim is
+   * bound to the description in force. Scanning the source file instead would keep passing if the
+   * descriptions were ever centralised out of it — the tool name would stay behind and the
+   * sentence would leave.
+   */
+  it('tells agents one proof is billed, not one per channel', async () => {
+    const mod = await import('../src/tools/verifications.js');
+    const tools = captureTools(mod.registerTools, createMockHttp());
+    const tool = findTool(tools, 'create_multi_channel_verification');
+
+    expect(tool.description).toContain('Exactly one proof is billed');
+    expect(tool.description).toContain('not one per channel');
+    expect(tool.description.toLowerCase()).not.toContain('quota is charged');
+  });
+});
+
 // ============================================================
 // AUTH FLOWS
 // ============================================================
@@ -2313,8 +2481,8 @@ describe('proof-me tools', () => {
   let http: ReturnType<typeof createMockHttp>;
   let tools: RegisteredTool[];
 
-  const HITL_ID = '0123456789abcdef01234567';
-  const CHALLENGER_ID = 'fedcba9876543210fedcba98';
+  const CIRCLE_ID = '0123456789abcdef01234567';
+  const MEMBER_ID = 'fedcba9876543210fedcba98';
   const CHALLENGE_ID = 'aaaabbbbccccddddeeeeffff';
 
   beforeEach(async () => {
@@ -2323,71 +2491,21 @@ describe('proof-me tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 7 proof-me tools', () => {
-    expect(tools).toHaveLength(7);
+  it('registers both proof-me tools', () => {
+    expect(tools).toHaveLength(2);
     const names = tools.map(t => t.name);
-    expect(names).toContain('add_challenger');
-    expect(names).toContain('list_challengers');
-    expect(names).toContain('remove_challenger');
-    expect(names).toContain('invite_challenger');
-    expect(names).toContain('trigger_drill');
     expect(names).toContain('create_identity_challenge');
     expect(names).toContain('get_identity_challenge');
   });
 
-  it('add_challenger calls POST /api/v1/hitl/:id/challengers without hitl_id in body', async () => {
-    http.post.mockResolvedValueOnce({ id: CHALLENGER_ID, name: 'Alex' });
-    const tool = findTool(tools, 'add_challenger');
-    await tool.handler({ hitl_id: HITL_ID, name: 'Alex', channel: 'telegram' });
-
-    expect(http.post).toHaveBeenCalledWith(`/api/v1/hitl/${HITL_ID}/challengers`, {
-      name: 'Alex',
-      channel: 'telegram',
-    });
-  });
-
-  it('list_challengers calls GET /api/v1/hitl/:id/challengers', async () => {
-    http.get.mockResolvedValueOnce({ challengers: [] });
-    const tool = findTool(tools, 'list_challengers');
-    await tool.handler({ hitl_id: HITL_ID });
-
-    expect(http.get).toHaveBeenCalledWith(`/api/v1/hitl/${HITL_ID}/challengers`);
-  });
-
-  it('remove_challenger calls DELETE /api/v1/hitl/:id/challengers/:challengerId', async () => {
-    http.del.mockResolvedValueOnce({});
-    const tool = findTool(tools, 'remove_challenger');
-    await tool.handler({ hitl_id: HITL_ID, challenger_id: CHALLENGER_ID });
-
-    expect(http.del).toHaveBeenCalledWith(`/api/v1/hitl/${HITL_ID}/challengers/${CHALLENGER_ID}`);
-  });
-
-  it('invite_challenger calls POST .../challengers/invite with challenger_id', async () => {
-    http.post.mockResolvedValueOnce({ token: 'tok_abc' });
-    const tool = findTool(tools, 'invite_challenger');
-    await tool.handler({ hitl_id: HITL_ID, challenger_id: CHALLENGER_ID });
-
-    expect(http.post).toHaveBeenCalledWith(`/api/v1/hitl/${HITL_ID}/challengers/invite`, {
-      challenger_id: CHALLENGER_ID,
-    });
-  });
-
-  it('trigger_drill calls POST .../challengers/:challengerId/drill', async () => {
-    http.post.mockResolvedValueOnce({ id: CHALLENGE_ID, status: 'pending' });
-    const tool = findTool(tools, 'trigger_drill');
-    await tool.handler({ hitl_id: HITL_ID, challenger_id: CHALLENGER_ID });
-
-    expect(http.post).toHaveBeenCalledWith(`/api/v1/hitl/${HITL_ID}/challengers/${CHALLENGER_ID}/drill`);
-  });
-
-  it('create_identity_challenge calls POST /api/v1/identity-challenges', async () => {
+  it('create_identity_challenge calls POST /api/v1/identity-challenges with circle_id/member_id', async () => {
     http.post.mockResolvedValueOnce({ id: CHALLENGE_ID, status: 'pending' });
     const tool = findTool(tools, 'create_identity_challenge');
-    await tool.handler({ hitl_id: HITL_ID, challenger_id: CHALLENGER_ID });
+    await tool.handler({ circle_id: CIRCLE_ID, member_id: MEMBER_ID });
 
     expect(http.post).toHaveBeenCalledWith('/api/v1/identity-challenges', {
-      hitl_id: HITL_ID,
-      challenger_id: CHALLENGER_ID,
+      circle_id: CIRCLE_ID,
+      member_id: MEMBER_ID,
     });
   });
 
@@ -2401,10 +2519,26 @@ describe('proof-me tools', () => {
 
   it('returns error result on ApiError', async () => {
     http.post.mockRejectedValueOnce(new ApiError('Forbidden', 'forbidden', 403));
-    const tool = findTool(tools, 'add_challenger');
-    const result = await tool.handler({ hitl_id: HITL_ID, name: 'X', channel: 'telegram' }) as { isError?: boolean };
+    const tool = findTool(tools, 'create_identity_challenge');
+    const result = await tool.handler({ circle_id: CIRCLE_ID, member_id: MEMBER_ID }) as { isError?: boolean };
 
     expect(result.isError).toBe(true);
+  });
+});
+
+// ============================================================
+// HITL KEYS
+// ============================================================
+describe('hitl-keys tools', () => {
+  it('get_hitl_keys says what a key without hitl:read receives', async () => {
+    // GET /hitl/:id/keys answers a key holding confirmations:create but not hitl:read with
+    // { public_key, kid } only (src/controllers/hitl.ts) — the description must not promise it more.
+    const mod = await import('../src/tools/hitl-keys.js');
+    const tools = captureTools(mod.registerTools, createMockHttp());
+    const description = findTool(tools, 'get_hitl_keys').description;
+    expect(description).toMatch(/confirmations:create/);
+    expect(description).toMatch(/hitl:read/);
+    expect(description).toMatch(/only `public_key` and `kid`/);
   });
 });
 
@@ -2449,6 +2583,33 @@ describe('circles tools', () => {
     await tool.handler({ name: 'Family', proof_me_enabled: true });
 
     expect(http.post).toHaveBeenCalledWith('/api/v1/circles', { name: 'Family', proof_me_enabled: true });
+  });
+
+  it.each(['create_circle', 'update_circle'])('%s accepts the owner_name the REST endpoint accepts', (name) => {
+    // REST (createCircleSchema / updateCircleSchema) takes a nullable owner_name of at most 100
+    // characters; the handlers forward their args whole, so the schema is the only gate.
+    const tool = findTool(tools, name);
+    expect(Object.keys(tool.schema)).toContain('owner_name');
+    const ownerName = tool.schema.owner_name as unknown as { safeParse: (v: unknown) => { success: boolean } };
+    expect(ownerName.safeParse('Dad').success).toBe(true);
+    expect(ownerName.safeParse(null).success).toBe(true);
+    expect(ownerName.safeParse(undefined).success).toBe(true);
+    expect(ownerName.safeParse('x'.repeat(100)).success).toBe(true);
+    expect(ownerName.safeParse('x'.repeat(101)).success).toBe(false);
+  });
+
+  it('update_circle forwards owner_name, including null to clear it', async () => {
+    http.patch.mockResolvedValue({ id: CIRCLE_ID });
+    const tool = findTool(tools, 'update_circle');
+    await tool.handler({ id: CIRCLE_ID, owner_name: 'Dad' });
+    await tool.handler({ id: CIRCLE_ID, owner_name: null });
+
+    expect(http.patch).toHaveBeenNthCalledWith(1, `/api/v1/circles/${CIRCLE_ID}`, { owner_name: 'Dad' });
+    expect(http.patch).toHaveBeenNthCalledWith(2, `/api/v1/circles/${CIRCLE_ID}`, { owner_name: null });
+  });
+
+  it('update_circle no longer claims the name is the only mutable field', () => {
+    expect(findTool(tools, 'update_circle').description).not.toMatch(/Only the display name is mutable/);
   });
 
   it('list_circles calls GET /api/v1/circles with a filtered query', async () => {
@@ -2916,7 +3077,14 @@ describe('wait tools — defaults live under the MCP client request timeout', ()
     // quote/plus joinery removed rather than requiring one physical line.
     // …and the escape too: inside a single-quoted TS literal the apostrophe is written `\'`, which
     // is a property of the SOURCE, not of the string a caller reads.
-    expect(surfaceIn(httpSource.replace(/' \+\s*\n\s*'/g, '').replace(/\\'/g, "'"))).toBe(fromRefusal);
+    // EVERY copy in http.ts, not the first: `user_session_required` (m-mcp-release-drift-and-tool-hygiene)
+    // put a second one there, above `api_key_required`, and a first-match read would have silently
+    // stopped reading the older copy.
+    const httpCopies = [
+      ...httpSource.replace(/' \+\s*\n\s*'/g, '').replace(/\\'/g, "'").matchAll(/emails, phones,[^.);]*/g),
+    ].map((m) => m[0]);
+    expect(httpCopies).toHaveLength(2);
+    expect(httpCopies).toEqual([fromRefusal, fromRefusal]);
     expect(surfaceIn(instructions)).toBe(fromRefusal);
   });
 });

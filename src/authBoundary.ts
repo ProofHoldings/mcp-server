@@ -198,7 +198,11 @@ export function serverInstructions(context: AccessContext): string {
     return (
       `${opening} This connection is authenticated. Which tools work depends on the SCOPES of the key it ` +
       'carries, not on this server: a tool outside them answers 403 insufficient_scope naming the scope it ' +
-      'wanted, which is a different problem from needing an account.'
+      'wanted, which is a different problem from needing an account. A tool that answers user_session_required ' +
+      'needs a sign-in session as well as the key: a separate sign-in the user confirms on their phone or ' +
+      'email (start_login, then wait_for_login), which opens your own account records (emails, phones, ' +
+      "domains, API keys, 2FA, DNS credentials, verification requests, your public profile's username and " +
+      'proof list).'
     );
   }
 
@@ -366,8 +370,19 @@ export interface KeyedToolCall {
  * matches no tool at all — a typo must break a tool rather than open a hole. Anything that is not a
  * `tools/call` (the handshake, `tools/list`, notifications, an unparseable body) contributes
  * nothing, because refusing those is the arrangement the probe measured as a broken connection.
+ *
+ * `registered`, when the caller holds it, is the set of names the session's server answers to. A
+ * well-formed name outside it is then skipped rather than keyed, so the SDK refuses it as an unknown
+ * tool instead of the caller being sent to sign in over a typo (M9, live review 2026-09-26). That
+ * opens nothing — no registered tool answers to such a name — and the typo protection above still
+ * holds, since a keyed tool missing from `KEYLESS_TOOLS` is registered and therefore still keyed.
+ * One bound, stated rather than implied: the SDK looks the name up in a plain object, so an
+ * inherited name (`constructor`, `toString`) resolves to a prototype member, not to nothing, and what
+ * refuses it is the SDK's own `enabled` check ("Tool constructor disabled") — a property of the
+ * dependency, not of this gate.
+ * Without the set (the opening request, before any server exists) the rule stays fully fail-closed.
  */
-export function keyedToolsIn(body: unknown): KeyedToolCall[] {
+export function keyedToolsIn(body: unknown, registered?: ReadonlySet<string>): KeyedToolCall[] {
   const messages = Array.isArray(body) ? body : [body];
   const keyed: KeyedToolCall[] = [];
 
@@ -389,6 +404,7 @@ export function keyedToolsIn(body: unknown): KeyedToolCall[] {
       keyed.push({ name: MALFORMED_TOOL_NAME, malformed: true });
       continue;
     }
+    if (registered && !registered.has(name)) continue;
     if (!KEYLESS_TOOLS.has(name)) keyed.push({ name, malformed: false });
   }
 

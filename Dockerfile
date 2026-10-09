@@ -4,30 +4,25 @@
 # away from the backend's code, its secrets and its filesystem (the spawn boundary, SC-6). It runs
 # in PUBLIC MODE — no API key is baked in and none is read from requests.
 #
-# BUILD CONTEXT IS THE REPOSITORY ROOT, not `mcp/`:
-#     docker build -f mcp/Dockerfile -t proof-mcp-remote:latest .
-# The reason is `@proof-holdings/delegation-verifier`, a runtime dependency of `mcp/package.json`.
-# While the registry cannot resolve the range it declares, a build from `mcp/` alone dies at
-# `npm ci` with a 404 — verified, not assumed — so the verifier is built from the sibling directory
-# and the specifier is repointed at it, the same arrangement `mcp-tests` and `verifier-tests` use in
-# CI. That is a workaround with an end date: once the verifier is on npm this stage collapses back
-# to a plain `npm ci` inside `mcp/`. Retiring it is a step of the release sequence in
-# `docs/runbooks/npm-release.md`, alongside the CI jobs that repoint for the same reason — not
-# something publication does by itself, and nothing here goes red when it becomes unnecessary.
+# BUILD CONTEXT IS `mcp/`:
+#     docker build -f mcp/Dockerfile -t proof-mcp-remote:latest mcp
+# Everything the image needs is this package and what its lockfile names — including
+# `@proof-holdings/delegation-verifier`, installed from the registry like any other dependency.
+# The context cannot reach the backend, so nothing of it can enter the image; `mcp/.dockerignore`
+# is the ignore file that governs it. (Until 2026-10 the context was the repository root, so the
+# then-unpublished verifier could be built as a sibling; `docs/runbooks/npm-release.md` §8 step 8.)
 #
 # Stage 1: Build
 FROM node:22-alpine AS builder
 WORKDIR /build
 
-COPY packages/delegation-verifier ./packages/delegation-verifier
-RUN npm ci --prefix packages/delegation-verifier \
- && npm run --prefix packages/delegation-verifier build
+# The manifest and lockfile first, so the install layer is reused while only the source changes.
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
-COPY mcp ./mcp
-RUN npm pkg set 'dependencies.@proof-holdings/delegation-verifier=file:../packages/delegation-verifier' --prefix mcp \
- && npm install --prefix mcp --no-audit --no-fund \
- && npm run --prefix mcp build \
- && npm prune --omit=dev --prefix mcp
+COPY . .
+RUN npm run build \
+ && npm prune --omit=dev
 
 # Stage 2: Production (minimal image)
 FROM node:22-alpine AS runner
@@ -41,12 +36,12 @@ RUN apk upgrade --no-cache
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 appuser
 
-# Both directories, and in this layout: the installed dependency is a link to the sibling path, so
-# moving either one alone leaves a dangling module.
-COPY --from=builder --chown=appuser:nodejs /build/packages/delegation-verifier ./packages/delegation-verifier
-COPY --from=builder --chown=appuser:nodejs /build/mcp ./mcp
+COPY --from=builder --chown=appuser:nodejs /build ./
 
-WORKDIR /app/mcp
+# The server runs with `node`; the npm CLI the base image bundles is unused here and carried all
+# but one of the HIGH findings Trivy reported on this image. Removed as root, before USER.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx
+
 USER appuser
 EXPOSE 3100
 

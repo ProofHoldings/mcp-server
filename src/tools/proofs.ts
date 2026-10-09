@@ -67,7 +67,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'list_revoked_proofs',
-    'Get the revocation list for offline proof validation. Returns a signed list of all revoked proof IDs, cacheable for 5 minutes.',
+    'Get the revocation list for offline proof validation. Returns a signed list of all revoked proof IDs. Reuse a fetched list for up to 5 minutes (its cache lifetime), then fetch it again to see new revocations; if you cannot, its signature stays verifiable offline for 1 hour.',
     {},
     async () => {
       try {

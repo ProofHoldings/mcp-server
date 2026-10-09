@@ -7,7 +7,7 @@ import { ApiError } from '../http.js';
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'get_current_user',
-    'Get the current authenticated user. Returns account details, plan, and settings for the API key owner.',
+    'Get the signed-in user\'s account details, plan and settings. Needs a login session: call start_login, then wait_for_login until it reports success. An API key alone cannot read this — for the key\'s own account use get_self_api_key or get_settings.',
     {},
     async () => {
       try {

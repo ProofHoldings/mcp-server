@@ -47,7 +47,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_settings',
-    'Get account settings including branding configuration (business name, logo, colors, support email, email theme).',
+    'Get account settings: branding (business name, logo, colors, support email, email theme), the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. The webhook signing secret is NOT returned to an API key — the response reports webhook.secret_set instead, and the value itself is visible only in the dashboard or in the update_settings response that created or rotated it.',
     {},
     async () => {
       try {
@@ -62,7 +62,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'update_settings',
-    'Update account settings. Currently supports branding configuration.',
+    'Update account settings: branding, the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Setting the first webhook endpoint creates the signing secret and returns it in this response; the value is returned only when this call created or rotated it, so record it then.',
     {
       branding: z.object({
         business_name: z.string().max(100).optional().describe('Business name displayed in verifications'),
@@ -71,6 +71,12 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         support_email: z.string().email().optional().describe('Support email shown in verification messages'),
         email_theme: z.enum(['dark', 'light']).optional().describe('Email template theme'),
       }).optional().describe('Branding settings to update'),
+      webhook: z.object({
+        url: z.string().url().max(2000).nullable().optional().describe('HTTPS endpoint outbound webhooks are delivered to, at most 2000 characters; null removes it. Private, loopback and link-local addresses are refused.'),
+        events: z.array(z.string()).max(32).optional().describe('Subscription patterns: an exact event type, a family wildcard such as "proof.*", or "*". An empty list means every event.'),
+        rotate_secret: z.boolean().optional().describe('Replace the signing secret and return the new value. The previous value stops verifying immediately.'),
+      }).optional().describe('Outbound webhook configuration. Deliveries carry an HMAC-SHA256 X-Proof-Signature over "<X-Proof-Timestamp>.<body>".'),
+      proof_expiry_days: z.number().int().min(1).max(365).optional().describe('Default proof-token lifetime in days for newly issued proofs'),
     },
     async (args) => {
       try {
@@ -140,7 +146,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_api_key_usage',
-    'Get per-API-key usage for a given key id: verification counts by type/channel/status, plus verification-request/confirmation/authorization totals, and attribution context (attribution_cutoff_at, attributed_fraction). Counts only — no recipient identifiers. Scoped to the authenticated account; an API-key caller may read only its own key.',
+    'Get per-API-key usage for a given key id: verification counts by type/channel/status, plus verification-request/confirmation/authorization totals, and attribution context (attribution_cutoff_at, attributed_fraction). The counts cover the key and every key it replaced (api_key.replaced_key_ids). Counts only — no recipient identifiers. Scoped to the authenticated account; an API-key caller may read only its own key.',
     {
       id: z.string().describe('The API key id to fetch usage for'),
       environment: z.enum(['production', 'test']).optional().describe('Scope metrics to test or production data (default: production)'),

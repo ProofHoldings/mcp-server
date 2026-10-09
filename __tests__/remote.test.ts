@@ -318,6 +318,26 @@ describe('remote server — SC-4: an anonymous handshake is told how to sign in'
     expect(byName.get('list_emails')).toContain('sign in with start_login');
     expect(byName.get('render_auth_link')).not.toContain('ACCESS:');
   });
+
+  it('tools/list carries each tool\'s annotations, which is what a client gates approval on (M5)', async () => {
+    const { url } = await start();
+    const sessionId = await openSession(url);
+
+    const listed = await fetch(`${url}/mcp`, {
+      method: 'POST',
+      headers: { ...MCP_HEADERS, 'mcp-session-id': sessionId },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }),
+    });
+    const tools = eventStreamPayloads(await listed.text())
+      .flatMap((message) => (message as { result?: { tools?: Array<{ name: string; annotations?: unknown }> } }).result?.tools ?? []);
+    const byName = new Map(tools.map((t) => [t.name, t.annotations]));
+
+    expect(tools.length).toBeGreaterThan(100);
+    expect(tools.filter((t) => t.annotations === undefined).map((t) => t.name)).toEqual([]);
+    expect(byName.get('list_emails')).toEqual({ readOnlyHint: true });
+    expect(byName.get('revoke_api_key')).toEqual({ readOnlyHint: false, destructiveHint: true });
+    expect(byName.get('create_circle')).toEqual({ readOnlyHint: false, destructiveHint: false });
+  });
 });
 
 describe('remote server — SC-1: a refused tool call is a refusal, not work', () => {
@@ -344,6 +364,29 @@ describe('remote server — SC-1: a refused tool call is a refusal, not work', (
     // would push this out; one that kept the in-flight slot would make the sweeper skip it.
     await new Promise((resolve) => setTimeout(resolve, 300));
     expect(remote.sessionCount()).toBe(0);
+  });
+});
+
+describe('remote server — M9: a mistyped tool is answered as a mistyped tool', () => {
+  it('an anonymous call to a name the server does not register reaches the SDK, not the sign-in challenge', async () => {
+    const { url } = await start();
+    const sessionId = await openSession(url);
+
+    const called = await callTool(url, sessionId, 'get_public_profile');
+    const body = await called.text();
+
+    expect(called.status).toBe(200);
+    expect(called.headers.get('www-authenticate')).toBeNull();
+    const result = eventStreamPayloads(body)
+      .map((m) => (m as { result?: { isError?: boolean; content?: Array<{ text: string }> } }).result)
+      .find((r) => r !== undefined);
+    expect(result?.isError).toBe(true);
+    expect(result?.content?.[0]?.text).toContain('get_public_profile');
+
+    // Control: a registered tool that needs an account is still refused with the challenge.
+    const keyed = await callTool(url, sessionId, 'get_platform_summary');
+    await keyed.text();
+    expect(keyed.status).toBe(401);
   });
 });
 
@@ -797,16 +840,43 @@ describe('remote server — a call that names no tool is not told to sign in', (
     // The placeholder shares a namespace with caller input, so deciding at the refusal by comparing
     // strings answers "this call named no tool" to somebody who named one. Measured: with the
     // decision made by string comparison instead of the flag, every other case stayed green.
+    //
+    // Driven through the OPENING batch: on an open session an unregistered name no longer reaches
+    // the refusal at all (M9 — it is answered by the SDK as an unknown tool), so that path cannot
+    // tell the flag from a string comparison. The opening request has no server yet and stays fully
+    // fail-closed, so the placeholder still meets `refusalFor` there.
     const { url } = await start();
-    const sessionId = await openSession(url);
 
-    const response = await callTool(url, sessionId, MALFORMED_TOOL_NAME);
+    const response = await fetch(`${url}/mcp`, {
+      method: 'POST',
+      headers: MCP_HEADERS,
+      body: JSON.stringify([
+        INIT_BODY,
+        { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: MALFORMED_TOOL_NAME, arguments: {} } },
+      ]),
+    });
     const body = JSON.parse(await response.text());
 
     expect(response.status).toBe(401);
     // An unknown tool needing an account — not a statement about a message they did not send.
     expect(body.error).toBe('authorization_required');
     expect(body.error_description).toContain('CALL THE TOOL AGAIN');
+  });
+
+  it('and on an open session that placeholder is answered as the unknown name it is', async () => {
+    const { url } = await start();
+    const sessionId = await openSession(url);
+
+    const response = await callTool(url, sessionId, MALFORMED_TOOL_NAME);
+    const text = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(text).not.toContain('named no tool');
+    const result = eventStreamPayloads(text)
+      .map((m) => (m as { result?: { isError?: boolean; content?: Array<{ text: string }> } }).result)
+      .find((r) => r !== undefined);
+    expect(result?.isError).toBe(true);
+    expect(result?.content?.[0]?.text).toContain(MALFORMED_TOOL_NAME);
   });
 });
 

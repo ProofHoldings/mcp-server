@@ -7,7 +7,7 @@ import { ApiError } from '../http.js';
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'get_hitl_keys',
-    'Get the encryption keypair for a HITL config. Returns public key, encrypted private key, KDF salt, and key ID (kid).',
+    'Get the encryption keypair for a HITL config. With `hitl:read` it returns the public key, encrypted private key, KDF salt, and key ID (kid). A key holding `confirmations:create` without `hitl:read` receives only `public_key` and `kid` — what a confirmation message is sealed to, never the private-key material.',
     {
       hitl_id: z.string().describe('HITL config ID'),
     },

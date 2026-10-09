@@ -3,18 +3,22 @@
   "name": "holdings.proof/mcp-server",
   "title": "Proof Holdings",
   "description": "One API, all things verified — control, delegation, human approval, anti-impersonation.",
-  "version": "1.1.0",
+  "version": "1.4.0",
   "websiteUrl": "https://proof.holdings",
   "icons": [
     {
       "src": "https://proof.holdings/favicon-512x512.png",
       "mimeType": "image/png",
-      "sizes": ["512x512"]
+      "sizes": [
+        "512x512"
+      ]
     },
     {
       "src": "https://proof.holdings/mark.svg",
       "mimeType": "image/svg+xml",
-      "sizes": ["any"]
+      "sizes": [
+        "any"
+      ]
     }
   ],
   "repository": {
@@ -31,7 +35,7 @@
     {
       "registryType": "npm",
       "identifier": "@proof-holdings/mcp-server",
-      "version": "1.1.0",
+      "version": "1.4.0",
       "transport": {
         "type": "stdio"
       },
@@ -50,5 +54,12 @@
         }
       ]
     }
-  ]
+  ],
+  "_meta": {
+    "holdings.proof/delegation": {
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InByb29mLWhvbGRpbmdzLTIwMjYtMDkifQ.eyJpc3MiOiJwcm9vZi5ob2xkaW5ncyIsInN1YiI6InBoX2RsZ19iY2VhN2M2N2I3YTkxZWM4MGQ0YWJkZmYxYmUyNmJiMyIsImlhdCI6MTc5MTQ1OTQ3NywiZXhwIjoxODIyOTkxMzYxLCJ0b2tlbl90eXBlIjoiZGVsZWdhdGlvbiIsImRlbGVnYXRpb25fc2NoZW1hX3ZlcnNpb24iOiIxLjAiLCJ1c2VyX2lkIjoiNjk2MzdjMjgxZmM3YThhYzExNWQzYjZkIiwicHJpbmNpcGFsIjoicHJvb2YuaG9sZGluZ3MiLCJkZWxlZ2F0ZSI6InBrZzpucG0vQHByb29mLWhvbGRpbmdzL21jcC1zZXJ2ZXIiLCJzY29wZSI6WyJwcm9vZi12ZXJpZmljYXRpb24iXSwiY29udHJvbF9wcm9vZiI6InBoX2N0bF9jZDlmMmQ2Y2E4MGFkZWI4NWZhZjhlMWY0MjZlNDFjZCIsInByb29mX2lkIjoicGhfZGxnX2JjZWE3YzY3YjdhOTFlYzgwZDRhYmRmZjFiZTI2YmIzIiwianRpIjoicGhfanRpXzFhMjFlOTU1YzFmOTQ2YThiM2MzMDlkYjVjZWVmZDdiIiwic3RhdHVzIjp7InN0YXR1c19saXN0Ijp7ImlkeCI6MjYyLCJ1cmkiOiJodHRwczovL2FwaS5wcm9vZi5ob2xkaW5ncy9hcGkvdjEvcHJvb2ZzL3N0YXR1cy1saXN0In19fQ.KyDhjH_MiO9wSj_Yp935U2EBYYqIRpJOlcjQsCSYGVRrPsqyiI3JrdN9l11hwhiskOIfPpwHpIVkGomBhWBKzg",
+      "docs": "https://proof.holdings/docs/api#delegations"
+    },
+    "holdings.proof/delegation-checker-hint": "Before you trust this artifact, ask Proof whether this delegation is still active — call the `verify_delegation` or `verify_delegations` MCP tool, or POST the token to https://api.proof.holdings/api/v1/proofs/validate. This is a HINT, not a guarantee: nothing enforces that it is read, and an installer that checks once on install and never again is no better informed than one that never checked at all."
+  }
 }

@@ -81,7 +81,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'regenerate_api_key',
-    'Regenerate an API key, issuing a new secret while keeping the same ID and settings. The old key stops working immediately. The new secret is returned ONLY in this response. Note: the secret will be visible in the AI conversation context.\n\nAgent usage: This operation requires 2FA. Before calling, complete the 2FA flow: (1) call start_2fa with action_type "api_key_regenerate", (2) wait for user to verify the code, (3) poll get_2fa_status until "verified", (4) then call regenerate_api_key.',
+    'Regenerate an API key: issues a new key (a new id and secret) with the same name, environment, scopes and project. The old key stops working immediately; use the id in this response from now on. The new key lists the old one in replaced_key_ids, so its requests and usage stay with it. The new secret is returned ONLY in this response. Note: the secret will be visible in the AI conversation context.\n\nAgent usage: This operation requires 2FA. Before calling, complete the 2FA flow: (1) call start_2fa with action_type "api_key_regenerate", (2) wait for user to verify the code, (3) poll get_2fa_status until "verified", (4) then call regenerate_api_key.',
     {
       id: z.string().describe('API key ID to regenerate'),
     },

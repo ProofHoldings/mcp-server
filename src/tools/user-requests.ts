@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, errorResult, VERIFICATION_CHANNEL_VALUES } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -37,20 +37,64 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'create_user_request',
-    'Create a new verification request to ask another user to share verified assets.',
+    'Create a new verification request to ask another user to share verified assets. Each asset is an object naming its type, e.g. { "type": "email" }.',
     {
-      assets: z.array(z.string()).min(1).max(10).describe('Asset type identifiers to request (e.g. email, phone, identity)'),
-      reference_id: z.string().optional().describe('External reference ID for tracking'),
-      public_profile_id: z.string().optional().describe('Public profile ID for branding'),
-      action_type: z.enum(['verification', 'onboarding', 'compliance']).optional().describe('Purpose of the request (default: verification)'),
-      action_context: z.string().optional().describe('Additional context about why assets are needed'),
-      validity_requirement: z.string().optional().describe('Required validity level for shared assets'),
+      // The enums and the string caps and patterns below are the API model's own
+      // (src/models/VerificationRequest.ts), held equal by
+      // src/__tests__/drift/mcp-user-request-contract.test.ts: a value outside them is a request the API
+      // cannot store, and only this schema can tell the agent which field it was. The rest is compared
+      // with its source by no test: the asset count and the expiry bound are the controller's own
+      // checks, and the non-empty strings, the identifier and channel-list caps, the profile ID format
+      // and the positive amount are the API-key route's rules for the same body
+      // (`createVerificationRequestSchema`) — this route has no validator and reads an empty string as
+      // the field left out.
+      assets: z
+        .array(
+          z.object({
+            type: z.enum(['phone', 'email', 'domain', 'social', 'wallet', 'telegram_bot']).describe('What to verify'),
+            identifier: z.string().min(1).max(500).optional().describe('The exact value to verify (e.g. an email address); omit to let the recipient choose'),
+            channel: z.enum(VERIFICATION_CHANNEL_VALUES).optional().describe('Verification channel to use for this asset'),
+            allowed_channels: z.array(z.enum(VERIFICATION_CHANNEL_VALUES)).max(10).optional().describe('Channels the recipient may choose from'),
+            required: z.boolean().optional().describe('Whether this asset must be verified (default: true)'),
+          }),
+        )
+        .min(1)
+        .max(10)
+        .describe('Assets to request, e.g. [{ "type": "email" }, { "type": "phone", "required": false }]'),
+      reference_id: z.string().min(1).max(255).optional().describe('External reference ID for tracking'),
+      public_profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Public profile ID for branding'),
+      action_type: z
+        .enum(['verification', '2fa', 'login', 'custom', 'confirmation', 'authorization'])
+        .optional()
+        .describe('Purpose of the request (default: verification); custom and confirmation also need an action_context title'),
+      action_context: z
+        .object({
+          title: z.string().min(1).max(100),
+          description: z.string().min(1).max(500),
+          amount: z.number().positive(),
+          currency: z.string().min(1).max(10),
+          entity: z.string().min(1).max(200),
+        })
+        .partial()
+        .optional()
+        .describe('What the recipient is shown about why the assets are needed, e.g. { "title": "Confirm your contact details" }'),
+      validity_requirement: z
+        .string()
+        .regex(/^\d+[hdwm]$/)
+        .optional()
+        .describe('How recently an existing proof must have been verified for the recipient to reuse it: a number and a unit, h hours, d days, w weeks or m months (30 days), e.g. "24h", "7d", "1m"'),
       partial_ok: z.boolean().optional().describe('Whether partial asset sharing is acceptable (default: false)'),
-      redirect_url: z.string().url().optional().describe('URL to redirect the subject after completing the request'),
-      callback_url: z.string().url().optional().describe('Webhook URL for request status updates'),
-      expires_in_hours: z.number().int().min(1).max(720).optional().describe('Hours until request expires (default: 24)'),
+      redirect_url: z.string().url().regex(/^https:\/\//).max(2000).optional().describe('HTTPS URL to redirect the subject after completing the request'),
+      callback_url: z.string().url().regex(/^https:\/\//).max(2000).optional().describe('HTTPS webhook URL for request status updates'),
+      expires_in_hours: z.number().int().min(1).max(720).optional().describe('Hours until request expires (default: 168, i.e. 7 days)'),
     },
     async (args) => {
+      // The API-key route refuses these (`missing_action_context` in src/middleware/validate.ts); the
+      // session route does not, and would store a request that tells the recipient nothing about what
+      // they are approving. A rule across two fields, so it cannot live in the schema above.
+      if ((args.action_type === 'custom' || args.action_type === 'confirmation') && !args.action_context?.title) {
+        return errorResult(`missing_action_context: Action type '${args.action_type}' requires action_context with at least a title`);
+      }
       try {
         const result = await http.post('/api/v1/me/verification-requests', args);
         return jsonResult(result);

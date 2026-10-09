@@ -55,6 +55,27 @@ export function errorResult(message: string) {
  */
 export const WAIT_DEFAULT_SECONDS = 50;
 
+/**
+ * Carried by every description that hands a person a challenge to act on (W7, walkthrough
+ * 2026-10-02). A tool result reaches the model, not the human — Claude Code folds it away — so an
+ * agent that "presented" a link through `render_auth_link` and then waited left the person staring
+ * at "sending the link…" until the session expired. `tool-descriptions.test.ts` derives who must
+ * carry this from the descriptions themselves.
+ */
+export const CHALLENGE_IN_REPLY =
+  "The user does not see tool results — most clients fold them away, render_auth_link's output included. " +
+  'Before you wait or poll, put what the user must act on into your own reply text: the link itself (not a ' +
+  'sentence announcing it), the SMS text and number, or a note to check their inbox.';
+
+/**
+ * The waiting side of `CHALLENGE_IN_REPLY`. Conditional, because the same waits also serve
+ * challenges this agent never showed (a verification created elsewhere, a status check).
+ */
+export const WAIT_AFTER_REPLY =
+  'Before calling this for a challenge you created, make sure your reply text already shows the user what to ' +
+  'act on — the link itself, the SMS text and number, or a note to check their inbox; a link that appeared ' +
+  'only in a tool result is one they never saw.';
+
 // Polling contract: docs/POLLING_CONTRACT.md
 const POLL_INITIAL_INTERVAL_MS = 2000;
 const POLL_BACKOFF_FACTOR = 1.5;

@@ -27,7 +27,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       partial_ok: z.boolean().optional().describe('Allow partial completion (default: false)'),
       redirect_url: z.string().optional().describe('URL to redirect user after verification completes (HTTPS only)'),
       callback_url: z.string().optional().describe('Webhook URL for status updates (HTTPS only)'),
-      expires_in: z.number().int().positive().optional().describe('Request expiry in seconds (default: 86400, max: 604800)'),
+      expires_in: z.number().int().positive().optional().describe('Request expiry in seconds (default: 604800, i.e. 7 days; max: 2592000, i.e. 30 days)'),
       public_profile_id: z.string().optional().describe('Public profile ID for branding'),
       proof_expiry_days: z.number().int().optional().describe('Per-request proof expiry override in days (7, 30, 90, or 365)'),
     },

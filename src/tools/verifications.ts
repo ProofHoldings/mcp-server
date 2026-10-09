@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, pollUntilTerminal, credentialsSchema, VERIFICATION_TYPE_VALUES, VERIFICATION_CHANNEL_VALUES, WAIT_DEFAULT_SECONDS } from '../types.js';
+import { jsonResult, errorResult, pollUntilTerminal, credentialsSchema, VERIFICATION_TYPE_VALUES, VERIFICATION_CHANNEL_VALUES, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'create_verification',
-    'Create a new identity verification. Initiates a verification flow for an asset identifier (phone number, email, domain, social handle, wallet address, account, or Telegram bot).\n\nAgent usage: pass the asset `type`, the delivery `channel`, and the `identifier` (e.g. type "phone", channel "sms", identifier "+37060000000"; or type "email", channel "email", identifier "user@example.com"). The response carries a `challenge` object with the instruction for the chosen channel — except a `telegram_bot` verification made with a LIVE key, which the server completes on the spot and answers with `status: verified` plus a proof token and no challenge at all; with a `pk_test_` key that same call stays pending and does carry a challenge. On the messenger channels it also carries `challenge.deep_link` — pass THAT to render_auth_link to give the user a clickable link and a QR code. This endpoint returns no `qr_text` at all. For OTP-based flows (sms/email), the user receives a code — poll get_verification or use wait_for_verification to track completion. For Telegram/WhatsApp, the user clicks the deep link to verify.',
+    'Create a new identity verification. Initiates a verification flow for an asset identifier (phone number, email, domain, social handle, wallet address, account, or Telegram bot).\n\nAgent usage: pass the asset `type`, the delivery `channel`, and the `identifier` (e.g. type "phone", channel "sms", identifier "+37060000000"; or type "email", channel "email", identifier "user@example.com"). The response carries a `challenge` object with the instruction for the chosen channel — except a `telegram_bot` verification made with a LIVE key, which the server completes on the spot and answers with `status: verified` plus a proof token and no challenge at all; with a `pk_test_` key that same call stays pending and does carry a challenge. On the messenger channels it also carries `challenge.deep_link` — pass THAT to render_auth_link to give the user a clickable link and a QR code. This endpoint returns no `qr_text` at all. For OTP-based flows (sms/email), the user receives a code — poll get_verification or use wait_for_verification to track completion. For Telegram/WhatsApp, the user clicks the deep link to verify.\n\n' + CHALLENGE_IN_REPLY,
     {
       type: z.enum(VERIFICATION_TYPE_VALUES).describe('Asset type being verified'),
       channel: z.enum(VERIFICATION_CHANNEL_VALUES).describe('Verification channel (must match the asset type, e.g. sms/whatsapp/telegram for phone)'),
@@ -32,7 +32,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_verification',
-    'Get a verification by ID. Returns the full verification object including status, channel, and proof token if verified.',
+    'Get a verification by ID. Returns the full verification object including status, channel, and proof token if verified.\n\n' + WAIT_AFTER_REPLY,
     {
       id: z.string().describe('Verification ID'),
     },
@@ -223,8 +223,27 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   );
 
   tool(
+    'delete_domain_verification',
+    'Delete a domain verification that has not been verified (pending or failed). A verified domain is refused with domain_verified: removing it would revoke its control proof and every delegation issued from it, so that is done from the dashboard.',
+    {
+      // Validated here rather than left to the REST 400: this tool is destructive, so a malformed
+      // id never leaves the client.
+      id: z.string().regex(/^[0-9a-fA-F]{24}$/).describe('Domain verification ID (24 hex characters)'),
+    },
+    async ({ id }) => {
+      try {
+        await http.del(`/api/v1/verifications/domain/${encodeURIComponent(id)}`);
+        return jsonResult({ deleted: true, id });
+      } catch (e) {
+        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        throw e;
+      }
+    },
+  );
+
+  tool(
     'wait_for_verification',
-    'Poll a verification until it reaches a terminal state (verified, failed, expired, revoked, or cancelled). Uses exponential backoff (2s initial, 1.5x, 30s max) with jitter.\n\nA multi-channel verification that lost the race is "cancelled" and one whose proof was withdrawn is "revoked"; both are final, so the wait returns rather than polling on.',
+    'Poll a verification until it reaches a terminal state (verified, failed, expired, revoked, or cancelled). Uses exponential backoff (2s initial, 1.5x, 30s max) with jitter.\n\nA multi-channel verification that lost the race is "cancelled" and one whose proof was withdrawn is "revoked"; both are final, so the wait returns rather than polling on.\n\n' + WAIT_AFTER_REPLY,
     {
       id: z.string().describe('Verification ID to poll'),
       timeout_seconds: z.number().int().min(1).max(300).optional().describe(`Maximum wait time in seconds (default: ${WAIT_DEFAULT_SECONDS}, max: 300). Keep it under your MCP client's request timeout (the SDK default is 60 s) — a longer wait is cut off by the client while the server is still polling. On timeout the tool answers status "pending"; call it again with the same identifier.`),
@@ -253,7 +272,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'create_multi_channel_verification',
-    'Create a multi-channel phone verification: one phone number challenged over several channels at once (OR / first-wins). The first channel the user completes wins, yields a single proof token, and cancels the losing siblings. Quota is charged per channel.\n\nAgent usage: the response includes a `group_id` (format vg_<hex>) and a `channels` array — each block carries a `deep_link` (WhatsApp/Telegram) or an `sms_message` to present to the user — pass the `deep_link` to render_auth_link. A block\'s `qr_text` is that same link already rendered as QR art, not an alternative address: print it verbatim inside a fenced code block or leave it out. Poll get_multi_channel_verification_status with the group_id to track completion and retrieve the proof token when a channel verifies.',
+    'Create a multi-channel phone verification: one phone number challenged over several channels at once (OR / first-wins). The first channel the user completes wins, yields a single proof token, and cancels the losing siblings. Exactly one proof is billed, at the winning channel\'s completion — not one per channel, and nothing at creation.\n\nAgent usage: the response includes a `group_id` (format vg_<hex>) and a `channels` array — each block carries a `deep_link` (WhatsApp/Telegram) or an `sms_message` to present to the user — pass the `deep_link` to render_auth_link. A block\'s `qr_text` is that same link already rendered as QR art, not an alternative address: print it verbatim inside a fenced code block or leave it out. Poll get_multi_channel_verification_status with the group_id to track completion and retrieve the proof token when a channel verifies.\n\n' + CHALLENGE_IN_REPLY,
     {
       type: z.enum(['phone']).describe('Asset type — only "phone" is supported'),
       identifier: z.string().min(1).max(500).describe('Phone number in E.164 format'),
@@ -275,7 +294,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_multi_channel_verification_status',
-    'Get the status of a multi-channel verification group by its group_id. Returns the aggregate status (pending/verified/expired), the winning_channel once one completes, per-channel statuses, and the proof token (with expires_at) when the group is verified.',
+    'Get the status of a multi-channel verification group by its group_id. Returns the aggregate status (pending/verified/expired), the winning_channel once one completes, per-channel statuses, and the proof token (with expires_at) when the group is verified.\n\n' + WAIT_AFTER_REPLY,
     {
       group_id: z.string().describe('Multi-channel verification group ID (format vg_<hex>)'),
     },

@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { verifyDelegation, verifyPublishedDelegation } from '@proof-holdings/delegation-verifier';
-import type { TrustedIssuer, VerifyOptions, VerificationResult } from '@proof-holdings/delegation-verifier';
+import type {
+  TrustedIssuer,
+  VerificationFailure,
+  VerifyOptions,
+  VerificationResult,
+} from '@proof-holdings/delegation-verifier';
 import type { ToolRegistrar } from '../types.js';
 import { jsonResult, errorResult } from '../types.js';
 import { FAILURE_REASON_OUTCOME } from './delegation-verify-outcomes.js';
@@ -76,6 +81,22 @@ export function verifyOneDelegation(item: DelegationVerifyItem, baseUrl: string)
     : verifyDelegation(item.token as string, verifyOptions);
 }
 
+/**
+ * The key-rotation hints a failure may carry, in this tool's snake_case: where to pull a
+ * re-signed token after `key_revoked`, and how stale the key set is after `jwks_stale`.
+ */
+export function rotationHints(result: VerificationFailure): Record<string, unknown> {
+  return {
+    ...(result.pullHint && {
+      pull_hint: { issuer_origin: result.pullHint.issuerOrigin, handle: result.pullHint.handle },
+    }),
+    ...(result.cacheAgeSeconds !== undefined && { cache_age_seconds: result.cacheAgeSeconds }),
+    ...(result.refreshHint && {
+      refresh_hint: { jwks_uri: result.refreshHint.jwksUri, method: result.refreshHint.method },
+    }),
+  };
+}
+
 export function registerTools(tool: ToolRegistrar, options: { baseUrl: string }) {
   tool(
     'verify_delegation',
@@ -131,6 +152,7 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
             reason: result.reason,
             outcome: result.outcome,
             message: result.message,
+            ...rotationHints(result),
           });
         }
 
@@ -215,6 +237,7 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
               outcome: FAILURE_REASON_OUTCOME[result.reason],
               reason: result.reason,
               message: result.message,
+              ...rotationHints(result),
               verified: false,
               checked_at,
             };

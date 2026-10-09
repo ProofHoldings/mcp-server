@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { registerTools } from '../src/tools/delegation-verify.js';
+import { registerTools, rotationHints } from '../src/tools/delegation-verify.js';
 import { resetJwksCache } from '@proof-holdings/delegation-verifier';
 
 const BASE_URL = 'https://api.proof.holdings';
@@ -581,5 +581,39 @@ describe('verify_delegations behaviour — batch mechanics', () => {
       items: [{ token, delegate: { type: 'purl', value: 'pkg:npm/postmark-mcp' }, expected_principal: 'postmarkapp.com' }],
     });
     expect(result.isError).toBeUndefined();
+  });
+});
+
+describe('key-rotation hints (h-verifier-jwks-multikey SC-10)', () => {
+  it('passes the pull hint of a key_revoked failure through in snake_case', () => {
+    expect(
+      rotationHints({
+        valid: false,
+        reason: 'key_revoked',
+        outcome: 'invalid',
+        message: 'revoked',
+        pullHint: { issuerOrigin: 'https://api.proof.holdings', handle: 'ph_dlg_1' },
+      })
+    ).toEqual({ pull_hint: { issuer_origin: 'https://api.proof.holdings', handle: 'ph_dlg_1' } });
+  });
+
+  it('passes the cache age and refresh hint of a jwks_stale failure, including an unknown age', () => {
+    expect(
+      rotationHints({
+        valid: false,
+        reason: 'jwks_stale',
+        outcome: 'unconfirmed',
+        message: 'stale',
+        cacheAgeSeconds: null,
+        refreshHint: { jwksUri: 'https://api.proof.holdings/.well-known/jwks.json', method: 'refreshJwks' },
+      })
+    ).toEqual({
+      cache_age_seconds: null,
+      refresh_hint: { jwks_uri: 'https://api.proof.holdings/.well-known/jwks.json', method: 'refreshJwks' },
+    });
+  });
+
+  it('adds nothing to any other failure', () => {
+    expect(rotationHints({ valid: false, reason: 'revoked', outcome: 'invalid', message: 'revoked' })).toEqual({});
   });
 });

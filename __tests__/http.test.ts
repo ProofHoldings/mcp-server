@@ -104,7 +104,7 @@ describe('HttpClient', () => {
 
     const client = createClient();
     try {
-      await client.get('/api/v1/auth/me');
+      await client.get('/api/v1/verifications');
       expect.fail('Should have thrown');
     } catch (e) {
       expect(e).toBeInstanceOf(ApiError);
@@ -148,6 +148,44 @@ describe('HttpClient', () => {
 
     const client = createClient({ maxRetries: 1 });
     const result = await client.get('/api/v1/test');
+
+    expect(result).toEqual({ success: true });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('does NOT retry a 5xx that names itself a terminal refusal', async () => {
+    // `challenge_delivery_failed` is a REFUSAL, not a transient failure: the server already
+    // deleted the session it could not mail. Retrying it is not a second chance — each attempt
+    // sends a fresh mail and drops its own session, so a provider failing after accepting can
+    // leave a person holding several codes, none of which belongs to a live session.
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ error: { code: 'challenge_delivery_failed', message: 'no' } }), { status: 503 }),
+    );
+
+    const client = createClient({ maxRetries: 2 });
+    await expect(client.post('/api/v1/auth/sessions', { channel: 'email' })).rejects.toMatchObject({
+      code: 'challenge_delivery_failed',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  // Positive control for the case above, run over EVERY other 5xx the same route answers — the
+  // docblock says each of them must keep retrying, and covering only one of the four left three of
+  // that sentence unasserted. The FIRST THREE refuse before anything is stored, so a retry there is
+  // a second chance rather than a second act; `internal_error` is the exception on that reasoning
+  // and stays retryable for the separate reason `TERMINAL_5XX_CODES`' own docblock gives.
+  it.each([
+    ['identity_check_unavailable', 503],
+    ['email_service_unavailable', 503],
+    ['session_creation_failed', 500],
+    ['internal_error', 500],
+  ])('still retries a 5xx carrying %s', async (code, status) => {
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code } }), { status }))
+      .mockResolvedValueOnce(jsonResponse({ success: true }));
+
+    const client = createClient({ maxRetries: 1 });
+    const result = await client.post('/api/v1/auth/sessions', { channel: 'email' });
 
     expect(result).toEqual({ success: true });
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -278,13 +316,85 @@ describe('HttpClient JWT session auth', () => {
     expect(authHeaderOfCall(3)).toBe('Bearer pk_test_abc123');
   });
 
-  it('falls back to the API key on /me/ when no session has been captured', async () => {
+  /**
+   * M4 (live review 2026-09-26). The session surface is `jwtAuth`-only on the backend: a key sent
+   * there comes back `invalid_token`, which an agent reads as "the key is bad" when the real answer
+   * is "sign in". So a keyed client with no session is refused before the network, naming the road.
+   */
+  it.each([
+    ['GET', '/api/v1/me/emails'],
+    ['GET', '/api/v1/auth/me'],
+    ['POST', '/api/v1/me/api-keys'],
+    ['PUT', '/api/v1/profiles/me/proofs'],
+  ])('refuses %s %s with user_session_required when a key is held but no session', async (method, path) => {
+    const client = createClient();
+
+    const error = await client.request(method, path).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ code: 'user_session_required', statusCode: 401 });
+    expect((error as ApiError).message).toContain('start_login');
+    expect((error as ApiError).message).toContain('wait_for_login');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // W6 (walkthrough 2026-10-02): "an API key cannot open it" left the person asking why a second
+  // sign-in, right after one succeeded. The refusal has to give the agent a reason to pass on.
+  it('on stdio, says the key in PROOF_API_KEY does not open this tool and to tell the user why', async () => {
+    const error = await createClient().get('/api/v1/me/api-keys').catch((e: unknown) => e);
+
+    const message = (error as ApiError).message;
+    expect(message).toContain('PROOF_API_KEY');
+    expect(message).toMatch(/does not open this tool/i);
+    expect(message).toMatch(/tell the user/i);
+  });
+
+  it('says the same road on the remote transport, without an env-var instruction', async () => {
+    const client = new HttpClient({
+      apiKey: 'mcp_at_oauth',
+      baseUrl: 'https://api.proof.holdings',
+      maxRetries: 0,
+      remote: true,
+    });
+
+    const error = await client.get('/api/v1/me/phones').catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ code: 'user_session_required', statusCode: 401 });
+    expect((error as ApiError).message).toContain('start_login');
+    expect((error as ApiError).message).not.toContain('PROOF_API_KEY');
+    expect((error as ApiError).message).toContain('wait_for_login');
+    expect((error as ApiError).message).toMatch(/browser sign-in/i);
+    expect((error as ApiError).message).toContain('API key');
+    expect((error as ApiError).message).toMatch(/does not open this tool/i);
+    expect((error as ApiError).message).toMatch(/tell the user/i);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    '/api/v1/me/api-keys/6ab8149e5c34eed762617db4/usage',
+    '/api/v1/me/verification-requests',
+    '/api/v1/me/emails/verify/some-magic-token',
+  ])('lets GET %s travel with the API key — it is not session-only on the backend', async (path) => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ data: [] }));
 
-    const client = createClient();
-    await client.get('/api/v1/me/emails');
+    await createClient().get(path, { api_key_id: 'k1' });
 
     expect(authHeaderOfCall(0)).toBe('Bearer pk_test_abc123');
+  });
+
+  it('refuses the session-only siblings of the exempt paths', async () => {
+    const client = createClient();
+
+    await expect(client.post('/api/v1/me/verification-requests', {})).rejects.toMatchObject({
+      code: 'user_session_required',
+    });
+    await expect(client.get('/api/v1/me/verification-requests/incoming')).rejects.toMatchObject({
+      code: 'user_session_required',
+    });
+    await expect(client.post('/api/v1/me/api-keys/k1/regenerate')).rejects.toMatchObject({
+      code: 'user_session_required',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('auto-refreshes on token_expired and retries the original request', async () => {
@@ -312,7 +422,25 @@ describe('HttpClient JWT session auth', () => {
     fetchMock
       .mockResolvedValueOnce(cookieResponse({ status: 'verified' }, ['token=JWT1; Path=/', 'refresh_token=R1; Path=/']))
       .mockResolvedValueOnce(jsonResponse({ error: { code: 'token_expired', message: 'Token has expired' } }, 401))
-      .mockResolvedValueOnce(jsonResponse({ error: { code: 'refresh_token_expired' } }, 401))
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'refresh_token_expired' } }, 401));
+
+    const client = createClient();
+    await client.get('/api/v1/auth/sessions/auth_x');
+
+    await expect(client.get('/api/v1/me/emails')).rejects.toMatchObject({ code: 'token_expired' });
+
+    // session cleared → the next session-only call asks for a new login instead of spending the key
+    await expect(client.get('/api/v1/me/emails')).rejects.toMatchObject({ code: 'user_session_required' });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps the session when refresh fails with a 5xx — an outage refuses nothing', async () => {
+    fetchMock
+      .mockResolvedValueOnce(cookieResponse({ status: 'verified' }, ['token=JWT1; Path=/', 'refresh_token=R1; Path=/']))
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'token_expired', message: 'Token has expired' } }, 401))
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'session_binding_unavailable' } }, 503))
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'token_expired', message: 'Token has expired' } }, 401))
+      .mockResolvedValueOnce(cookieResponse({ success: true }, ['token=JWT2; Path=/', 'refresh_token=R2; Path=/']))
       .mockResolvedValueOnce(jsonResponse({ data: [] }));
 
     const client = createClient();
@@ -320,9 +448,9 @@ describe('HttpClient JWT session auth', () => {
 
     await expect(client.get('/api/v1/me/emails')).rejects.toMatchObject({ code: 'token_expired' });
 
-    // session cleared → next /me/ call uses the API key
-    await client.get('/api/v1/me/emails');
-    expect(authHeaderOfCall(3)).toBe('Bearer pk_test_abc123');
+    // the next call still has a session and a refresh token to try again with
+    await expect(client.get('/api/v1/me/emails')).resolves.toEqual({ data: [] });
+    expect(fetchMock.mock.calls[4][1].headers['Cookie']).toBe('refresh_token=R1');
   });
 });
 
@@ -453,5 +581,159 @@ describe('HttpClient public mode (no API key)', () => {
       code: 'api_key_required',
     });
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe('HttpClient — a key the API no longer accepts (W9)', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    globalThis.fetch = fetchMock;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  const invalidKey = () =>
+    new Response(JSON.stringify({ error: { code: 'invalid_api_key', message: 'Invalid API key' } }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+  // The backend answers a revoked key exactly as an unknown one, on purpose. Left as "Invalid API
+  // key", an agent on the walkthrough invented a cause and told the owner the revoked key was still
+  // valid until December — so the client says what the answer means on the transport it is on.
+  it('REMOTE: says the connection\'s key is no longer accepted and to reconnect, keeping the code', async () => {
+    fetchMock.mockResolvedValueOnce(invalidKey());
+    const client = new HttpClient({ apiKey: 'pk_live_revoked', baseUrl: 'https://api.proof.holdings', maxRetries: 0, remote: true });
+
+    const error = await client.get('/api/v1/verifications').catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect(error).toMatchObject({ code: 'invalid_api_key', statusCode: 401 });
+    expect((error as ApiError).message).toMatch(/no longer accepted/);
+    expect((error as ApiError).message).toMatch(/revoked/);
+    expect((error as ApiError).message).toMatch(/reconnect|Authenticate/i);
+    expect((error as ApiError).message).not.toContain('PROOF_API_KEY');
+  });
+
+  it('STDIO: names PROOF_API_KEY and the restart, keeping the code', async () => {
+    fetchMock.mockResolvedValueOnce(invalidKey());
+    const client = new HttpClient({ apiKey: 'pk_live_revoked', baseUrl: 'https://api.proof.holdings', maxRetries: 0 });
+
+    const error = await client.get('/api/v1/verifications').catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ code: 'invalid_api_key', statusCode: 401 });
+    expect((error as ApiError).message).toMatch(/no longer accepted/);
+    expect((error as ApiError).message).toContain('PROOF_API_KEY');
+  });
+
+  it('applies to the sign-in routes too: a revoked connection cannot start a login (W8)', async () => {
+    fetchMock.mockResolvedValueOnce(invalidKey());
+    const client = new HttpClient({ apiKey: 'pk_live_revoked', baseUrl: 'https://api.proof.holdings', maxRetries: 0, remote: true });
+
+    await expect(client.post('/api/v1/auth/sessions', { channel: 'telegram' })).rejects.toMatchObject({
+      code: 'invalid_api_key',
+      message: expect.stringMatching(/no longer accepted/),
+    });
+  });
+
+  it('leaves a 401 the client did NOT send its key for untouched', async () => {
+    fetchMock.mockResolvedValueOnce(invalidKey());
+    const keyless = new HttpClient({ baseUrl: 'https://api.proof.holdings', maxRetries: 0, remote: true });
+
+    await expect(keyless.post('/api/v1/auth/sessions', { channel: 'telegram' })).rejects.toMatchObject({
+      code: 'invalid_api_key',
+      message: 'Invalid API key',
+    });
+  });
+});
+
+describe('HttpClient agent name header', () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+  const originalFetch = globalThis.fetch;
+
+  // Real fetch refuses a header value outside Latin-1 or carrying a newline. Building `Headers` from
+  // what the client hands over applies the same check, so a value fetch would refuse fails here too.
+  beforeEach(() => {
+    fetchMock = vi.fn((_url: string, options: { headers: Record<string, string> }) => {
+      new Headers(options.headers);
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  function clientNamed(agentName?: () => string | undefined) {
+    return new HttpClient({ apiKey: 'pk_test_abc123', baseUrl: 'https://api.proof.holdings', timeout: 5000, maxRetries: 0, agentName });
+  }
+
+  function headersOfCall(index: number): Record<string, string> {
+    return fetchMock.mock.calls[index][1].headers;
+  }
+
+  it('sends the client name beside an unchanged User-Agent', async () => {
+    await clientNamed(() => 'claude-code').get('/api/v1/test');
+
+    expect(headersOfCall(0)['X-Proof-Agent-Name']).toBe('claude-code');
+    expect(headersOfCall(0)['User-Agent']).toMatch(/^proof-mcp\/\d+\.\d+\.\d+$/);
+  });
+
+  it('checks header values the way fetch does (control: a raw emoji name is refused)', () => {
+    expect(() => new Headers({ 'X-Proof-Agent-Name': 'bot 🤖' })).toThrow();
+  });
+
+  it('percent-encodes a name fetch could not carry, so the call still goes out', async () => {
+    const name = 'bot 🤖 ‮evil\nx';
+    await expect(clientNamed(() => name).get('/api/v1/test')).resolves.toEqual({ ok: true });
+
+    expect(headersOfCall(0)['X-Proof-Agent-Name']).toBe(encodeURIComponent(name));
+  });
+
+  it('replaces a lone surrogate, which encodeURIComponent would throw on', async () => {
+    await expect(clientNamed(() => 'a\uD800b').get('/api/v1/test')).resolves.toEqual({ ok: true });
+
+    expect(headersOfCall(0)['X-Proof-Agent-Name']).toBe(encodeURIComponent('a�b'));
+  });
+
+  it('cuts the name at 60 code points before encoding it', async () => {
+    await clientNamed(() => `${'x'.repeat(59)}😀tail`).get('/api/v1/test');
+
+    expect(headersOfCall(0)['X-Proof-Agent-Name']).toBe(encodeURIComponent(`${'x'.repeat(59)}😀`));
+  });
+
+  it.each([
+    ['no name getter', undefined],
+    ['a getter with no name yet', () => undefined],
+    ['a blank name', () => '   '],
+  ])('sends no name header for %s', async (_label, getter) => {
+    await clientNamed(getter).get('/api/v1/test');
+
+    expect(headersOfCall(0)).not.toHaveProperty('X-Proof-Agent-Name');
+    expect(headersOfCall(0)['User-Agent']).toMatch(/^proof-mcp\//);
+  });
+
+  it('sends the name on the session refresh and on the retried call', async () => {
+    const cookieResponse = (body: unknown, cookies: string[], status = 200) =>
+      new Response(JSON.stringify(body), { status, headers: [['Content-Type', 'application/json'], ...cookies.map((c): [string, string] => ['Set-Cookie', c])] });
+    fetchMock
+      .mockResolvedValueOnce(cookieResponse({ status: 'verified' }, ['token=JWT1; Path=/', 'refresh_token=R1; Path=/']))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: 'token_expired', message: 'Token has expired' } }), { status: 401, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(cookieResponse({ success: true }, ['token=JWT2; Path=/', 'refresh_token=R2; Path=/']))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: ['ok'] }), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+
+    const client = clientNamed(() => 'claude-code');
+    await client.get('/api/v1/auth/sessions/auth_x');
+    await client.get('/api/v1/me/emails');
+
+    expect(fetchMock.mock.calls[2][0]).toBe('https://api.proof.holdings/api/v1/auth/refresh');
+    expect(headersOfCall(2)['X-Proof-Agent-Name']).toBe('claude-code');
+    expect(headersOfCall(3)['X-Proof-Agent-Name']).toBe('claude-code');
   });
 });

@@ -1,7 +1,8 @@
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
 
 import { HttpClient } from './http.js';
 import { accessNoticeFor, serverInstructions, type AccessContext } from './authBoundary.js';
+import { annotationsFor } from './toolAnnotations.js';
 
 import { registerTools as registerVerifications } from './tools/verifications.js';
 import { registerTools as registerVerificationRequests } from './tools/verification-requests.js';
@@ -50,6 +51,8 @@ export interface ProofServerOptions {
 export interface ProofServerInstance {
   server: McpServer;
   http: HttpClient;
+  /** Every tool name registered on `server`, collected by the registrar below as it registers them. */
+  toolNames: ReadonlySet<string>;
 }
 
 /**
@@ -71,6 +74,8 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
     apiKey: options.apiKey,
     baseUrl: options.baseUrl,
     remote: options.remote,
+    // The client introduces itself in the MCP handshake, after this is built; read its name per call.
+    agentName: () => server.server.getClientVersion()?.name,
   });
 
   const access: AccessContext = { remote: options.remote, hasCredential: Boolean(options.apiKey) };
@@ -85,12 +90,13 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
       // `src/__tests__/drift/delegation-publication.test.ts` (h-npm-registry-release). If this is
       // ever replaced by a real read, delete the pin in the same change: a pin over a derived
       // value guards nothing.
-      version: '1.1.0',
+      version: '1.4.0',
     },
     { instructions: serverInstructions(access) },
   );
 
   const bound = server.tool.bind(server);
+  const toolNames = new Set<string>();
 
   /**
    * The registrar every module below is handed, wrapping `server.tool` so the access notice is
@@ -106,11 +112,18 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
    */
   const tool = ((...args: unknown[]) => {
     const [name, description] = args;
-    if (typeof name === 'string' && typeof description === 'string') {
-      const rest = args.slice(2);
-      return (bound as (...a: unknown[]) => unknown)(name, description + accessNoticeFor(name, access), ...rest);
+    const registered = (
+      typeof name === 'string' && typeof description === 'string'
+        ? (bound as (...a: unknown[]) => RegisteredTool)(name, description + accessNoticeFor(name, access), ...args.slice(2))
+        : (bound as (...a: unknown[]) => RegisteredTool)(...args)
+    );
+    // Stamped after registration rather than passed as an argument, so the modules' call shape —
+    // which the tool counters and the tests' capture mock both read — stays exactly as it is.
+    if (typeof name === 'string') {
+      registered.update({ annotations: annotationsFor(name) });
+      toolNames.add(name);
     }
-    return (bound as (...a: unknown[]) => unknown)(...args);
+    return registered;
   }) as typeof bound;
 
   registerVerifications(tool, http);
@@ -147,5 +160,5 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
   registerAccounts(tool, http);
   registerRenderAuthLink(tool);
 
-  return { server, http };
+  return { server, http, toolNames };
 }

@@ -1,17 +1,13 @@
 # @proof-holdings/mcp-server
 
-MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 176 tools for AI agents to create verifications, validate proofs, manage assets, and more.
+MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 172 tools for AI agents to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect
 
-**Hosted — nothing to install.** The same tools are served over HTTP, and the client authenticates
-in the browser when a tool first needs an account:
-
-```bash
-claude mcp add --transport http proof https://api.proof.holdings/mcp
-```
-
-Or as a config fragment:
+**Hosted — nothing to install.** The same tools are served over HTTP at
+`https://api.proof.holdings/mcp`. Any MCP client or agent framework with HTTP transport can
+connect — add the URL as a remote MCP server in its settings (the config key varies by client).
+Authentication happens in the browser the first time a tool needs an account. As a config fragment:
 
 ```json
 { "mcpServers": { "proof": { "type": "http", "url": "https://api.proof.holdings/mcp" } } }
@@ -72,13 +68,13 @@ Config file location by client:
 
 If installed globally (`npm install -g @proof-holdings/mcp-server`), use `"command": "proof-mcp"` and remove the `"args"` field.
 
-## Tools (176 tools)
+## Tools (172 tools)
 
 Group totals are exact. The tables name the tools you are most likely to reach for rather than all
 of them — your MCP client's own `tools/list` is the complete, current list, and it is the one this
 server answers from.
 
-### Verifications & requests (28 tools)
+### Verifications & requests (29 tools)
 
 | Tool | Description |
 |---|---|
@@ -122,7 +118,7 @@ server answers from.
 | `create_authorization` | Ask a person to consent to being contacted |
 | `revoke_authorization` | Withdraw a consent |
 
-### Circles & Proof of Me (20 tools)
+### Circles & Proof of Me (15 tools)
 
 | Tool | Description |
 |---|---|
@@ -239,9 +235,12 @@ npm run delegation:publish -- --target mcp --mint \
 
 The tool refuses any token whose claims do not name this exact package with
 `principal: proof.holdings` (the same check `--target a2a` performs against the A2A agent
-card's own `url` before regenerating `/.well-known/agent-card.json`). For `--target a2a`,
-if the card-regeneration step fails after the source file is written, just re-run the
-command — the token is already validated and the regeneration is idempotent.
+card's own `url` before regenerating `/.well-known/agent-card.json`). Besides `server.json`,
+`--target mcp` writes the website card's source (`web/src/lib/geo/mcp-delegation-publication.json`)
+and regenerates `/.well-known/mcp/server-card.json` and `/.well-known/mcp.json`, so it needs
+`web/node_modules` installed. For either target, if the card-regeneration step fails after the
+source file is written, just re-run the command — the token is already validated and the
+regeneration is idempotent. The website cards reach readers only with the next website deploy.
 
 ### Verifying someone else's delegation (`verify_delegation`)
 

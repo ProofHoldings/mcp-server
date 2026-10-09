@@ -1,0 +1,12 @@
+{
+  "assets": [
+    { "type": "email" },
+    { "type": "phone", "required": false }
+  ],
+  "action_type": "verification",
+  "action_context": {
+    "title": "Confirm your contact details",
+    "entity": "proof.holdings"
+  },
+  "expires_in_hours": 72
+}

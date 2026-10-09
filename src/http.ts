@@ -5,7 +5,36 @@
 //
 // Of the carriers a version bump has to move, this is the one it misses: a bare constant at the
 // top of a module about HTTP, where nothing about editing the manifest leads a reader.
-const VERSION = '1.1.0';
+const VERSION = '1.4.0';
+
+// Every request names this client: the issuer tells a request an agent made, signed in as a person,
+// from one the person made in the dashboard by this prefix, and labels it with the name the agent's
+// own MCP client gave in the handshake, sent beside it. Both are the client's own claim. The issuer
+// reads the same two literals in `src/constants/agentClient.ts`; the pair is held together by
+// `src/__tests__/drift/mcp-user-request-contract.test.ts`.
+const USER_AGENT_PREFIX = 'proof-mcp/';
+const AGENT_NAME_HEADER = 'X-Proof-Agent-Name';
+
+/**
+ * The most code points of the name this client sends, which bounds the header's size. It equals the
+ * issuer's own cut (`CLIENT_LABEL_MAX` in `src/constants/mcpOauth.ts`, held equal by the same drift
+ * test), but this cut is applied to the raw name and the issuer's after it flattens whitespace and
+ * invisible characters, so a name that flattening shortens can be stored shorter than the issuer
+ * alone would keep. It is a label, so that costs only characters.
+ */
+const AGENT_NAME_MAX = 60;
+
+/**
+ * The agent's name as a header value, or nothing. Percent-encoded because fetch refuses any value
+ * outside Latin-1 or carrying a newline (an emoji, a bidi override), and a refused header would fail
+ * EVERY call this client makes, not just lose the label. A lone surrogate is replaced first, since
+ * `encodeURIComponent` throws on one.
+ */
+function agentNameHeader(name: string | undefined): Record<string, string> {
+  const cut = [...(name ?? '').trim()].slice(0, AGENT_NAME_MAX).join('');
+  const wellFormed = cut.replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '\uFFFD');
+  return wellFormed ? { [AGENT_NAME_HEADER]: encodeURIComponent(wellFormed) } : {};
+}
 
 export interface HttpClientConfig {
   /**
@@ -19,14 +48,48 @@ export interface HttpClientConfig {
   maxRetries?: number;
   /**
    * True when this client serves the REMOTE transport (`src/remote.ts`) rather than a local stdio
-   * process. It changes exactly one thing — what the "you need a key" refusal tells the user to do
-   * — because the stdio instruction (set `PROOF_API_KEY`, restart the server) is impossible on a
-   * server somebody else runs.
+   * process. It changes only the wording of refusals — what the "you need a key" and "you need a
+   * session" refusals tell the user — because the stdio instruction (set `PROOF_API_KEY`, restart
+   * the server) is impossible on a server somebody else runs, and a remote user usually never saw a key.
    */
   remote?: boolean;
+  /**
+   * The name the connected MCP client gave in its handshake (`clientInfo.name`), read at call time
+   * because the handshake happens after this client is built. Absent, or answering nothing, sends
+   * no name.
+   */
+  agentName?: () => string | undefined;
 }
 
 type QueryValue = string | number | boolean | undefined;
+
+/**
+ * 5xx error codes that must NOT be retried, because they are refusals rather than outages.
+ *
+ * The distinction is not academic on this client: it retries EVERY method, so a POST refusal is
+ * re-sent as a fresh act. `challenge_delivery_failed` (`POST /api/v1/auth/sessions`, email
+ * channel) is the case that forced the list — the server deletes the session whose mail it could
+ * not send, so a retry mails again and drops again.
+ *
+ * Deliberately narrow. That route answers FOUR other 5xx and none of them belongs here.
+ * `identity_check_unavailable`, `email_service_unavailable` (both 503) and
+ * `session_creation_failed` (500) each refuse BEFORE anything is stored, so a second attempt is a
+ * second chance rather than a second act. The fourth is the uncomfortable one: a generic 500
+ * `internal_error` from the controller's own `catch` can be raised AFTER `storeAuthSession`, so
+ * retrying it CAN repeat an act — and it stays retryable regardless, because `internal_error` is
+ * what the error handler answers for every unhandled throw in the whole API, so listing it would
+ * stop retrying genuine outages everywhere. Narrowing that one needs a code of its own, which is a
+ * backend change rather than a client one.
+ *
+ * SCOPE. This list is keyed on the CODE, not the path, so the second emitter of
+ * `challenge_delivery_failed` — `POST /api/v1/verifications`, via
+ * `abortUndeliverableEmailChallenge` — is covered here too. What is NOT covered is the four SDKs:
+ * their HTTP clients each retry any 5xx on any method, so the same defect stands on that surface.
+ *
+ * Held to the issuer's own spelling by `src/__tests__/drift/login-delivery-refusal.test.ts`, which
+ * extracts the code from the controller that emits it.
+ */
+const TERMINAL_5XX_CODES = new Set(['challenge_delivery_failed']);
 
 // Path prefixes protected by `jwtAuth` ONLY (pure JWT surface — these 401 with an API key).
 // Deliberately excludes the dual-auth (`jwtOrApiKeyAuth`) endpoints that already work with the
@@ -49,6 +112,28 @@ const SESSION_AUTH_PREFIXES = [
   '/api/v1/profiles/me/username',
   '/api/v1/profiles/me/proofs',
 ];
+
+/**
+ * Routes that sit UNDER a `SESSION_AUTH_PREFIXES` prefix but are not session-only on the backend,
+ * so a keyed client without a login session may still send them with the key. Everything else on
+ * the session surface is refused before the network when no session is held
+ * (`user_session_required`): the backend's answer there would be `invalid_token`, which an agent
+ * reads as "the key is bad" rather than "sign in first".
+ *
+ * `src/__tests__/drift/api-parity.test.ts` holds this list against `docs/api-map.yaml` in both
+ * directions: every endpoint under the session prefixes whose `auth` is not `jwt` must match an
+ * entry, and every entry must match such an endpoint.
+ */
+export const SESSION_EXEMPT_PATHS: ReadonlyArray<{ method: string; pattern: RegExp }> = [
+  { method: 'GET', pattern: /^\/api\/v1\/me\/api-keys\/[^/]+\/usage$/ },
+  { method: 'GET', pattern: /^\/api\/v1\/me\/verification-requests$/ },
+  { method: 'GET', pattern: /^\/api\/v1\/me\/emails\/verify\/[^/]+$/ },
+];
+
+function isSessionExempt(method: string, path: string): boolean {
+  const verb = method.toUpperCase();
+  return SESSION_EXEMPT_PATHS.some((p) => p.method === verb && p.pattern.test(path));
+}
 
 /**
  * Endpoints the client may call with NO credential — the public mode surface.
@@ -87,6 +172,7 @@ export class HttpClient {
   private readonly timeout: number;
   private readonly maxRetries: number;
   private readonly remote: boolean;
+  private readonly agentName?: () => string | undefined;
   private sessionToken?: string;
   private refreshToken?: string;
   private refreshing?: Promise<boolean>;
@@ -97,6 +183,7 @@ export class HttpClient {
     this.timeout = config.timeout ?? 30_000;
     this.maxRetries = config.maxRetries ?? 2;
     this.remote = config.remote ?? false;
+    this.agentName = config.agentName;
   }
 
   async request<T>(
@@ -110,8 +197,30 @@ export class HttpClient {
       _refreshed?: boolean;
     },
   ): Promise<T> {
-    const useSession = this.usesSessionAuth(path) && !!this.sessionToken;
+    const sessionPath = this.usesSessionAuth(path);
+    const useSession = sessionPath && !!this.sessionToken;
     const bearer = useSession ? this.sessionToken! : this.apiKey;
+
+    // A key is held but this route answers only to a signed-in user. Sending the key would come
+    // back `invalid_token` — "your key is bad" — when the key is fine and a login is what's missing.
+    // The reason is spelled out for the agent to pass on (W6, walkthrough 2026-10-02): on the remote
+    // transport the person has usually just finished a browser sign-in and does not know it produced a key,
+    // so "a key cannot open it" read as a sign-in that had failed.
+    if (sessionPath && !this.sessionToken && this.apiKey && !isSessionExempt(method, path)) {
+      const keyOrigin = this.remote
+        ? 'The API key this connection carries — usually granted by the browser sign-in that connected it —'
+        : 'The API key in PROOF_API_KEY';
+      throw new ApiError(
+        `This tool works only in a signed-in Proof session. ${keyOrigin} does not open this tool. A sign-in ` +
+          'session opens your own account records (emails, phones, domains, API keys, 2FA, DNS credentials, ' +
+          'verification requests, your public profile\'s username and proof list); getting one is a separate ' +
+          'confirmation, not a failed sign-in — tell the user that first. Then call start_login, show ' +
+          'them its challenge in your reply, call wait_for_login until it reports success, and call this tool ' +
+          'again.',
+        'user_session_required',
+        401,
+      );
+    }
 
     // Public mode: answer before the network rather than after it. A credential-less call to a
     // keyed route would otherwise spend a round trip to return `invalid_token`, which reads to an
@@ -156,7 +265,8 @@ export class HttpClient {
             ...options?.headers,
             'Content-Type': 'application/json',
             ...(bearer ? { 'Authorization': `Bearer ${bearer}` } : {}),
-            'User-Agent': `proof-mcp/${VERSION}`,
+            'User-Agent': `${USER_AGENT_PREFIX}${VERSION}`,
+            ...agentNameHeader(this.agentName?.()),
           },
           body: options?.body ? JSON.stringify(options.body) : undefined,
           signal: controller.signal,
@@ -176,8 +286,18 @@ export class HttpClient {
         }
 
         if (response.status >= 500 && attempt < this.maxRetries) {
-          await this.sleep(this.backoff(attempt));
-          continue;
+          // A 5xx is retried as transient — EXCEPT where the body names itself a terminal REFUSAL.
+          // This client retries every method, POST included, so a retried refusal is not a second
+          // chance at the same act: `POST /api/v1/auth/sessions` deletes the session it could not
+          // mail before answering, so each attempt composes a NEW one, and a provider that fails
+          // after accepting can leave a person holding several codes, none of which belongs to a
+          // live session. `response.clone()` keeps the body readable for the error path below.
+          const peeked = (await response.clone().json().catch(() => ({}))) as Record<string, unknown>;
+          const peekedCode = (peeked.error as { code?: string } | undefined)?.code;
+          if (!peekedCode || !TERMINAL_5XX_CODES.has(peekedCode)) {
+            await this.sleep(this.backoff(attempt));
+            continue;
+          }
         }
 
         const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
@@ -197,6 +317,28 @@ export class HttpClient {
             (await this.refreshSession())
           ) {
             return this.request<T>(method, path, { ...options, _refreshed: true });
+          }
+
+          // The API answers a revoked or expired key exactly as an unknown one, so that a key thief
+          // learns nothing. Passed through as "Invalid API key", an agent invents the cause — on the
+          // 2026-10-02 walkthrough it told the owner their just-deleted key was still valid. The
+          // client knows what this answer means for a key it sent, and what can be done about it on
+          // its own transport.
+          if (response.status === 401 && code === 'invalid_api_key' && this.apiKey && bearer === this.apiKey) {
+            throw new ApiError(
+              this.remote
+                ? 'The API key this connection was authorized with is no longer accepted: the account owner ' +
+                  'revoked it (for example by deleting it in the dashboard), or it expired. It cannot be repaired ' +
+                  'from here, and signing in with start_login will not restore this connection. Reconnect this ' +
+                  'server to the account (your client\'s sign-in / "Authenticate" step, e.g. /mcp in Claude Code) ' +
+                  'to authorize a new key.'
+                : 'The API key in PROOF_API_KEY is no longer accepted: it was revoked, has expired, or is mistyped. ' +
+                  'Create a new key in the Proof dashboard (Settings → API keys), put it in PROOF_API_KEY and restart ' +
+                  'this MCP server.',
+              code,
+              response.status,
+              apiError?.details,
+            );
           }
 
           throw new ApiError(message, code, response.status, apiError?.details);
@@ -321,20 +463,25 @@ export class HttpClient {
         headers: {
           'Content-Type': 'application/json',
           'Cookie': `refresh_token=${this.refreshToken}`,
-          'User-Agent': `proof-mcp/${VERSION}`,
+          'User-Agent': `${USER_AGENT_PREFIX}${VERSION}`,
+          ...agentNameHeader(this.agentName?.()),
         },
         signal: controller.signal,
       });
       if (!response.ok) {
-        this.sessionToken = undefined;
-        this.refreshToken = undefined;
+        // Only a refusal ends the sign-in. A 5xx (including `session_binding_unavailable`, after
+        // which the server keeps the old refresh token valid) is an outage, and dropping the
+        // session on it would sign the agent out over a blip.
+        if (response.status < 500) {
+          this.sessionToken = undefined;
+          this.refreshToken = undefined;
+        }
         return false;
       }
       this.captureSetCookie(response);
       return true;
     } catch {
-      this.sessionToken = undefined;
-      this.refreshToken = undefined;
+      // Network failure or timeout: same reasoning — nothing refused the session.
       return false;
     } finally {
       clearTimeout(timeoutId);

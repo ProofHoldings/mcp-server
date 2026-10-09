@@ -1,8 +1,8 @@
 {
   "name": "@proof-holdings/mcp-server",
-  "version": "1.1.0",
+  "version": "1.4.0",
   "mcpName": "holdings.proof/mcp-server",
-  "description": "MCP server for the proof.holdings API — 176 tools for identity verification, proofs, and asset management",
+  "description": "MCP server for the proof.holdings API — 172 tools for identity verification, proofs, and asset management",
   "type": "module",
   "license": "MIT",
   "author": "proof.holdings <hello@proof.holdings> (https://proof.holdings)",
@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "@proof-holdings/delegation-verifier": "^0.1.0",
+    "@proof-holdings/delegation-verifier": "^0.1.1",
     "qrcode": "^1.5.4",
     "zod": "^3.24.0"
   },

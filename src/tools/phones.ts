@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, errorResult, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -56,7 +56,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'start_add_phone',
-    'Start adding a new phone number. Uses reverse OTP: the system sends a message and the user replies. Returns a session ID, deep_link, qr_code (base64 PNG), and qr_text (UTF-8 text QR for terminal display).',
+    'Start adding a new phone number by reverse OTP: the user starts the exchange themselves and nothing is sent before they do; the response\'s `instructions` field says what they do (on telegram the bot then asks them to tap a button that shares their number). Returns a session ID; on telegram/whatsapp also deep_link, qr_code (base64 PNG) and qr_text (UTF-8 text QR), and on sms sms_message and sms_dids (one entry per region; a region with no number configured has an empty `did`) with no deep_link.\n\nAgent usage: on telegram/whatsapp pass `deep_link` to render_auth_link for the link and a QR code. On sms there is no deep_link — show `sms_message` and a number from an `sms_dids` entry whose `did` is non-empty. Never hand a `qr_text` to a link renderer — it is a link already rendered as QR art. Then poll get_add_phone_status with the session ID.\n\n' + CHALLENGE_IN_REPLY,
     {
       channel: z.enum(['telegram', 'whatsapp', 'sms']).describe('Channel for phone verification'),
     },
@@ -73,7 +73,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_add_phone_status',
-    'Check the status of an in-progress phone addition by session ID. Poll until terminal state.',
+    'Check the status of an in-progress phone addition by session ID. Poll until terminal state.\n\n' + WAIT_AFTER_REPLY,
     {
       session_id: z.string().describe('Add-phone session ID'),
     },
