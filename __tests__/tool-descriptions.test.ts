@@ -358,3 +358,31 @@ describe('challenge flows — the user sees only what the reply shows (W7)', () 
     for (const sentence of shipped) expect(claimsRendererPrints(sentence)).toBe(true);
   });
 });
+
+/**
+ * The destructive tools of h-implement-proper-deletion (MCP-1, SC-17): each description starts with
+ * its ACTION WORD — Revoke, Remove, Delete — and states what goes with it, so an agent choosing
+ * between "revoke the proofs" and "remove the thing" reads the difference before it acts. Pinned by
+ * the facts each must carry, not by whole sentences, so a rewording keeps the guard and a dropped
+ * fact breaks it.
+ */
+describe('the deletion tools say what they do before an agent calls them', () => {
+  const EXPECTED: Record<string, { verb: string; facts: string[] }> = {
+    revoke_asset: { verb: 'Revoke', facts: ['asset stays on the account', 'revocation_bulk', 'every delegation', 're-verification', 'suspend_proof', 'Cannot be undone'] },
+    delete_domain: { verb: 'Remove', facts: ['every delegation', '_proof TXT', 'domain_remove', 'left for you to remove', 'Cannot be undone'] },
+    delete_domain_verification: { verb: 'Delete', facts: ['nothing is revoked', 'domain_verified', 'delete_domain'] },
+    delete_profile: { verb: 'Delete', facts: ['last project cannot be deleted', 'oldest remaining', 'profile_delete', 'EMPTY project', 'retires its username', 'Cannot be undone'] },
+    remove_phone: { verb: 'Remove', facts: ['Always requires one code', 'phone_remove', 'circles_need_phone', 'new primary', 'Cannot be undone'] },
+    remove_email: { verb: 'Remove', facts: ['Always requires one code', 'email_remove', 'Lookalike Watch', 'new primary', 'Cannot be undone'] },
+    revoke_proof: { verb: 'Revoke', facts: ['every delegation issued from it', 'delegations:write', 'suspend_proof', 'Cannot be undone'] },
+  };
+
+  it.each(Object.keys(EXPECTED))('%s', async (name) => {
+    const tools = await captureAllDescriptions();
+    const tool = tools.find((t) => t.name === name);
+    expect(tool).toBeDefined();
+    const description = tool!.texts[0];
+    expect(description.startsWith(`${EXPECTED[name].verb} `)).toBe(true);
+    for (const fact of EXPECTED[name].facts) expect(`${name}: ${description.includes(fact)}`).toBe(`${name}: true`);
+  });
+});

@@ -50,15 +50,6 @@ describe('User Requests (7 tools)', () => {
     });
   });
 
-  // claim_request_assets
-  describe('claim_request_assets', () => {
-    it('returns error for nonexistent request', async () => {
-      const result = await callTool('claim_request_assets', { id: NONEXISTENT_ID });
-      const msg = parseErrorResult(result);
-      expect(msg).toBeTruthy();
-    });
-  });
-
   // extend_request
   describe('extend_request', () => {
     it('extends a request expiration', async () => {

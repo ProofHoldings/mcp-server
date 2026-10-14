@@ -7,8 +7,9 @@ import { ApiError } from '../http.js';
 // Mirrors validApiKeyScopes — the canonical scope taxonomy in the backend's
 // src/constants/apiKeyScopes.ts. This package is published to npm and cannot import
 // backend src/, so it carries its own copy; the backend drift test
-// src/__tests__/drift/api-key-scopes.test.ts fails CI if this list diverges.
-const validScopes = [
+// src/__tests__/drift/api-key-scopes.test.ts fails CI if this list diverges. Exported for
+// `proof-mcp login` (src/cli.ts), whose default key carries every resource group of this list.
+export const validScopes = [
   'verifications:read', 'verifications:write', 'verifications:create', 'verifications:*',
   'proofs:read', 'proofs:*',
   'delegations:read', 'delegations:write', 'delegations:create', 'delegations:*',

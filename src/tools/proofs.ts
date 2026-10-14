@@ -47,7 +47,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'revoke_proof',
-    'Revoke a proof by its public handle (ph_ctl_* / ph_dlg_*) or a verification ID — the same addresses get_proof_status takes. The proof token will no longer validate anywhere: the status endpoint, the public validator, the revocation list and the Token Status List all report it revoked. This action is irreversible. It revokes the PROOF only — the asset, consent or delegation the proof is about is not withdrawn.',
+    'Revoke a proof by its public handle (ph_ctl_* / ph_dlg_*) or a verification ID — the same addresses get_proof_status takes. The proof token will no longer validate anywhere: the status endpoint, the public validator, the revocation list and the Token Status List all report it revoked. A domain CONTROL proof (a ph_ctl_* of a domain) also revokes, for good, every delegation issued from it; for a domain you own, every proof of the domain is revoked and the domain needs re-verification. The API key needs proofs:write, plus delegations:write while the revocation reaches live delegations — for a domain you own, any live delegation of the domain, whichever of its handles you name (the refusal names the scope and the count). A handle revoked before the domain was verified again does not reach the new proof: revoke that one by its own handle. Otherwise it revokes the PROOF only — the asset or consent it is about stays. Need a temporary stop? Use suspend_proof instead. Cannot be undone.',
     {
       id: z.string().describe('Public proof handle (ph_ctl_* / ph_dlg_*) or verification ID'),
       reason: z.string().optional().describe('Reason for revocation'),

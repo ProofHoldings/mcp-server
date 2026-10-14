@@ -719,12 +719,45 @@ describe('settings tools', () => {
     });
   });
 
-  it('export_data calls GET /api/v1/me/export', async () => {
-    http.get.mockResolvedValueOnce({ data: {} });
+  // h-implement-proper-deletion ACC-2: the export is prepared in the background; the tool starts
+  // one only when none is preparing or ready, and never returns the data.
+  it('export_data starts an export when there is none', async () => {
+    http.get.mockResolvedValueOnce({ latest: null });
+    http.post.mockResolvedValueOnce({ id: 'e1', status: 'preparing' });
     const tool = findTool(tools, 'export_data');
-    await tool.handler({});
+    const result = await tool.handler({}) as { content: { text: string }[] };
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/me/export');
+    expect(http.post).toHaveBeenCalledWith('/api/v1/me/export');
+    expect(JSON.parse(result.content[0].text)).toEqual({ id: 'e1', status: 'preparing' });
+  });
+
+  it.each(['preparing', 'ready'])('export_data reports an export already %s instead of starting another', async (status) => {
+    http.get.mockResolvedValueOnce({ latest: { id: 'e1', status } });
+    const tool = findTool(tools, 'export_data');
+    const result = await tool.handler({}) as { content: { text: string }[] };
+
+    expect(http.post).not.toHaveBeenCalled();
+    expect(JSON.parse(result.content[0].text)).toEqual({ id: 'e1', status });
+  });
+
+  it('export_data starts a new export after a failed one, and reads one export by id', async () => {
+    http.get.mockResolvedValueOnce({ latest: { id: 'e0', status: 'failed' } });
+    http.post.mockResolvedValueOnce({ id: 'e1', status: 'preparing' });
+    const tool = findTool(tools, 'export_data');
+    await tool.handler({});
+    expect(http.post).toHaveBeenCalledWith('/api/v1/me/export');
+
+    http.get.mockResolvedValueOnce({ id: '0123456789abcdef01234567', status: 'ready' });
+    await tool.handler({ export_id: '0123456789abcdef01234567' });
+    expect(http.get).toHaveBeenLastCalledWith('/api/v1/me/export/0123456789abcdef01234567');
+  });
+
+  it('export_data takes only an export id shaped like one', () => {
+    const tool = findTool(tools, 'export_data');
+    const schema = z.object(tool.schema as z.ZodRawShape);
+    expect(schema.safeParse({ export_id: '../../me/api-keys' }).success).toBe(false);
+    expect(schema.safeParse({}).success).toBe(true);
   });
 });
 
@@ -1384,6 +1417,21 @@ describe('twofa tools', () => {
     expect(http.post).toHaveBeenCalledWith('/api/v1/me/2fa/start', { action_type: 'api_key_create', channel: 'email' });
   });
 
+  // h-implement-proper-deletion MCP-1: the new action types, and the targets a grant is bound to.
+  it('start_2fa offers the 1.5.0 action types and passes the targets through', async () => {
+    const tool = findTool(tools, 'start_2fa');
+    const schema = z.object(tool.schema as z.ZodRawShape);
+    for (const action_type of ['revocation_bulk', 'domain_remove', 'profile_delete', 'phone_primary', 'email_primary']) {
+      expect(schema.safeParse({ action_type, channel: 'telegram' }).success).toBe(true);
+    }
+    expect(schema.safeParse({ action_type: 'revocation_bulk', channel: 'telegram', targets: [] }).success).toBe(false);
+    expect(schema.safeParse({ action_type: 'revocation_bulk', channel: 'telegram', targets: Array.from({ length: 26 }, (_, i) => `a${i}`) }).success).toBe(false);
+
+    http.post.mockResolvedValueOnce({ session_id: '2fa_2' });
+    await tool.handler({ action_type: 'domain_remove', channel: 'telegram', targets: ['dom_1'] });
+    expect(http.post).toHaveBeenLastCalledWith('/api/v1/me/2fa/start', { action_type: 'domain_remove', channel: 'telegram', targets: ['dom_1'] });
+  });
+
   it('get_2fa_status calls GET /api/v1/me/2fa/:sessionId', async () => {
     http.get.mockResolvedValueOnce({ status: 'pending' });
     const tool = findTool(tools, 'get_2fa_status');
@@ -1637,11 +1685,11 @@ describe('user requests tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 7 user request tools', () => {
-    expect(tools).toHaveLength(7);
+  it('registers all 6 user request tools', () => {
+    expect(tools).toHaveLength(6);
     expect(tools.map(t => t.name)).toEqual([
       'list_my_requests', 'list_incoming_requests', 'create_user_request',
-      'claim_request_assets', 'cancel_user_request', 'extend_request', 'share_request_email',
+      'cancel_user_request', 'extend_request', 'share_request_email',
     ]);
 
   });
@@ -1752,13 +1800,6 @@ describe('user requests tools', () => {
       redirect_url: longest,
       callback_url: longest,
     }).success).toBe(true);
-  });
-
-  it('claim_request_assets calls POST /api/v1/me/verification-requests/:id/claim', async () => {
-    http.post.mockResolvedValueOnce({ id: 'req_1', claimed: true });
-    const tool = findTool(tools, 'claim_request_assets');
-    await tool.handler({ id: 'req_123' });
-    expect(http.post).toHaveBeenCalledWith('/api/v1/me/verification-requests/req_123/claim');
   });
 
   it('cancel_user_request calls DELETE /api/v1/me/verification-requests/:id', async () => {
@@ -2464,6 +2505,17 @@ describe('accounts tools', () => {
       channel: 'email',
     });
     expect((result as { isError?: boolean }).isError).toBeUndefined();
+  });
+
+  it('start_2fa_for_action offers the 1.5.0 action types and binds the grant to its targets', async () => {
+    const tool = findTool(tools, 'start_2fa_for_action');
+    const schema = z.object(tool.schema as z.ZodRawShape);
+    for (const action_type of ['revocation_bulk', 'domain_remove', 'profile_delete', 'phone_primary', 'email_primary']) {
+      expect(schema.safeParse({ action_type, channel: 'telegram' }).success).toBe(true);
+    }
+    http.post.mockResolvedValueOnce({ session_id: '2fa_t' });
+    await tool.handler({ action_type: 'revocation_bulk', channel: 'telegram', targets: ['asset_1'] });
+    expect(http.post).toHaveBeenLastCalledWith('/api/v1/me/2fa/start', { action_type: 'revocation_bulk', channel: 'telegram', targets: ['asset_1'] });
   });
 
   it('start_2fa_for_action returns error on ApiError', async () => {

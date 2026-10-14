@@ -5,7 +5,7 @@
 //
 // Of the carriers a version bump has to move, this is the one it misses: a bare constant at the
 // top of a module about HTTP, where nothing about editing the manifest leads a reader.
-const VERSION = '1.4.0';
+const VERSION = '1.6.0';
 
 // Every request names this client: the issuer tells a request an agent made, signed in as a person,
 // from one the person made in the dashboard by this prefix, and labels it with the name the agent's
@@ -93,11 +93,12 @@ const TERMINAL_5XX_CODES = new Set(['challenge_delivery_failed']);
 
 // Path prefixes protected by `jwtAuth` ONLY (pure JWT surface — these 401 with an API key).
 // Deliberately excludes the dual-auth (`jwtOrApiKeyAuth`) endpoints that already work with the
-// API key and enforce its scopes — `/me/{profiles,settings,usage,export,assets}`,
+// API key and enforce its scopes — `/me/{profiles,settings,usage,assets}`,
 // `/profiles/me`, `/profiles/me/assets`, `/profiles/profiles/:id/proofs`, and `/auth/sessions`
 // (list/revoke). Sending the JWT there would silently switch the principal from the API-key
 // tenant to the logged-in user and bypass scope checks. The two `/profiles/me/*` entries
-// below are the jwt-only exceptions inside that otherwise dual-auth family.
+// below are the jwt-only exceptions inside that otherwise dual-auth family. `/me/export` joined
+// in 1.5.0: the export became the signed-in owner's alone (h-implement-proper-deletion ACC-2).
 const SESSION_AUTH_PREFIXES = [
   '/api/v1/me/emails',
   '/api/v1/me/phones',
@@ -109,8 +110,23 @@ const SESSION_AUTH_PREFIXES = [
   '/api/v1/me/verification-requests',
   '/api/v1/me/verify/',
   '/api/v1/me/account',
+  '/api/v1/me/export',
   '/api/v1/profiles/me/username',
   '/api/v1/profiles/me/proofs',
+];
+
+/**
+ * ONE verb on a path whose other verbs stay on the key (mcp-server 1.5.0, h-implement-proper-deletion
+ * MCP-1). Revoking an asset's proofs and deleting a project belong to the signed-in owner, while
+ * listing and reading assets and projects stay keyed with their scopes — so a prefix would move
+ * the reads onto the session and switch their principal. `src/__tests__/drift/api-parity.test.ts`
+ * reads this list (element lines only) to decide which map endpoints the client signs with the
+ * session.
+ */
+export const SESSION_AUTH_ROUTES: ReadonlyArray<{ method: string; pattern: RegExp }> = [
+  { method: 'DELETE', pattern: /^\/api\/v1\/me\/assets\/[^/]+$/ },
+  { method: 'POST', pattern: /^\/api\/v1\/me\/assets\/revoke$/ },
+  { method: 'DELETE', pattern: /^\/api\/v1\/me\/profiles\/[^/]+$/ },
 ];
 
 /**
@@ -128,6 +144,14 @@ export const SESSION_EXEMPT_PATHS: ReadonlyArray<{ method: string; pattern: RegE
   { method: 'GET', pattern: /^\/api\/v1\/me\/api-keys\/[^/]+\/usage$/ },
   { method: 'GET', pattern: /^\/api\/v1\/me\/verification-requests$/ },
   { method: 'GET', pattern: /^\/api\/v1\/me\/emails\/verify\/[^/]+$/ },
+  // The emailed account-deletion cancel link's two halves (h-implement-proper-deletion, ACC-3):
+  // public, the token is the whole secret. A keyed client never calls them, but a public route
+  // under the session prefix must be exempt or the map's completeness rule reads it as locked.
+  { method: 'GET', pattern: /^\/api\/v1\/me\/account\/deletion\/cancel\/[^/]+$/ },
+  { method: 'POST', pattern: /^\/api\/v1\/me\/account\/deletion\/cancel\/[^/]+$/ },
+  // Deleting a project signs with the session when there is one; with a key alone it still goes
+  // out keyed, and the backend allows a key to delete only an EMPTY project (PRJ-3).
+  { method: 'DELETE', pattern: /^\/api\/v1\/me\/profiles\/[^/]+$/ },
 ];
 
 function isSessionExempt(method: string, path: string): boolean {
@@ -197,7 +221,7 @@ export class HttpClient {
       _refreshed?: boolean;
     },
   ): Promise<T> {
-    const sessionPath = this.usesSessionAuth(path);
+    const sessionPath = this.usesSessionAuth(method, path);
     const useSession = sessionPath && !!this.sessionToken;
     const bearer = useSession ? this.sessionToken! : this.apiKey;
 
@@ -209,7 +233,7 @@ export class HttpClient {
     if (sessionPath && !this.sessionToken && this.apiKey && !isSessionExempt(method, path)) {
       const keyOrigin = this.remote
         ? 'The API key this connection carries — usually granted by the browser sign-in that connected it —'
-        : 'The API key in PROOF_API_KEY';
+        : 'The API key this server started with (PROOF_API_KEY, or the key saved by its login command)';
       throw new ApiError(
         `This tool works only in a signed-in Proof session. ${keyOrigin} does not open this tool. A sign-in ` +
           'session opens your own account records (emails, phones, domains, API keys, 2FA, DNS credentials, ' +
@@ -228,8 +252,9 @@ export class HttpClient {
     if (!bearer && !isPublicPath(method, path)) {
       // The wording matters as much as the code, and it has to be true for the transport the caller
       // is actually on. It once said "run create_account to get a key from inside this session",
-      // which an agent can follow forever without succeeding on stdio: the key is read from the
-      // environment and has no runtime setter. But the fix was written for stdio alone, and on the
+      // which an agent can follow forever without succeeding on stdio: the key is read at startup
+      // (PROOF_API_KEY, or the file `npx @proof-holdings/mcp-server login` saves) and has no
+      // runtime setter. But the fix was written for stdio alone, and on the
       // REMOTE server the resulting instruction is not merely unhelpful — it is impossible, since
       // nobody can set an env var on somebody else's pod or restart it. A signed-in remote user
       // calling a tool outside the session surface is exactly who reads this.
@@ -241,10 +266,12 @@ export class HttpClient {
             'API keys, 2FA, DNS credentials, verification requests, your public profile\'s username ' +
             'and proof list; account-wide reads such as the platform summary, settings and usage ' +
             'need the key that connecting grants.'
-          : 'This operation needs a Proof API key, which must be present in PROOF_API_KEY when the server starts. ' +
-            'Without one you can still create an account or sign in (create_account, start_login) and check ' +
-            'proofs and delegations. If you are signed in, create_api_key works over that session — but the new ' +
-            'key takes effect only after it is put in PROOF_API_KEY and this MCP server is restarted.',
+          : 'This operation needs a Proof API key, which this server reads when it starts: from PROOF_API_KEY, or ' +
+            'the key saved by running `npx @proof-holdings/mcp-server login` in a terminal. Without one you can ' +
+            'still create an account or sign in (create_account, start_login) and check proofs and delegations. ' +
+            'If you are signed in, create_api_key works over that session — but the new key takes effect only ' +
+            'after it is put in PROOF_API_KEY (or the user runs that login command instead) and this MCP server ' +
+            'is restarted.',
         'api_key_required',
         401,
       );
@@ -332,9 +359,10 @@ export class HttpClient {
                   'from here, and signing in with start_login will not restore this connection. Reconnect this ' +
                   'server to the account (your client\'s sign-in / "Authenticate" step, e.g. /mcp in Claude Code) ' +
                   'to authorize a new key.'
-                : 'The API key in PROOF_API_KEY is no longer accepted: it was revoked, has expired, or is mistyped. ' +
-                  'Create a new key in the Proof dashboard (Settings → API keys), put it in PROOF_API_KEY and restart ' +
-                  'this MCP server.',
+                : 'The API key this server started with (PROOF_API_KEY, or the key saved by its login command) is no ' +
+                  'longer accepted: it was revoked, has expired, or is mistyped. Get a new one by running ' +
+                  '`npx @proof-holdings/mcp-server login` in a terminal, or put a new key from the Proof dashboard ' +
+                  '(Settings → API keys) in PROOF_API_KEY, then restart this MCP server.',
               code,
               response.status,
               apiError?.details,
@@ -419,8 +447,13 @@ export class HttpClient {
   }
 
   /** True for endpoints behind `jwtAuth` — the user JWT session surface. */
-  private usesSessionAuth(path: string): boolean {
-    return SESSION_AUTH_PREFIXES.some((prefix) => path.startsWith(prefix)) || path === '/api/v1/auth/me';
+  private usesSessionAuth(method: string, path: string): boolean {
+    const verb = method.toUpperCase();
+    return (
+      SESSION_AUTH_PREFIXES.some((prefix) => path.startsWith(prefix)) ||
+      path === '/api/v1/auth/me' ||
+      SESSION_AUTH_ROUTES.some((route) => route.method === verb && route.pattern.test(path))
+    );
   }
 
   /** Capture the `token` / `refresh_token` cookies the login + refresh flows set via Set-Cookie. */

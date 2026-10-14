@@ -19,9 +19,15 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         'email_add',
         'email_remove',
         'account_delete',
+        'revocation_bulk',
+        'domain_remove',
+        'profile_delete',
+        'phone_primary',
+        'email_primary',
       ]).describe('The sensitive action requiring 2FA'),
       channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Channel to receive the verification code'),
       email_id: z.string().optional().describe('Specific email ID for email channel (optional)'),
+      targets: z.array(z.string().min(1).max(256)).min(1).max(25).optional().describe('The ids the step-up is FOR — the grant is bound to exactly these and refused for any other request (`reason: target_mismatch`). revocation_bulk: the asset id you will pass to revoke_asset (one code per asset); phone_remove / email_remove: the phone or email record id; domain_remove: the domain id; profile_delete: the project id; account_delete: your own user id (get_current_user). Leave out for the other action types.'),
     },
     async (args) => {
       try {

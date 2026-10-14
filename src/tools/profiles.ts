@@ -112,7 +112,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'delete_profile',
-    'Delete a profile by ID. Cannot delete the primary profile if it is the only one.',
+    'Delete a project (profile). Revokes its API keys, archives the HITL setups and declines the pending requests created with its own keys, keeps its history but unlinks it, deletes its message templates, and retires its username for good. The last project cannot be deleted; deleting the primary project makes the oldest remaining one primary (the response names it). In a start_login session: one code first — start_2fa_for_action with action_type profile_delete and targets [this project id]. With an API key alone only an EMPTY project (no API keys, HITL setups or pending requests) can be deleted; anything else answers owner_session_required. Cannot be undone.',
     {
       profile_id: z.string().describe('Profile ID'),
     },

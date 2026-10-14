@@ -22,7 +22,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'remove_email',
-    'Remove an email address from the account by ID. May require 2FA verification for sensitive operations.',
+    'Remove an email address from the account. Always requires one code: start_2fa_for_action with action_type email_remove and targets [this email id]. Revokes every proof of the address and your own consents naming it, declines pending confirmations waiting on it, moves Lookalike Watch alerts to your remaining primary email (or stops the watch when none is left), deletes the record, signs out your other devices, and names the new primary email. Refused for the address you signed in with and for your only way to sign in. Cannot be undone.',
     {
       id: z.string().describe('Email record ID'),
     },

@@ -106,23 +106,6 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   );
 
   tool(
-    'claim_request_assets',
-    'Claim shared assets from a completed verification request.',
-    {
-      id: z.string().describe('Verification request ID'),
-    },
-    async ({ id }) => {
-      try {
-        const result = await http.post(`/api/v1/me/verification-requests/${encodeURIComponent(id)}/claim`);
-        return jsonResult(result);
-      } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
-        throw e;
-      }
-    },
-  );
-
-  tool(
     'cancel_user_request',
     'Cancel a pending verification request. Only the creator can cancel.',
     {

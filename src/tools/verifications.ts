@@ -224,7 +224,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'delete_domain_verification',
-    'Delete a domain verification that has not been verified (pending or failed). A verified domain is refused with domain_verified: removing it would revoke its control proof and every delegation issued from it, so that is done from the dashboard.',
+    'Delete a domain verification attempt that is not verified (pending, verifying or failed) — nothing is revoked. A verified domain, or one that needs re-verification, is refused with domain_verified: removing it revokes its proofs and every delegation issued from it, which is delete_domain in a start_login session (or the dashboard).',
     {
       // Validated here rather than left to the REST 400: this tool is destructive, so a malformed
       // id never leaves the client.

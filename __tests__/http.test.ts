@@ -30,6 +30,19 @@ describe('HttpClient', () => {
     });
   }
 
+  // h-implement-proper-deletion MCP-1: an account scheduled for deletion answers every keyed call
+  // with one refusal whose message carries the date and the way back; the agent must see it as
+  // sent, not as a generic failure or a retried 5xx.
+  it('passes the deletion-lock refusal through verbatim, without retrying', async () => {
+    const message = 'This account is scheduled for deletion on 2026-10-16T12:00:00.000Z. Sign in to the dashboard to cancel it or download your data.';
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: { code: 'account_scheduled_for_deletion', message, scheduled_for: '2026-10-16T12:00:00.000Z' } }, 403));
+
+    const error = await createClient().get('/api/v1/verifications').catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ code: 'account_scheduled_for_deletion', statusCode: 403, message });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('makes GET requests with correct headers', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: '123' }));
 
@@ -314,6 +327,43 @@ describe('HttpClient JWT session auth', () => {
     expect(authHeaderOfCall(1)).toBe('Bearer JWT123');
     expect(authHeaderOfCall(2)).toBe('Bearer JWT123');
     expect(authHeaderOfCall(3)).toBe('Bearer pk_test_abc123');
+  });
+
+  /**
+   * mcp-server 1.5.0 (h-implement-proper-deletion MCP-1): ONE verb on a path can belong to the
+   * signed-in owner while its reads stay keyed. Revoking an asset and deleting a project sign with
+   * the session; listing and reading assets and projects keep the key and its scopes.
+   */
+  it('signs the owner-only verbs on assets and projects with the session and keeps their reads on the key', async () => {
+    fetchMock.mockResolvedValueOnce(cookieResponse({ status: 'verified' }, ['token=JWT123; Path=/']));
+    for (let i = 0; i < 7; i += 1) fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
+
+    const client = createClient();
+    await client.get('/api/v1/auth/sessions/auth_x');
+    await client.del('/api/v1/me/assets/a1'); // owner-only: session
+    await client.post('/api/v1/me/assets/revoke', { asset_ids: ['a1'] }); // owner-only: session
+    await client.del('/api/v1/me/profiles/p1'); // owner-only with a session
+    await client.post('/api/v1/me/export'); // the owner's own export
+    await client.get('/api/v1/me/assets/a1'); // a read: key
+    await client.get('/api/v1/me/assets'); // a read: key
+    await client.get('/api/v1/me/profiles'); // a read: key
+
+    expect([1, 2, 3, 4].map(authHeaderOfCall)).toEqual(['Bearer JWT123', 'Bearer JWT123', 'Bearer JWT123', 'Bearer JWT123']);
+    expect([5, 6, 7].map(authHeaderOfCall)).toEqual(['Bearer pk_test_abc123', 'Bearer pk_test_abc123', 'Bearer pk_test_abc123']);
+  });
+
+  it('with a key and no session: revoking an asset is refused before the network, deleting a project goes out keyed', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
+    const client = createClient();
+
+    const refused = await client.del('/api/v1/me/assets/a1').catch((e: unknown) => e);
+    expect(refused).toMatchObject({ code: 'user_session_required', statusCode: 401 });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // A key may still delete an EMPTY project (PRJ-3), so this route is session-exempt.
+    await client.del('/api/v1/me/profiles/p1');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(authHeaderOfCall(0)).toBe('Bearer pk_test_abc123');
   });
 
   /**

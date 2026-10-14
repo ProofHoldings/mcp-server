@@ -3,7 +3,7 @@
   "name": "holdings.proof/mcp-server",
   "title": "Proof Holdings",
   "description": "One API, all things verified — control, delegation, human approval, anti-impersonation.",
-  "version": "1.4.0",
+  "version": "1.6.0",
   "websiteUrl": "https://proof.holdings",
   "icons": [
     {
@@ -35,14 +35,14 @@
     {
       "registryType": "npm",
       "identifier": "@proof-holdings/mcp-server",
-      "version": "1.4.0",
+      "version": "1.6.0",
       "transport": {
         "type": "stdio"
       },
       "environmentVariables": [
         {
           "name": "PROOF_API_KEY",
-          "description": "Proof Holdings API key (Bearer). Optional: without it the server runs in public mode, where account creation, login and public verification tools work and every other tool asks for a key. Create one in the dashboard at https://proof.holdings. A key minted from inside a session with create_api_key takes effect only once it is set here and the server is restarted — this value is read at startup and has no runtime setter.",
+          "description": "Proof Holdings API key (Bearer). Optional: without it the server runs in public mode, where account creation, login and public verification tools work and every other tool asks for a key. Create one in the dashboard at https://proof.holdings. Or run `npx @proof-holdings/mcp-server login` in a terminal: it signs in, confirms on a second channel and saves a key in ~/.proof-holdings/credentials, which the server uses when this variable is unset (this variable wins when set). Either is read at startup and has no runtime setter, so restart the server after logging in.",
           "isRequired": false,
           "isSecret": true
         },

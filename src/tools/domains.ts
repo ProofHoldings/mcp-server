@@ -66,7 +66,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'delete_domain',
-    'Remove a domain from the account. This cannot be undone.',
+    'Remove a domain from the account. Revokes every proof of the domain and every delegation issued from it (for good — re-adding the domain does not bring them back), deletes the domain and its records, and removes our _proof TXT record and the Resend sending domain where we can; the response lists what is left for you to remove by hand. Owner only, in a start_login session, with one code: start_2fa_for_action with action_type domain_remove and targets [this domain id]. Need only a fresh proof? Revoke the proofs instead (revoke_asset), which keeps the domain. Cannot be undone.',
     {
       id: z.string().describe('Domain ID to delete'),
     },
@@ -270,7 +270,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'setup_domain_email',
-    'Set up email sending for a verified domain. Configures the domain for sending verification emails from a custom address.',
+    'Register a verified domain with Proof\'s email provider (Resend) for sending. The result carries the DKIM/SPF DNS records to publish (`resend.dkim_records`) and their status. `from_email`, if given, must be on this domain and is stored as the preferred sender. Proof does not send from customer domains yet: verification emails still come from Proof\'s own address, and the stored `from_email` is not used.',
     {
       id: z.string().describe('Domain ID'),
       from_email: z.string().email().optional().describe('Custom from email address for the domain'),

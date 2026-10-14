@@ -1,6 +1,6 @@
 # @proof-holdings/mcp-server
 
-MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 172 tools for AI agents to create verifications, validate proofs, manage assets, and more.
+MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 171 tools for AI agents to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect
 
@@ -36,7 +36,40 @@ npx @proof-holdings/mcp-server
 | `PROOF_API_KEY` | No | — | API key (`pk_live_...` or `pk_test_...`). Without it the server still starts in **public mode**: the keyless tools (account bootstrap, login, proof and delegation verification) work, and every other tool answers `api_key_required`. |
 | `PROOF_BASE_URL` | No | `https://api.proof.holdings` | API base URL |
 
-Get your API key from the [proof.holdings dashboard](https://proof.holdings/dashboard/api-keys).
+Get your API key from the [proof.holdings dashboard](https://proof.holdings/dashboard/api-keys), or let the
+server get one for you with `login` (below).
+
+## Sign in from a terminal
+
+```bash
+npx @proof-holdings/mcp-server login
+```
+
+1. Pick how to log in — Telegram, WhatsApp, SMS or email (`--channel`, or asked). The terminal shows the
+   link and a QR code to scan with your phone, the text and number to send for SMS, or asks for the code
+   from the email.
+2. Creating an API key needs one more confirmation, preferably on a different channel; it also runs in the
+   terminal.
+3. The new key is saved in `~/.proof-holdings/credentials` (readable by you only), under the API in
+   `PROOF_BASE_URL`. The server uses it from its next start, so restart your MCP client's server.
+
+`PROOF_API_KEY`, when set, always wins over the saved key, and a key saved for one API (say, staging) is
+never sent to another. Then leave `env` out of the client config:
+
+```json
+{ "mcpServers": { "proof-holdings": { "command": "npx", "args": ["-y", "@proof-holdings/mcp-server"] } } }
+```
+
+| Command | What it does |
+|---|---|
+| `login` | Signs in, confirms, creates and saves a key. `--test` creates a test key (`pk_test_`); `--scopes a,b` limits it (default: full access); `--email you@example.com` logs in by email. |
+| `status` | Shows which key the server would start with and where it comes from. No network call. |
+| `logout` | Removes the saved key for this API from this computer. |
+
+The key does not expire. Logging in again replaces the saved key but does not revoke the old one, and
+`logout` only forgets it locally: revoke keys you no longer use in the dashboard (API keys) or with the
+`revoke_api_key` tool. `login` needs an interactive terminal and an `https://` API (plain `http` only for
+localhost).
 
 ## Client Setup
 
@@ -68,13 +101,13 @@ Config file location by client:
 
 If installed globally (`npm install -g @proof-holdings/mcp-server`), use `"command": "proof-mcp"` and remove the `"args"` field.
 
-## Tools (172 tools)
+## Tools (171 tools)
 
 Group totals are exact. The tables name the tools you are most likely to reach for rather than all
 of them — your MCP client's own `tools/list` is the complete, current list, and it is the one this
 server answers from.
 
-### Verifications & requests (29 tools)
+### Verifications & requests (28 tools)
 
 | Tool | Description |
 |---|---|

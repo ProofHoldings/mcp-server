@@ -91,12 +91,20 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'export_data',
-    'Export all account data (GDPR Article 20 - Right to Data Portability). Rate limited to 1 export per 24 hours.',
-    {},
-    async () => {
+    'Export a complete copy of your account\'s data (GDPR Articles 15 and 20), or check on one. Owner only: sign in with start_login first (a connection with only an API key is refused user_session_required). The first call starts the export; it is prepared in the background, and the account owner is told by email (or on their login channel) with a link that downloads it only while they are signed in — this tool never returns the data itself. Call again to see whether it is ready: an export already preparing or ready is reported instead of starting another. One new export per 24 hours (no limit while the account is scheduled for deletion); the file is kept for 7 days. Pass export_id to read one export\'s status.',
+    {
+      export_id: z.string().regex(/^[a-f0-9]{24}$/i, 'an export id is 24 hex characters').optional().describe('Read this export\'s status instead of the latest one'),
+    },
+    async ({ export_id }) => {
       try {
-        const result = await http.get('/api/v1/me/export');
-        return jsonResult(result);
+        if (export_id) {
+          return jsonResult(await http.get(`/api/v1/me/export/${encodeURIComponent(export_id)}`));
+        }
+        // An export already under way, or ready to download, is the answer — starting another
+        // would only meet the daily limit.
+        const { latest } = (await http.get('/api/v1/me/export')) as { latest: { status?: string } | null };
+        if (latest && (latest.status === 'preparing' || latest.status === 'ready')) return jsonResult(latest);
+        return jsonResult(await http.post('/api/v1/me/export'));
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
         throw e;

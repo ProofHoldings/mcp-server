@@ -68,7 +68,6 @@ export const SESSION_TOOLS: ReadonlySet<string> = new Set([
   'check_domain_credentials',
   'check_domain_email_status',
   'check_user_domain_verification',
-  'claim_request_assets',
   'claim_username',
   'confirm_domain_email_code',
   'connect_cloudflare',
@@ -79,6 +78,8 @@ export const SESSION_TOOLS: ReadonlySet<string> = new Set([
   'create_user_request',
   'delete_dns_credential',
   'delete_domain',
+  'delete_profile',
+  'export_data',
   'extend_request',
   'get_2fa_status',
   'get_add_email_status',
@@ -101,6 +102,7 @@ export const SESSION_TOOLS: ReadonlySet<string> = new Set([
   'resend_domain_email',
   'resend_email_otp',
   'revoke_api_key',
+  'revoke_asset',
   'set_primary_email',
   'set_primary_phone',
   'setup_domain_email',
@@ -145,7 +147,7 @@ export interface AccessContext {
 function credentialRecipe(remote: boolean | undefined): string {
   return remote
     ? 'authenticate this client (in Claude Code: /mcp → this server → Authenticate)'
-    : "set PROOF_API_KEY in this server's environment and restart it";
+    : "run `npx @proof-holdings/mcp-server login` in a terminal (or set PROOF_API_KEY in this server's environment) and restart it";
 }
 
 /**

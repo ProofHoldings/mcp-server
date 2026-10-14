@@ -22,7 +22,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'remove_phone',
-    'Remove a phone number from the account by ID. May require 2FA verification for sensitive operations.',
+    'Remove a phone number from the account. Always requires one code: start_2fa_for_action with action_type phone_remove and targets [this phone id]. Revokes every proof of the number and your own consents naming it, declines pending confirmations waiting on it, flags approval setups left with no approver, deletes the record and its messenger links, signs out your other devices, and names the new primary phone — your Proof of Me circles then reach you there. Refused for the number you signed in with, for your only way to sign in, and for your last phone while circles are active (circles_need_phone: add another phone first, or archive the circles). Cannot be undone.',
     {
       id: z.string().describe('Phone record ID'),
     },
