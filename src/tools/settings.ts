@@ -47,7 +47,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_settings',
-    'Get account settings: branding (business name, logo, colors, support email, email theme), the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. The webhook signing secret is NOT returned to an API key — the response reports webhook.secret_set instead, and the value itself is visible only in the dashboard or in the update_settings response that created or rotated it.',
+    'Get account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding (name, logo, colour, email theme, support email) belongs to each sub-account (project): read it with get_profile. The webhook signing secret is NOT returned to an API key — the response reports webhook.secret_set instead, and the value itself is visible only in the dashboard or in the update_settings response that created or rotated it.',
     {},
     async () => {
       try {
@@ -62,15 +62,8 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'update_settings',
-    'Update account settings: branding, the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Setting the first webhook endpoint creates the signing secret and returns it in this response; the value is returned only when this call created or rotated it, so record it then.',
+    'Update account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding belongs to each sub-account (project): change it with update_profile. Setting the first webhook endpoint creates the signing secret and returns it in this response; the value is returned only when this call created or rotated it, so record it then.',
     {
-      branding: z.object({
-        business_name: z.string().max(100).optional().describe('Business name displayed in verifications'),
-        logo_url: z.string().url().refine((u) => u.startsWith('https://'), { message: 'Logo URL must use HTTPS' }).optional().nullable().describe('HTTPS URL to business logo'),
-        primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional().describe('Primary brand color (hex, e.g. #FF5733)'),
-        support_email: z.string().email().optional().describe('Support email shown in verification messages'),
-        email_theme: z.enum(['dark', 'light']).optional().describe('Email template theme'),
-      }).optional().describe('Branding settings to update'),
       webhook: z.object({
         url: z.string().url().max(2000).nullable().optional().describe('HTTPS endpoint outbound webhooks are delivered to, at most 2000 characters; null removes it. Private, loopback and link-local addresses are refused.'),
         events: z.array(z.string()).max(32).optional().describe('Subscription patterns: an exact event type, a family wildcard such as "proof.*", or "*". An empty list means every event.'),

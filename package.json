@@ -1,8 +1,8 @@
 {
   "name": "@proof-holdings/mcp-server",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "mcpName": "holdings.proof/mcp-server",
-  "description": "MCP server for the proof.holdings API — 171 tools for identity verification, proofs, and asset management",
+  "description": "MCP server for the proof.holdings API — 167 tools for identity verification, proofs, and asset management",
   "type": "module",
   "license": "MIT",
   "author": "proof.holdings <hello@proof.holdings> (https://proof.holdings)",

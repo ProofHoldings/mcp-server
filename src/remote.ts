@@ -229,6 +229,16 @@ const challenge = (res: ServerResponse, baseUrl: string, body: unknown): void =>
     .end(JSON.stringify(body));
 };
 
+/** The two methods `/mcp` serves: POST carries every JSON-RPC message, DELETE ends a session. */
+const ALLOWED_METHODS = 'POST, DELETE';
+
+/** 405 + `Allow` for every other method, the optional standalone `GET` event stream included. */
+const methodNotAllowed = (res: ServerResponse): void => {
+  res
+    .writeHead(405, { 'content-type': 'application/json', allow: ALLOWED_METHODS })
+    .end(JSON.stringify({ error: 'method_not_allowed' }));
+};
+
 /** Thrown when a request body exceeds `MAX_BODY_BYTES`; answered as 413 rather than buffered. */
 class BodyTooLargeError extends Error {}
 
@@ -606,6 +616,23 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       return;
     }
 
+    // ONE method gate, ahead of every session lookup and credential check. The standalone `GET`
+    // event stream is OPTIONAL in Streamable HTTP — a server either answers it with
+    // `text/event-stream` or with 405 — and this server never sends anything on it (nothing in
+    // `mcp/src` emits a server notification), so declining it costs a client nothing. What it buys
+    // is real: with that stream open, Node 26's built-in `fetch` (undici 8, HTTP/2 to the edge)
+    // never sends the client's next request, which reproduced against this server and against a
+    // third-party one, and not against a server answering 405 (h-fix-consent-new-user-path SC-8).
+    //
+    // Every OTHER method is answered here too, not only GET: the SDK's own refusal of PUT/PATCH on
+    // a live session advertises `Allow: GET, POST, DELETE`, which would contradict this line. And
+    // it sits BEFORE the session lookup so an anonymous, a keyed and an unknown-session request get
+    // one answer — a 405 says nothing about any session.
+    if (req.method !== 'POST' && req.method !== 'DELETE') {
+      methodNotAllowed(res);
+      return;
+    }
+
     const sessionId = req.headers['mcp-session-id'];
     const existing = typeof sessionId === 'string' ? sessions.get(sessionId) : undefined;
 
@@ -615,13 +642,13 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // somebody else's session id, and a request that drops the token the session was opened with
       // — so neither a leaked id nor a stripped header reaches another tenant's key.
       //
-      // STATED BOUND: this runs before any method check, so it applies to the standalone `GET /mcp`
-      // event stream and to the session-terminating `DELETE` as well as to tool calls. A keyed
-      // client that omits the header on those gets a challenge rather than its stream or its
-      // teardown (the session then lingers to TTL). Standards-compliant clients attach the token to
-      // every request to the resource — the live run shows Claude Code doing exactly that — so this
-      // is a bound rather than a defect, and refusing is the safe direction: the alternative is a
-      // credential-less request acting on a keyed session.
+      // STATED BOUND: this applies to the session-terminating `DELETE` as well as to tool calls (the
+      // method gate above has already answered everything else). A keyed client that omits the
+      // header on a DELETE gets a challenge rather than its teardown (the session then lingers to
+      // TTL). Standards-compliant clients attach the token to every request to the resource — the
+      // live run shows Claude Code doing exactly that — so this is a bound rather than a defect,
+      // and refusing is the safe direction: the alternative is a credential-less request acting on
+      // a keyed session.
       if (fingerprintOf(bearerOf(req)) !== existing.keyFingerprint) {
         challenge(res, options.baseUrl, sessionCredentialMismatchBody());
         return;
@@ -630,18 +657,19 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // Counted from BEFORE the body is read: a slow upload is time the session is in use, and the
       // sweeper must not reclaim it midway.
       //
-      // POST ONLY, and that is the whole point of the distinction. `handleRequest` for a standalone
-      // `GET /mcp` SSE stream does not resolve until the stream ends, so counting it would keep
-      // `inFlight` at 1 for the stream's entire life — and the MCP SDK client opens that stream
+      // POST ONLY. A DELETE ends the session rather than using it, and the standalone `GET /mcp`
+      // stream no longer reaches this point (the method gate declines it). The rule was written
+      // for that stream, and its history is why only a POST counts: `handleRequest` for a
+      // standalone SSE stream did not resolve until the stream ended, so counting it kept
+      // `inFlight` at 1 for the stream's entire life — and the MCP SDK client opened that stream
       // right after `initialize`. Counting it made the documented 30-minute idle TTL unreachable
       // for every real client (measured: a session with an open GET survived 6× its TTL), leaving
       // nginx's 3600s read timeout as the only bound. A stream is a connection, not work.
       //
-      // The cost of that choice, measured rather than assumed: the official client does NOT
-      // re-initialize after its session is swept — the stream's reconnect gives up after two
-      // attempts and the next call fails `unknown_session` until the host reconnects. So the TTL
-      // is a memory bound paid for in reconnects. Counting the stream instead would trade that for
-      // sessions that are never reclaimed at all, which is the worse of the two.
+      // The cost, measured with the stream still offered (SDK 1.27.1): the official client did NOT
+      // re-initialize after its session was swept, and the next call failed `unknown_session` until
+      // the host reconnected. So the TTL is a memory bound paid for in reconnects. Not re-measured
+      // since the stream was declined.
       const counted = req.method === 'POST';
       // THE RULE, in the words the code can actually perform: the idle clock moves for a POST the
       // transport ACCEPTED — one it answered below 400. `inFlight` is what protects a request that

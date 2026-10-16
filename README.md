@@ -1,6 +1,6 @@
 # @proof-holdings/mcp-server
 
-MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 171 tools for AI agents to create verifications, validate proofs, manage assets, and more.
+MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 167 tools for AI agents to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect
 
@@ -99,9 +99,10 @@ Config file location by client:
 | Claude Code | Run `claude mcp add proof-holdings -- npx -y @proof-holdings/mcp-server` |
 | Windsurf | `~/.codeium/windsurf/mcp_config.json` |
 
-If installed globally (`npm install -g @proof-holdings/mcp-server`), use `"command": "proof-mcp"` and remove the `"args"` field.
+Keep the scoped `npx -y @proof-holdings/mcp-server` command even after a global install. A bare command
+name is looked up on `PATH`, or by `npx` in the npm registry, where it can belong to someone else's package.
 
-## Tools (171 tools)
+## Tools (167 tools)
 
 Group totals are exact. The tables name the tools you are most likely to reach for rather than all
 of them — your MCP client's own `tools/list` is the complete, current list, and it is the one this
@@ -160,7 +161,7 @@ server answers from.
 | `invite_circle_member` | Send a single-use enrollment link |
 | `create_identity_challenge` | Run a cross-channel identity check |
 
-### Public profiles (16 tools)
+### Public profiles (12 tools)
 
 | Tool | Description |
 |---|---|
@@ -172,7 +173,7 @@ server answers from.
 
 | Tool | Description |
 |---|---|
-| `list_templates` | List message templates |
+| `list_templates` | List a project's message templates |
 | `render_template` | Render a template with variables |
 | `list_webhook_deliveries` | List webhook deliveries |
 | `retry_webhook_delivery` | Retry a failed delivery |
@@ -205,8 +206,8 @@ Use a test-mode API key (`pk_test_*`) to interact with the API without creating 
 
 Two transports ship in this package:
 
-- **stdio** (default, `mcp-server` / `proof-mcp`) — the server communicates over stdin/stdout. One
-  user per process; this is what a client launches locally.
+- **stdio** (default, what `npx -y @proof-holdings/mcp-server` starts) — the server communicates over
+  stdin/stdout. One user per process; this is what a client launches locally.
 - **Streamable HTTP** (`node dist/remote.js`) — a remote server that many users connect to over the
   network by URL, with no install. A connection starts ANONYMOUS — the keyless surface (account
   bootstrap, login, proof and delegation verification) works with no credential at all — and a tool
@@ -220,16 +221,20 @@ Two transports ship in this package:
   tool call alongside `initialize`. A
   signed-in client sends the API key it was granted in the `Authorization` header — the only place a
   credential is read, never a query parameter — and each connection gets its own server and HTTP
-  client, so one user's key or session can never reach another. `PORT` (default 3100),
+  client, so one user's key or session can never reach another. `/mcp` serves `POST` (every
+  JSON-RPC message) and `DELETE` (ending a session); every other method — including the optional
+  standalone `GET` event stream — answers `405` with `Allow: POST, DELETE`, whatever session or
+  credential the request carries. Nothing on this server pushes notifications, so declining the
+  stream costs a client nothing, and it is what lets a client on Node 26's built-in `fetch` work:
+  over HTTP/2 to the edge, with that stream open, it never sent its next request. `PORT` (default 3100),
   `MCP_MAX_SESSIONS` (default 100), `MCP_SESSION_TTL_MS` (default 30 min, counted from the last POST
   the server ACCEPTED — one it answered below 400. A POST refused before any work happens does not
   postpone it, whether the refusal is ours (body over 4MB) or the transport's (unparseable or empty
-  body, unsupported `mcp-protocol-version`, a second `initialize`); and an open event stream is a
-  connection, not activity, so a session whose only traffic is that stream ages out. **The official
-  client does not recover from this on its
-  own**: measured against SDK 1.27.1, the stream's reconnect gives up after two attempts and the
-  next tool call fails with `unknown_session` until the host reconnects the server. Size the TTL
-  with that in mind — it is a memory bound paid for in reconnects, not a transparent one);
+  body, unsupported `mcp-protocol-version`, a second `initialize`), and neither does a refused method.
+  **The official client does not recover from a sweep on its own**: measured against SDK 1.27.1 —
+  while the event stream was still offered, so not re-measured since — the next tool call fails with
+  `unknown_session` until the host reconnects the server. Size the TTL with that in mind — it is a
+  memory bound paid for in reconnects, not a transparent one);
   `/healthz` reports the live session count.
 
 ## Delegation (`_meta`)

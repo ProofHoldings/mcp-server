@@ -8,6 +8,7 @@
  * on a server another company hosts), and `user_session_required` keeps pointing at `start_login`:
  * there the key is fine and what is missing is a session.
  */
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ApiError, HttpClient } from '../src/http.js';
 import { serverInstructions } from '../src/authBoundary.js';
@@ -89,5 +90,23 @@ describe('the login command in the key texts', () => {
       expect(text).not.toContain('mcp-server login');
       expect(text).not.toContain('proof-mcp login');
     }
+  });
+});
+
+/**
+ * The README ships in the npm tarball and is what the mirror, Glama and every directory reading the
+ * mirror show. It may not name the unscoped bin at all — not even as "use this after a global install":
+ * a reader who copies it into a config that later runs through `npx` resolves somebody else's package.
+ * The scoped `npx -y @proof-holdings/mcp-server` form is the only command it gives.
+ */
+describe('the package README', () => {
+  const readme = readFileSync(new URL('../README.md', import.meta.url), 'utf8');
+
+  it('never names the unscoped bin', () => {
+    expect(readme).not.toMatch(/(?<![\w@/-])proof-mcp\b/);
+  });
+
+  it('still gives the scoped npx command (the control: the file read is the README)', () => {
+    expect(readme).toContain('npx -y @proof-holdings/mcp-server');
   });
 });

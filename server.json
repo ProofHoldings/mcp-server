@@ -3,7 +3,7 @@
   "name": "holdings.proof/mcp-server",
   "title": "Proof Holdings",
   "description": "One API, all things verified — control, delegation, human approval, anti-impersonation.",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "websiteUrl": "https://proof.holdings",
   "icons": [
     {
@@ -35,7 +35,7 @@
     {
       "registryType": "npm",
       "identifier": "@proof-holdings/mcp-server",
-      "version": "1.6.0",
+      "version": "1.7.0",
       "transport": {
         "type": "stdio"
       },

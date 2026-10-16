@@ -22,7 +22,6 @@ export const READ_ONLY_TOOLS: ReadonlySet<string> = new Set([
   // POSTs that compute and store nothing.
   'validate_proof',
   'preview_template',
-  'preview_profile_template',
   'render_template',
   // GETs. `export_data` is deliberately absent: it spends the once-per-24h export allowance.
   'get_webhook_stats',
@@ -80,7 +79,6 @@ export const READ_ONLY_TOOLS: ReadonlySet<string> = new Set([
   'list_revoked_proofs',
   'list_profiles',
   'get_profile',
-  'list_profile_templates',
   'get_my_profile',
   'get_profile_assets',
   'list_templates',
@@ -125,7 +123,6 @@ export const DESTRUCTIVE_TOOLS: ReadonlySet<string> = new Set([
   'delete_hitl',
   'remove_phone',
   'delete_profile',
-  'delete_profile_template',
   'delete_template',
   'cancel_user_request',
   'cancel_verification_request',
@@ -133,7 +130,6 @@ export const DESTRUCTIVE_TOOLS: ReadonlySet<string> = new Set([
   'set_primary_email',
   'set_primary_phone',
   'upload_hitl_keys',
-  'update_profile_template',
   'update_profile_proofs',
   'update_my_profile',
   'update_public_proofs',

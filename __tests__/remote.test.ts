@@ -1053,26 +1053,23 @@ describe('remote server — the two counters release symmetrically', () => {
     expect(remote.sessionCount()).toBe(1);
   });
 
-  it('a GET stream that never counted cannot decrement the in-flight counter', async () => {
-    // The increment is POST-only; a release that is not would drive the counter NEGATIVE on a GET,
-    // and `inFlight > 0` does not skip on a negative — so the sweeper would close a transport out
-    // from under a live POST. This case is the generalisation of the in-flight case below: it
-    // drives the counter through a GET first, then runs a POST across more than one TTL.
-    // TTL generous enough that the GET phase alone cannot age the session out — a GET no longer
-    // refreshes the clock, so the setup has to fit inside the window for the POST phase to be the
-    // thing under test.
+  it('a refused GET cannot decrement the in-flight counter', async () => {
+    // The increment is POST-only; a release that is not would drive the counter NEGATIVE, and
+    // `inFlight > 0` does not skip on a negative — so the sweeper would close a transport out from
+    // under a live POST. Written when a GET opened a stream; since SC-8 a GET is declined ahead of
+    // the session code entirely, and this case keeps proving that declining it touches no counter:
+    // drive a GET first, then run a POST across more than one TTL.
+    // TTL generous enough that the GET phase alone cannot age the session out, so the POST phase is
+    // the thing under test.
     const { port, remote } = await startRaw({ sessionTtlMs: 400, sweepIntervalMs: 20 });
     const sessionId = await openSessionRaw(port);
 
-    const controller = new AbortController();
-    const stream = fetch(`http://127.0.0.1:${port}/mcp`, {
+    const refused = await fetch(`http://127.0.0.1:${port}/mcp`, {
       method: 'GET',
       headers: { accept: 'text/event-stream', 'mcp-session-id': sessionId },
-      signal: controller.signal,
-    }).catch(() => undefined);
-    await new Promise((resolve) => setTimeout(resolve, 40));
-    controller.abort();
-    await stream;
+    });
+    await refused.text();
+    expect(refused.status).toBe(405);
 
     // Now a POST that outlives the TTL. If the GET had decremented, the sweeper would reclaim the
     // session mid-request and this would answer on a closed transport.
@@ -1124,6 +1121,77 @@ describe('remote server — configuration is read fail-closed', () => {
     expect(positiveIntEnv('X', { X: '1_000' })).toBeUndefined();
     // Surrounding whitespace is tolerated — a trailing newline is what a k8s env file produces.
     expect(positiveIntEnv('X', { X: ' 100\n' })).toBe(100);
+  });
+});
+
+describe('remote server — the standalone GET stream is declined (h-fix-consent-new-user-path SC-8)', () => {
+  // With the OPTIONAL `GET /mcp` event stream open, Node 26's built-in `fetch` (undici 8, HTTP/2 to
+  // the edge) never sent the client's next request — reproduced against this server. Streamable
+  // HTTP lets a server answer that GET with 405, and nothing here ever sends on the stream, so it is
+  // declined: once, ahead of every session lookup and credential check, for every method but POST
+  // and DELETE. These cases pin both halves of "ahead of": no session state and no credential
+  // changes the answer.
+  const GET_STREAM_HEADERS = { accept: 'text/event-stream' };
+
+  async function expectDeclined(response: Response, { body = true } = {}) {
+    expect(response.status).toBe(405);
+    expect(response.headers.get('allow')).toBe('POST, DELETE');
+    if (body) expect(await response.json()).toEqual({ error: 'method_not_allowed' });
+    else await response.text();
+  }
+
+  it('declines GET on an anonymous session, and the session stays usable', async () => {
+    const { url } = await start();
+    const sessionId = await openSession(url);
+
+    await expectDeclined(await fetch(`${url}/mcp`, { method: 'GET', headers: { ...GET_STREAM_HEADERS, 'mcp-session-id': sessionId } }));
+
+    const listed = await fetch(`${url}/mcp`, {
+      method: 'POST',
+      headers: { ...MCP_HEADERS, 'mcp-session-id': sessionId },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 4, method: 'tools/list', params: {} }),
+    });
+    await listed.text();
+    expect(listed.status).toBe(200);
+  });
+
+  it('declines GET with no session id the same way (it was 400 session_required)', async () => {
+    const { url } = await start();
+    await expectDeclined(await fetch(`${url}/mcp`, { method: 'GET', headers: GET_STREAM_HEADERS }));
+  });
+
+  it('declines GET with an unknown session id the same way (it was 404 unknown_session)', async () => {
+    const { url } = await start();
+    await expectDeclined(await fetch(`${url}/mcp`, {
+      method: 'GET',
+      headers: { ...GET_STREAM_HEADERS, 'mcp-session-id': 'a-session-this-process-never-minted' },
+    }));
+  });
+
+  it('declines GET on a keyed session whatever credential it carries — before any credential check', async () => {
+    const stub = await startStubBackend(() => SELF_KEY_OK);
+    const { url } = await start({ baseUrl: stub.url });
+    const sessionId = await openSession(url, { authorization: 'Bearer pk_live_good' });
+
+    for (const authorization of ['Bearer pk_live_good', undefined, 'Bearer pk_live_someone_else']) {
+      await expectDeclined(await fetch(`${url}/mcp`, {
+        method: 'GET',
+        headers: { ...GET_STREAM_HEADERS, 'mcp-session-id': sessionId, ...(authorization && { authorization }) },
+      }));
+    }
+    // A missing or foreign credential would have been a 401 challenge had the credential check run
+    // first; and nothing was resolved for any of the three.
+    expect(stub.requests.filter((entry) => entry.path === '/api/v1/me/api-key')).toHaveLength(1);
+  });
+
+  it('answers PUT, PATCH, HEAD and OPTIONS with the same Allow line, never the SDK\'s "GET, POST, DELETE"', async () => {
+    const { url } = await start();
+    const sessionId = await openSession(url);
+
+    for (const method of ['PUT', 'PATCH', 'OPTIONS']) {
+      await expectDeclined(await fetch(`${url}/mcp`, { method, headers: { ...MCP_HEADERS, 'mcp-session-id': sessionId } }));
+    }
+    await expectDeclined(await fetch(`${url}/mcp`, { method: 'HEAD', headers: { 'mcp-session-id': sessionId } }), { body: false });
   });
 });
 
@@ -1243,27 +1311,28 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     expect(remote.sessionCount()).toBe(0);
   });
 
-  it('a RECONNECTING GET stream does not postpone the idle TTL either', async () => {
-    // The sibling of the case below, and the one the README's wording actually promised. Stamping
-    // `lastSeen` on every request meant each stream open and close refreshed the clock, so a client
-    // that only reconnects its stream held its session forever. Measured before the fix: six 200ms
-    // streams against a 300ms TTL kept the session alive while a silent control aged out.
+  it('GETs a client keeps retrying do not postpone the idle TTL either', async () => {
+    // Written for a RECONNECTING stream: stamping `lastSeen` on every request meant each stream open
+    // and close refreshed the clock, so a client that only reconnected its stream held its session
+    // forever (measured before that fix: six 200ms streams against a 300ms TTL). Since SC-8 every
+    // GET is a 405, and a refusal must not move the clock either — the rule is "an ACCEPTED POST".
     const { url, remote } = await start({ sessionTtlMs: 150, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
+    const statuses: number[] = [];
     for (let i = 0; i < 4; i++) {
-      const controller = new AbortController();
-      const stream = fetch(`${url}/mcp`, {
+      const refused = await fetch(`${url}/mcp`, {
         method: 'GET',
         headers: { accept: 'text/event-stream', 'mcp-session-id': sessionId },
-        signal: controller.signal,
-      }).catch(() => undefined);
+      });
+      statuses.push(refused.status);
+      await refused.text();
       await new Promise((resolve) => setTimeout(resolve, 60));
-      controller.abort();
-      await stream;
     }
 
-    // ~240ms of stream traffic against a 150ms TTL, and no work at all.
+    // Anti-vacuity: these were refusals, so the case measures what a refusal does to the clock.
+    expect(statuses).toEqual([405, 405, 405, 405]);
+    // ~240ms of retries against a 150ms TTL, and no work at all.
     expect(remote.sessionCount()).toBe(0);
   });
 
@@ -1429,25 +1498,24 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     expect(remote.sessionCount()).toBe(1);
   });
 
-  it('an open GET stream does not postpone the idle TTL', async () => {
-    // `handleRequest` for a standalone SSE stream resolves only when the stream ends, so counting
-    // it as in-flight kept the documented TTL from ever firing — and the SDK client opens that
-    // stream right after `initialize`, so that was every real session.
+  it('no GET stream can be held open, so none can hold a session past its TTL', async () => {
+    // Written when `handleRequest` held a standalone SSE stream open until it ended, and counting
+    // that stream as in-flight kept the documented TTL from ever firing — every real session, since
+    // the SDK client opened it right after `initialize`. Since SC-8 the GET is answered at once: a
+    // response that ARRIVES (rather than a stream that stays open) is the property, timed against a
+    // deadline far shorter than the old hold.
     const { url, remote } = await start({ sessionTtlMs: 100, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
-    const controller = new AbortController();
-    const stream = fetch(`${url}/mcp`, {
-      method: 'GET',
-      headers: { accept: 'text/event-stream', 'mcp-session-id': sessionId },
-      signal: controller.signal,
-    }).catch(() => undefined);
+    const answered = await Promise.race([
+      fetch(`${url}/mcp`, { method: 'GET', headers: { accept: 'text/event-stream', 'mcp-session-id': sessionId } })
+        .then(async (response) => { await response.text(); return response.status; }),
+      new Promise<'held'>((resolve) => setTimeout(() => resolve('held'), 300)),
+    ]);
+    expect(answered).toBe(405);
 
     await new Promise((resolve) => setTimeout(resolve, 500));
     expect(remote.sessionCount()).toBe(0);
-
-    controller.abort();
-    await stream;
   });
 
   it('answers initialize_expected for a POST that is not an initialize, creating no session', async () => {

@@ -676,29 +676,28 @@ describe('settings tools', () => {
   });
 
   it('get_settings calls GET /api/v1/me/settings', async () => {
-    http.get.mockResolvedValueOnce({ branding: {} });
+    http.get.mockResolvedValueOnce({ proof_expiry_days: null });
     const tool = findTool(tools, 'get_settings');
     await tool.handler({});
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/me/settings');
   });
 
-  it('update_settings calls PATCH with branding', async () => {
-    http.patch.mockResolvedValueOnce({ branding: { business_name: 'Test' } });
+  it('update_settings PATCHes the default proof lifetime through', async () => {
+    http.patch.mockResolvedValueOnce({ proof_expiry_days: 30 });
     const tool = findTool(tools, 'update_settings');
-    await tool.handler({ branding: { business_name: 'Test' } });
+    await tool.handler({ proof_expiry_days: 30 });
 
-    expect(http.patch).toHaveBeenCalledWith('/api/v1/me/settings', {
-      branding: { business_name: 'Test' },
-    });
+    expect(http.patch).toHaveBeenCalledWith('/api/v1/me/settings', { proof_expiry_days: 30 });
   });
 
   it('update_settings accepts the webhook object the REST endpoint accepts', () => {
     // The parity map records settings.update as `mcp: available`, and `parity:validate` compares
     // tool NAMES and routes — never request shapes — so without this case the tool could stay
-    // narrower than the endpoint with every check green.
+    // narrower than the endpoint with every check green. No `branding`: it lives on each project
+    // now (h-subaccount-branding-per-project), so create_profile / update_profile carry it.
     const tool = findTool(tools, 'update_settings');
-    expect(Object.keys(tool.schema).sort()).toEqual(['branding', 'proof_expiry_days', 'webhook']);
+    expect(Object.keys(tool.schema).sort()).toEqual(['proof_expiry_days', 'webhook']);
 
     const webhook = tool.schema.webhook as unknown as { safeParse: (v: unknown) => { success: boolean } };
     const parsed = webhook.safeParse({
@@ -869,6 +868,62 @@ describe('templates tools', () => {
 
     expect(result.isError).toBe(true);
   });
+
+  // h-subaccount-branding-per-project (D1): a template belongs to one sub-account (project), and
+  // every operation but the platform defaults names it through `?profile_id=`. The cases above call
+  // without one and pin that nothing is appended then, so the server's own choice applies.
+  const PROJECT = '6650f1a2b3c4d5e6f7a8b9c0';
+
+  it('takes an optional 24-hex profile_id on every tool but get_default_templates', () => {
+    const scoped = tools.filter((t) => 'profile_id' in t.schema).map((t) => t.name).sort();
+    expect(scoped).toEqual([
+      'delete_template', 'get_template', 'list_templates', 'preview_template', 'render_template', 'update_template',
+    ]);
+    for (const name of scoped) {
+      const profileId = findTool(tools, name).schema.profile_id as z.ZodTypeAny;
+      expect(profileId.safeParse(undefined).success).toBe(true);
+      expect(profileId.safeParse(PROJECT).success).toBe(true);
+      expect(profileId.safeParse('primary').success).toBe(false);
+    }
+  });
+
+  it('list_templates and get_template send profile_id as a query parameter', async () => {
+    http.get.mockResolvedValue({});
+    await findTool(tools, 'list_templates').handler({ profile_id: PROJECT });
+    await findTool(tools, 'get_template').handler({ channel: 'email', message_type: 'verification_request', profile_id: PROJECT });
+
+    expect(http.get).toHaveBeenNthCalledWith(1, `/api/v1/templates?profile_id=${PROJECT}`);
+    expect(http.get).toHaveBeenNthCalledWith(2, `/api/v1/templates/email/verification_request?profile_id=${PROJECT}`);
+  });
+
+  it('update_template and delete_template send profile_id as a query parameter, never in the body', async () => {
+    http.put.mockResolvedValueOnce({});
+    http.del.mockResolvedValueOnce({});
+    await findTool(tools, 'update_template').handler({
+      channel: 'sms', message_type: 'login_request', body: '{{business_name}}: your code is {{code}}', profile_id: PROJECT,
+    });
+    await findTool(tools, 'delete_template').handler({ channel: 'sms', message_type: 'login_request', profile_id: PROJECT });
+
+    expect(http.put).toHaveBeenCalledWith(`/api/v1/templates/sms/login_request?profile_id=${PROJECT}`, {
+      body: '{{business_name}}: your code is {{code}}',
+    });
+    expect(http.del).toHaveBeenCalledWith(`/api/v1/templates/sms/login_request?profile_id=${PROJECT}`);
+  });
+
+  it('preview_template and render_template send profile_id as a query parameter, never in the body', async () => {
+    http.post.mockResolvedValue({});
+    await findTool(tools, 'preview_template').handler({
+      channel: 'email', message_type: 'verification_request', body: 'Test', profile_id: PROJECT,
+    });
+    await findTool(tools, 'render_template').handler({ channel: 'sms', message_type: 'login_request', profile_id: PROJECT });
+
+    expect(http.post).toHaveBeenNthCalledWith(1, `/api/v1/templates/preview?profile_id=${PROJECT}`, {
+      channel: 'email', message_type: 'verification_request', body: 'Test',
+    });
+    expect(http.post).toHaveBeenNthCalledWith(2, `/api/v1/templates/render?profile_id=${PROJECT}`, {
+      channel: 'sms', message_type: 'login_request',
+    });
+  });
 });
 
 // ============================================================
@@ -998,8 +1053,8 @@ describe('profiles tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 14 profile tools', () => {
-    expect(tools).toHaveLength(14);
+  it('registers all 10 profile tools', () => {
+    expect(tools).toHaveLength(10);
     const names = tools.map(t => t.name);
     expect(names).toContain('list_profiles');
     expect(names).toContain('create_profile');
@@ -1007,14 +1062,33 @@ describe('profiles tools', () => {
     expect(names).toContain('update_profile');
     expect(names).toContain('delete_profile');
     expect(names).toContain('set_primary_profile');
-    expect(names).toContain('list_profile_templates');
-    expect(names).toContain('update_profile_template');
-    expect(names).toContain('delete_profile_template');
-    expect(names).toContain('preview_profile_template');
     expect(names).toContain('update_profile_proofs');
     expect(names).toContain('get_my_profile');
     expect(names).toContain('update_my_profile');
     expect(names).toContain('get_profile_assets');
+  });
+
+  // h-subaccount-branding-per-project (D7): `/api/v1/me/profiles/:id/templates` answers 410
+  // `endpoint_retired`; a project's templates are the template tools with `profile_id`.
+  it('no longer registers the retired per-profile template tools', () => {
+    const names = tools.map(t => t.name);
+    for (const retired of ['list_profile_templates', 'update_profile_template', 'delete_profile_template', 'preview_profile_template']) {
+      expect(names).not.toContain(retired);
+    }
+  });
+
+  it('create_profile and update_profile declare the project\'s email branding the endpoint accepts', () => {
+    for (const name of ['create_profile', 'update_profile']) {
+      const shape = findTool(tools, name).schema;
+      expect(Object.keys(shape)).toEqual(expect.arrayContaining(['email_theme', 'support_email']));
+      const schema = z.object(shape as z.ZodRawShape);
+      expect(schema.safeParse({ profile_id: 'p', email_theme: 'light', support_email: 'support@proof.holdings' }).success).toBe(true);
+      expect(schema.safeParse({ profile_id: 'p', email_theme: 'sepia' }).success).toBe(false);
+      expect(schema.safeParse({ profile_id: 'p', support_email: 'not-an-address' }).success).toBe(false);
+    }
+    // Only an update clears the address; a create simply leaves it out.
+    const update = z.object(findTool(tools, 'update_profile').schema as z.ZodRawShape);
+    expect(update.safeParse({ profile_id: 'p', support_email: null }).success).toBe(true);
   });
 
   it('list_profiles calls GET /api/v1/me/profiles', async () => {
@@ -1069,66 +1143,6 @@ describe('profiles tools', () => {
     await tool.handler({ profile_id: 'prof_1' });
 
     expect(http.post).toHaveBeenCalledWith('/api/v1/me/profiles/prof_1/primary');
-  });
-
-  // --- Profile Template tools ---
-
-  it('list_profile_templates calls GET /api/v1/me/profiles/:id/templates', async () => {
-    http.get.mockResolvedValueOnce([]);
-    const tool = findTool(tools, 'list_profile_templates');
-    await tool.handler({ profile_id: 'prof_1' });
-
-    expect(http.get).toHaveBeenCalledWith('/api/v1/me/profiles/prof_1/templates');
-  });
-
-  it('update_profile_template calls PUT with channel/type path and body', async () => {
-    http.put.mockResolvedValueOnce({ channel: 'email', message_type: 'verification_request' });
-    const tool = findTool(tools, 'update_profile_template');
-    await tool.handler({
-      profile_id: 'prof_1',
-      channel: 'email',
-      type: 'verification_request',
-      subject: 'Verify',
-      body: 'Your code is {{code}}',
-      is_active: true,
-    });
-
-    expect(http.put).toHaveBeenCalledWith(
-      '/api/v1/me/profiles/prof_1/templates/email/verification_request',
-      { subject: 'Verify', body: 'Your code is {{code}}', is_active: true },
-    );
-  });
-
-  it('delete_profile_template calls DELETE with channel/type path', async () => {
-    http.del.mockResolvedValueOnce({ success: true });
-    const tool = findTool(tools, 'delete_profile_template');
-    await tool.handler({ profile_id: 'prof_1', channel: 'sms', type: 'login_request' });
-
-    expect(http.del).toHaveBeenCalledWith('/api/v1/me/profiles/prof_1/templates/sms/login_request');
-  });
-
-  it('preview_profile_template calls POST /profiles/:id/templates/preview', async () => {
-    http.post.mockResolvedValueOnce({ rendered: 'Hello world' });
-    const tool = findTool(tools, 'preview_profile_template');
-    await tool.handler({
-      profile_id: 'prof_1',
-      channel: 'email',
-      message_type: 'verification_request',
-      body: 'Your code: {{code}}',
-    });
-
-    expect(http.post).toHaveBeenCalledWith(
-      '/api/v1/me/profiles/prof_1/templates/preview',
-      { channel: 'email', message_type: 'verification_request', body: 'Your code: {{code}}' },
-    );
-  });
-
-  it('returns error result on ApiError for profile template tools', async () => {
-    http.get.mockRejectedValueOnce(new ApiError('Not found', 'not_found', 404));
-    const tool = findTool(tools, 'list_profile_templates');
-    const result = await tool.handler({ profile_id: 'bad' }) as { isError?: boolean };
-
-    expect(result.isError).toBe(true);
   });
 
   it('update_profile_proofs calls PUT /profiles/profiles/:id/proofs', async () => {

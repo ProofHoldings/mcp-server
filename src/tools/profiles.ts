@@ -21,6 +21,11 @@ const customLinksSchema = z.array(z.object({
   display_order: z.number().int().min(0).optional().describe('Display order'),
 })).max(20).optional().describe('Custom links (max 20)');
 
+// A project's email branding (h-subaccount-branding-per-project): every message takes these from
+// its own project, never from account settings.
+const emailThemeSchema = z.enum(['dark', 'light']).optional().describe('Theme of this project\'s emails');
+const supportEmailSchema = z.string().email().max(254).optional().describe('Support email this project\'s messages show');
+
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   // =========================================================================
   // Multi-Profile CRUD (via /api/v1/me/profiles — dual auth)
@@ -43,7 +48,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'create_profile',
-    'Create a new profile with optional display name, bio, avatar, business info, and theme settings.',
+    'Create a new profile with optional display name, bio, avatar, business info, email branding (theme, support email), and theme settings.',
     {
       display_name: z.string().max(100).optional().describe('Display name'),
       bio: z.string().max(500).optional().describe('Profile bio'),
@@ -52,6 +57,8 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       is_business: z.boolean().optional().describe('Whether this is a business profile'),
       is_public: z.boolean().optional().describe('Whether the profile is publicly visible'),
       is_primary: z.boolean().optional().describe('Set as primary profile'),
+      email_theme: emailThemeSchema,
+      support_email: supportEmailSchema,
       theme: themeSchema,
     },
     async (args) => {
@@ -84,7 +91,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'update_profile',
-    'Update a profile by ID. Supports changing display info, theme, custom links, and verification display settings.',
+    'Update a profile by ID. Supports changing display info, email branding (theme, support email), theme, custom links, and verification display settings.',
     {
       profile_id: z.string().describe('Profile ID'),
       display_name: z.string().max(100).optional().describe('Display name'),
@@ -94,6 +101,8 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       is_business: z.boolean().optional().describe('Whether this is a business profile'),
       is_public: z.boolean().optional().describe('Whether the profile is publicly visible'),
       is_primary: z.boolean().optional().describe('Set as primary profile'),
+      email_theme: emailThemeSchema,
+      support_email: supportEmailSchema.nullable().describe('Support email this project\'s messages show (null to remove)'),
       show_verification_dates: z.boolean().optional().describe('Show verification dates on public profile'),
       show_proof_channels: z.boolean().optional().describe('Show proof channels on public profile'),
       theme: themeSchema,
@@ -136,96 +145,6 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     async ({ profile_id }) => {
       try {
         const result = await http.post(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}/primary`);
-        return jsonResult(result);
-      } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
-        throw e;
-      }
-    },
-  );
-
-  // =========================================================================
-  // Profile Templates (via /api/v1/me/profiles/:profileId/templates)
-  // =========================================================================
-
-  tool(
-    'list_profile_templates',
-    'List all templates for a profile. Returns templates organized by channel and message type, merged with defaults.',
-    {
-      profile_id: z.string().describe('Profile ID'),
-    },
-    async ({ profile_id }) => {
-      try {
-        const result = await http.get(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}/templates`);
-        return jsonResult(result);
-      } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
-        throw e;
-      }
-    },
-  );
-
-  tool(
-    'update_profile_template',
-    'Create or update a custom template for a specific profile, channel, and message type.',
-    {
-      profile_id: z.string().describe('Profile ID'),
-      channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
-      type: z.string().describe('Message type (e.g. verification_request, login_request)'),
-      subject: z.string().max(200).optional().describe('Email subject line (email channel only)'),
-      body: z.string().min(1).max(2000).describe('Template body text with variable placeholders'),
-      button_text: z.string().max(50).optional().describe('Button text (email channel only)'),
-      button_url_template: z.string().max(500).optional().describe('Button URL template with placeholders'),
-      is_active: z.boolean().optional().describe('Whether the template is active'),
-    },
-    async ({ profile_id, channel, type, ...body }) => {
-      try {
-        const result = await http.put(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}/templates/${encodeURIComponent(channel)}/${encodeURIComponent(type)}`, body);
-        return jsonResult(result);
-      } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
-        throw e;
-      }
-    },
-  );
-
-  tool(
-    'delete_profile_template',
-    'Delete a custom profile template, reverting to the default template for that channel and message type.',
-    {
-      profile_id: z.string().describe('Profile ID'),
-      channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
-      type: z.string().describe('Message type (e.g. verification_request, login_request)'),
-    },
-    async ({ profile_id, channel, type }) => {
-      try {
-        const result = await http.del(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}/templates/${encodeURIComponent(channel)}/${encodeURIComponent(type)}`);
-        return jsonResult(result);
-      } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
-        throw e;
-      }
-    },
-  );
-
-  tool(
-    'preview_profile_template',
-    'Preview a profile template with sample data before saving. Shows how the message will look with placeholder variables filled in.',
-    {
-      profile_id: z.string().describe('Profile ID'),
-      channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
-      message_type: z.enum([
-        'verification_request', 'verification_success', 'verification_expired',
-        'login_request', 'login_success', '2fa_request', '2fa_success',
-      ]).describe('Message type'),
-      subject: z.string().max(200).optional().describe('Email subject line'),
-      body: z.string().min(1).max(2000).describe('Template body text'),
-      button_text: z.string().max(50).optional().describe('Button text'),
-      button_url_template: z.string().max(500).optional().describe('Button URL template'),
-    },
-    async ({ profile_id, ...body }) => {
-      try {
-        const result = await http.post(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}/templates/preview`, body);
         return jsonResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);

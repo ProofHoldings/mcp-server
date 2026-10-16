@@ -36,10 +36,14 @@ describe('Settings (4 tools)', () => {
 
   // update_settings
   describe('update_settings', () => {
-    it('updates branding settings', async () => {
-      const result = await callTool('update_settings', {
-        branding: { business_name: 'MCP Integration Test' },
-      });
+    // Branding is no longer an account setting (h-subaccount-branding-per-project), so this writes
+    // the default proof lifetime back as it found it rather than changing anything.
+    it('writes the default proof lifetime back unchanged', async () => {
+      const current = parseJsonResult(await callTool('get_settings', {})) as { proof_expiry_days?: number | null };
+      const result = await callTool(
+        'update_settings',
+        current.proof_expiry_days ? { proof_expiry_days: current.proof_expiry_days } : {},
+      );
       const data = parseJsonResult(result);
       expect(data).toBeDefined();
     });

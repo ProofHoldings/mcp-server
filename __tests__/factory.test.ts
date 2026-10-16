@@ -303,7 +303,7 @@ describe('createProofServer — SC-4: the stdio entrypoint goes through the fact
  */
 describe('createProofServer — every tool tells the client what it does to the account', () => {
   /** Names whose meaning the method alone gets wrong, each with the reason it is an exception. */
-  const READ_ONLY_POSTS = new Set(['validate_proof', 'preview_template', 'preview_profile_template', 'render_template']);
+  const READ_ONLY_POSTS = new Set(['validate_proof', 'preview_template', 'render_template']);
   const SIDE_EFFECT_GETS = new Set(['export_data']); // spends the once-per-24h export allowance
   const DESTRUCTIVE_POSTS = new Set([
     'revoke_delegation', // terminal
