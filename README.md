@@ -363,9 +363,11 @@ Working on the verifier and the server together does not need a publish. Link th
 npm run verifier:link   # cd mcp && npm install ../packages/delegation-verifier --no-save
 ```
 
-The test suite needs no link at all: it resolves the verifier's SOURCE through a vitest alias
-rather than `node_modules`, so it is green on a fresh clone and picks up an uncommitted verifier
-change without a build.
+In this repository the test suite needs no link at all: it resolves the verifier's SOURCE through a
+vitest alias rather than `node_modules`, so it is green on a fresh clone and picks up an uncommitted
+verifier change without a build. The alias is keyed on the sibling verifier package being present;
+in the public mirror, which holds this package alone, the suite runs against the verifier `npm ci`
+installs.
 
 ## Requirements
 

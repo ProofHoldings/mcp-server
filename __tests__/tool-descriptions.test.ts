@@ -191,6 +191,10 @@ describe('tool descriptions — SC-5: none tells the caller to pass qr_text to r
 describe('create_confirmation — message is an envelope, and says so where the agent fills it in', () => {
   const SOURCE = path.join(TOOLS_DIR, 'confirmations.ts');
   const BACKEND_VALIDATOR = path.join(HERE, '../../src/middleware/validate.ts');
+  // The backend sits beside this package only in the monorepo; the public mirror
+  // (ProofHoldings/mcp-server) has none, so the comparison with its validator skips there. Keyed on
+  // the monorepo rather than on `validate.ts`, so that inside it a moved validator still fails loudly.
+  const IN_MONOREPO = fs.existsSync(path.join(HERE, '../../packages/delegation-verifier/package.json'));
 
   async function messageTexts(): Promise<string[]> {
     const tool = (await captureAllDescriptions()).find((t) => t.name === 'create_confirmation');
@@ -235,7 +239,7 @@ describe('create_confirmation — message is an envelope, and says so where the 
     expect(/when the HITL config has E2E encryption enabled/i.test(description)).toBe(false);
   });
 
-  it('bounds the parameter the way the server bounds it', () => {
+  it.skipIf(!IN_MONOREPO)('bounds the parameter the way the server bounds it', () => {
     // Read from each side rather than typed here: the tool advertised 2000 while the server
     // accepted 10000, so a long envelope was refused by the tool for a reason the API does not
     // have — and a smaller cap silently truncates nothing, it just makes the tool unusable.

@@ -1,4 +1,11 @@
+import { existsSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
+
+// The sibling verifier package sits next to this one only in the monorepo. The public mirror
+// (ProofHoldings/mcp-server) has none, so there the suite resolves the published verifier `npm ci`
+// installs — the one the published server runs on. Keyed on the package rather than on its entry
+// point, so that inside the monorepo a moved `src/index.ts` still fails to resolve, loudly.
+const IN_MONOREPO = existsSync(new URL('../packages/delegation-verifier/package.json', import.meta.url));
 
 export default defineConfig({
   test: {
@@ -7,7 +14,7 @@ export default defineConfig({
     exclude: ['__tests__/integration/**', 'node_modules/**'],
   },
   resolve: {
-    alias: {
+    alias: IN_MONOREPO ? {
       // Tests resolve the verifier's SOURCE, never `node_modules`. That keeps the suite green on
       // a fresh clone with no install of the sibling and no build step, and makes an uncommitted
       // verifier change visible here immediately — neither of which depends on whether the
@@ -20,6 +27,6 @@ export default defineConfig({
         '../packages/delegation-verifier/src/index.ts',
         import.meta.url
       ).pathname,
-    },
+    } : {},
   },
 });

@@ -10,11 +10,16 @@
  * this test — not silently, and not only at compile time for whoever next touches this file.
  */
 
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { FAILURE_REASON_OUTCOME, type FailureOutcome } from '../src/tools/delegation-verify-outcomes.js';
 
 const TYPES_PATH = new URL('../../packages/delegation-verifier/src/types.ts', import.meta.url);
+
+// The verifier's source sits beside this package only in the monorepo; the public mirror
+// (ProofHoldings/mcp-server) has none, so the two checks that read it skip there. Keyed on the
+// package rather than on `types.ts`, so that inside the monorepo a moved file still fails loudly.
+const IN_MONOREPO = existsSync(new URL('../../packages/delegation-verifier/package.json', import.meta.url));
 
 function readFailureReasonUnion(): string[] {
   const source = readFileSync(TYPES_PATH, 'utf-8');
@@ -26,13 +31,13 @@ function readFailureReasonUnion(): string[] {
 }
 
 describe('FAILURE_REASON_OUTCOME exhaustiveness', () => {
-  it('positive control: the source scan actually finds reasons', () => {
+  it.skipIf(!IN_MONOREPO)('positive control: the source scan actually finds reasons', () => {
     // A regex that stopped matching would make every case below pass vacuously.
     const reasons = readFailureReasonUnion();
     expect(reasons.length).toBeGreaterThan(15);
   });
 
-  it('maps every FailureReason declared in the verifier package, and nothing extra', () => {
+  it.skipIf(!IN_MONOREPO)('maps every FailureReason declared in the verifier package, and nothing extra', () => {
     const reasons = readFailureReasonUnion();
     expect(Object.keys(FAILURE_REASON_OUTCOME).sort()).toEqual([...reasons].sort());
   });
