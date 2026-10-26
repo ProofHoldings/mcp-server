@@ -22,7 +22,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'list_auth_sessions',
-    'List all active authentication sessions for the current user. Shows session details including channel, user agent, and expiry. When called via API key, no session is marked as is_current.',
+    "List the current user's signed-in devices: every session that can still renew, idle ones included. Each shows its channel, user agent and expires_at, which is when the session stops being able to renew (not when its current access token expires). When called via API key, no session is marked is_current.",
     {},
     async () => {
       try {
@@ -37,7 +37,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'revoke_auth_session',
-    'Revoke a specific authentication session by ID. When called via JWT, cannot revoke the current session. When called via API key, any session can be revoked.',
+    "Sign out one device (session) by ID. Over a signed-in session it cannot end the current one (that is logout). Over an API key it can end any of the account's sessions.",
     {
       session_id: z.string().describe('Session ID to revoke'),
     },

@@ -19,8 +19,8 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       bsuid: z.string().regex(BSUID_REGEX).optional().describe('WhatsApp Business-Scoped User ID (alternative to phone for WhatsApp channel)'),
       channel: authorizationChannelEnum.describe('Channel for sending confirmations'),
       scope: authorizationScopeEnum.optional().describe('Authorization scope (default: confirmations)'),
-      business_name: z.string().min(1).max(200).describe('Business name displayed to user during authorization'),
-      business_profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Public profile ID for branding'),
+      business_name: z.string().min(1).max(200).optional().describe("Deprecated and ignored: the consent message always names the approval setup's sub-account. Leave it out."),
+      business_profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Sub-account to record on the authorization (does not change the name the person sees)'),
       expires_in: z.number().int().positive().max(7776000).optional().describe('Expiry in seconds (max 90 days, default 90 days)'),
     },
     async (args) => {

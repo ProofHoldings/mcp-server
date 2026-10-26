@@ -367,12 +367,10 @@ interface BatchResult {
 }
 
 describe('verify_delegations registration', () => {
-  it('accepts 1-50 items', () => {
-    const schema = verifyDelegationsTool().schema as {
-      items: { _def: { minLength: { value: number }; maxLength: { value: number } } };
-    };
-    expect(schema.items._def.minLength.value).toBe(1);
-    expect(schema.items._def.maxLength.value).toBe(50);
+  it.each([[0, false], [1, true], [50, true], [51, false]])('accepts 1-50 items: %i items → %s', (count, accepted) => {
+    const schema = verifyDelegationsTool().schema as { items: { safeParse: (v: unknown) => { success: boolean } } };
+    const item = { token: 'x', delegate: { type: 'purl', value: 'pkg:npm/x' }, expected_principal: 'example.com' };
+    expect(schema.items.safeParse(Array.from({ length: count }, () => item)).success).toBe(accepted);
   });
 
   it('rejects an item supplying neither card nor token, at the schema level', () => {

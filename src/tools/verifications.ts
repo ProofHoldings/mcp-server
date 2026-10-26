@@ -13,7 +13,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       channel: z.enum(VERIFICATION_CHANNEL_VALUES).describe('Verification channel (must match the asset type, e.g. sms/whatsapp/telegram for phone)'),
       identifier: z.string().min(1).max(500).describe('The asset identifier to verify (E.164 phone, email address, domain, handle, wallet address, ...)'),
       external_user_id: z.string().min(1).max(255).optional().describe('Your application user ID for grouping verifications'),
-      client_metadata: z.record(z.string()).optional().describe('Custom key-value metadata'),
+      client_metadata: z.record(z.string(), z.string()).optional().describe('Custom key-value metadata'),
       dns_provider: credentialsSchema.optional().describe('DNS provider credentials (required for channel "auto")'),
       email_prefix: z.enum(['admin', 'administrator', 'webmaster', 'hostmaster', 'postmaster']).optional().describe('Mailbox prefix for domain email verification'),
       bot_token: z.string().min(1).max(500).optional().describe('Telegram bot token (required for channel "telegram_bot_token")'),
@@ -278,8 +278,9 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       identifier: z.string().min(1).max(500).describe('Phone number in E.164 format'),
       channels: z.array(z.enum(['whatsapp', 'telegram', 'sms'])).min(1).max(4).describe('1-4 unique channels attempted in parallel (first to complete wins)'),
       external_user_id: z.string().min(1).max(255).optional().describe('Your application user ID for grouping verifications'),
-      client_metadata: z.record(z.string()).optional().describe('Custom key-value metadata'),
+      client_metadata: z.record(z.string(), z.unknown()).optional().describe('Your own key-value data, stored with the request'),
       proof_expiry_days: z.number().int().min(1).max(365).optional().describe('Per-request proof expiry override in days (1-365)'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe("Sub-account (project) whose name and templates the request uses; omitted: the key's project, else the primary"),
     },
     async (args) => {
       try {

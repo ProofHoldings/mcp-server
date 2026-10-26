@@ -52,6 +52,8 @@ npx @proof-holdings/mcp-server login
    terminal.
 3. The new key is saved in `~/.proof-holdings/credentials` (readable by you only), under the API in
    `PROOF_BASE_URL`. The server uses it from its next start, so restart your MCP client's server.
+4. The sign-in session the terminal used is then signed out. If that fails, `login` says so; sign it out
+   in the dashboard under Settings → Security → Signed-in devices.
 
 `PROOF_API_KEY`, when set, always wins over the saved key, and a key saved for one API (say, staging) is
 never sent to another. Then leave `env` out of the client config:

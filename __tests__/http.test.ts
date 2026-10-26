@@ -352,6 +352,22 @@ describe('HttpClient JWT session auth', () => {
     expect([5, 6, 7].map(authHeaderOfCall)).toEqual(['Bearer pk_test_abc123', 'Bearer pk_test_abc123', 'Bearer pk_test_abc123']);
   });
 
+  // The terminal login ends the sign-in session it used (l-fix-mcp-1-7-1-followups): logout is
+  // `jwtAuth` only, so it must carry the session — and with no session it never leaves keyed.
+  it('signs POST /api/v1/auth/logout with the session, and refuses it before the network without one', async () => {
+    const keyed = createClient();
+    const refused = await keyed.post('/api/v1/auth/logout').catch((e: unknown) => e);
+    expect(refused).toMatchObject({ code: 'user_session_required', statusCode: 401 });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockResolvedValueOnce(cookieResponse({ status: 'verified' }, ['token=JWT123; Path=/']));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ success: true }));
+    const client = createClient();
+    await client.get('/api/v1/auth/sessions/auth_x');
+    await client.post('/api/v1/auth/logout');
+    expect(authHeaderOfCall(1)).toBe('Bearer JWT123');
+  });
+
   it('with a key and no session: revoking an asset is refused before the network, deleting a project goes out keyed', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
     const client = createClient();

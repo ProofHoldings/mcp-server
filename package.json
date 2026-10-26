@@ -1,6 +1,6 @@
 {
   "name": "@proof-holdings/mcp-server",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "mcpName": "holdings.proof/mcp-server",
   "description": "MCP server for the proof.holdings API — 167 tools for identity verification, proofs, and asset management",
   "type": "module",
@@ -41,7 +41,7 @@
     "@modelcontextprotocol/sdk": "^1.12.0",
     "@proof-holdings/delegation-verifier": "^0.1.1",
     "qrcode": "^1.5.4",
-    "zod": "^3.24.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

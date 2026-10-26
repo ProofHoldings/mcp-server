@@ -7,14 +7,14 @@ import { ApiError } from '../http.js';
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'create_session',
-    'Create a new phone verification session. Returns deep_link, qr_code (base64 PNG), and qr_text (UTF-8 text QR for terminal display). Sessions provide a hosted verification flow with callbacks.\n\nAgent usage: After creating a session, pass the response\'s `deep_link` to render_auth_link so the user can open or scan it. Never hand `qr_text` to a link renderer — it is that link already rendered as QR art. Print it verbatim inside a fenced code block only when a real terminal needs the QR. Then use wait_for_session to poll until the session reaches a terminal state (verified, failed, or expired).\n\n' + CHALLENGE_IN_REPLY,
+    'Create a new phone verification session. Returns deep_link, qr_code (base64 PNG), and qr_text (UTF-8 text QR for terminal display). Sessions provide a hosted verification flow with callbacks.\n\nAgent usage: After creating a session, pass the response\'s `deep_link` to render_auth_link so the user can open or scan it. Never hand `qr_text` to a link renderer — it is that link already rendered as QR art. Print it verbatim inside a fenced code block only when a real terminal needs the QR. On sms the person texts a short code from the number being proven, as in SMS login: `deep_link` is an `sms:` link to our default number with the message pre-filled, so render it the same way, and also show `sms_message` (what they send) with the numbers in `sms_dids` (one per region, each with its own QR), because a person reading on a computer texts from their phone. They get no reply SMS. An SMS proof can still be revoked about a minute after the session completes, if the delayed spoof check finds the sender was not a real mobile line, so before relying on it check it with validate_proof. Then use wait_for_session to poll until the session reaches a terminal state (verified, failed, or expired).\n\n' + CHALLENGE_IN_REPLY,
     {
-      channel: z.enum(['sms', 'whatsapp', 'telegram']).describe('Verification channel'),
-      phone_number: z.string().describe('Phone number in E.164 format'),
-      callback_url: z.string().optional().describe('URL to redirect after verification'),
-      external_user_id: z.string().optional().describe('Your application user ID'),
-      template_id: z.string().optional().describe('Custom template ID'),
-      metadata: z.record(z.string()).optional().describe('Custom key-value metadata'),
+      channel: z.enum(['telegram', 'whatsapp', 'sms']).describe('How the person proves the number: telegram or whatsapp (the bot reads it from their account) or sms (they text a short code from it). No phone number is sent'),
+      client_metadata: z.record(z.string(), z.unknown()).optional().describe('Your own key-value data, stored with the session'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Sub-account (project) whose name and templates the bot uses; omitted: the key\'s project, else the primary'),
+      context: z.object({
+        action: z.enum(['login', '2fa', 'verification', 'recovery']).optional().describe('Picks the bot\'s wording: log in, 2FA, account recovery, or plain verification (the default)'),
+      }).optional(),
     },
     async (args) => {
       try {

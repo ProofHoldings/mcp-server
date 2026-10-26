@@ -250,44 +250,15 @@ async function login(ctx: Context, argv: string[]): Promise<number> {
       'Log in with:',
       CHANNELS.map((c) => ({ label: CHANNEL_LABEL[c], value: c })),
     ));
-    await logIn(ctx, http, channel, flags.email);
-    io.print('Logged in.');
-
-    const environment = flags.test ? 'test' : 'production';
-    const name = keyName(ctx.hostname(), ctx.now());
-    await stepUp(ctx, http, channel);
-    const key = await mintKey(ctx, http, { name, environment, scopes }, () => stepUp(ctx, http, channel));
-
-    const entry: StoredCredential = {
-      api_key: key.key,
-      key_id: key.id,
-      name: key.name ?? name,
-      environment: key.environment ?? environment,
-      created_at: key.created_at ?? new Date(ctx.now()).toISOString(),
-    };
-    let previous: StoredCredential | undefined;
     try {
-      previous = saveCredential(ctx.file, ctx.baseUrl, entry);
-    } catch (e) {
-      // The key exists on the server but is not saved: say which one, so it can be revoked.
-      throw new LoginFailed(
-        `The key "${entry.name}" (${entry.key_id}) was created but could not be saved: ${(e as Error).message}. ` +
-          `Revoke it (${REVOKE_HINT}) and run ${LOGIN_COMMAND} again.`,
-      );
+      await logIn(ctx, http, channel, flags.email);
+      io.print('Logged in.');
+      return await mintAndSave(ctx, http, io, channel, flags.test, scopes);
+    } finally {
+      // The verified poll hands this client a refresh token, so the session would stay on the
+      // account's signed-in devices for days with nobody holding it. End it on every return path.
+      if (http.hasSessionToken()) await endSignInSession(io, http);
     }
-
-    io.print('');
-    io.print(
-      `Saved API key "${entry.name}" (${entry.key_id}, ${maskKey(entry.api_key)}${entry.environment === 'test' ? ', test' : ''}) ` +
-        `for ${credentialKey(ctx.baseUrl)} in ${ctx.file}.`,
-    );
-    io.print('The MCP server uses it from its next start; PROOF_API_KEY, when set, takes precedence.');
-    if (previous) {
-      io.print(
-        `It replaces the key saved earlier, "${previous.name}" (${previous.key_id}), which still works until you revoke it: ${REVOKE_HINT}.`,
-      );
-    }
-    return EXIT_OK;
   } catch (e) {
     if (e instanceof LoginFailed) {
       io.error(e.message);
@@ -295,6 +266,62 @@ async function login(ctx: Context, argv: string[]): Promise<number> {
     }
     throw e;
   }
+}
+
+/** Best-effort: a failed logout never changes the login's outcome, it only says where to finish it. */
+async function endSignInSession(io: CliIO, http: HttpClient): Promise<void> {
+  try {
+    await http.post('/api/v1/auth/logout');
+  } catch {
+    io.error(
+      'The sign-in session could not be ended. Sign it out in the dashboard: Settings → Security → Signed-in devices.',
+    );
+  }
+}
+
+async function mintAndSave(
+  ctx: Context,
+  http: HttpClient,
+  io: CliIO,
+  channel: Channel,
+  test: boolean | undefined,
+  scopes: string[],
+): Promise<number> {
+  const environment = test ? 'test' : 'production';
+  const name = keyName(ctx.hostname(), ctx.now());
+  await stepUp(ctx, http, channel);
+  const key = await mintKey(ctx, http, { name, environment, scopes }, () => stepUp(ctx, http, channel));
+
+  const entry: StoredCredential = {
+    api_key: key.key,
+    key_id: key.id,
+    name: key.name ?? name,
+    environment: key.environment ?? environment,
+    created_at: key.created_at ?? new Date(ctx.now()).toISOString(),
+  };
+  let previous: StoredCredential | undefined;
+  try {
+    previous = saveCredential(ctx.file, ctx.baseUrl, entry);
+  } catch (e) {
+    // The key exists on the server but is not saved: say which one, so it can be revoked.
+    throw new LoginFailed(
+      `The key "${entry.name}" (${entry.key_id}) was created but could not be saved: ${(e as Error).message}. ` +
+        `Revoke it (${REVOKE_HINT}) and run ${LOGIN_COMMAND} again.`,
+    );
+  }
+
+  io.print('');
+  io.print(
+    `Saved API key "${entry.name}" (${entry.key_id}, ${maskKey(entry.api_key)}${entry.environment === 'test' ? ', test' : ''}) ` +
+      `for ${credentialKey(ctx.baseUrl)} in ${ctx.file}.`,
+  );
+  io.print('The MCP server uses it from its next start; PROOF_API_KEY, when set, takes precedence.');
+  if (previous) {
+    io.print(
+      `It replaces the key saved earlier, "${previous.name}" (${previous.key_id}), which still works until you revoke it: ${REVOKE_HINT}.`,
+    );
+  }
+  return EXIT_OK;
 }
 
 /** `proof-mcp login · <host> · <date>`, cut to the API's 100-character limit by shortening the host. */

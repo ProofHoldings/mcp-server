@@ -267,6 +267,37 @@ describe('verifications tools', () => {
     });
   });
 
+  // The backend's createMultiChannelVerificationSchema takes a profile_id (24 hex) and any
+  // client_metadata value; the tool must not refuse what the API accepts (l-fix-mcp-1-7-1-followups).
+  it('create_multi_channel_verification takes the sub-account profile_id and forwards it', async () => {
+    http.post.mockResolvedValueOnce({ group_id: 'vg_abc', status: 'pending' });
+    const tool = findTool(tools, 'create_multi_channel_verification');
+    const input = z.object(tool.schema as z.ZodRawShape);
+    const args = { type: 'phone', identifier: '+37060000000', channels: ['sms'], profile_id: '65f0c0ffee0123456789abcd' };
+
+    expect(input.safeParse(args).success).toBe(true);
+    for (const profile_id of ['', 'prof_1', '65f0c0ffee0123456789abc', '65f0c0ffee0123456789abcz']) {
+      expect(input.safeParse({ ...args, profile_id }).success).toBe(false);
+    }
+    await tool.handler(args);
+    expect(http.post).toHaveBeenCalledWith('/api/v1/verifications/multi-channel', args);
+  });
+
+  it('create_multi_channel_verification passes client_metadata values of any type through unchanged', async () => {
+    http.post.mockResolvedValueOnce({ group_id: 'vg_abc', status: 'pending' });
+    const tool = findTool(tools, 'create_multi_channel_verification');
+    const input = z.object(tool.schema as z.ZodRawShape);
+    const args = {
+      type: 'phone', identifier: '+37060000000', channels: ['whatsapp'],
+      client_metadata: { attempt: 2, trusted: true, order: { id: 'o_1', items: [1, 2] }, note: 'x' },
+    };
+
+    const parsed = input.safeParse(args);
+    expect(parsed.success).toBe(true);
+    await tool.handler(parsed.data!);
+    expect(http.post).toHaveBeenCalledWith('/api/v1/verifications/multi-channel', args);
+  });
+
   it('get_multi_channel_verification_status calls GET with encoded group_id', async () => {
     http.get.mockResolvedValueOnce({ group_id: 'vg_abc', status: 'verified' });
     const tool = findTool(tools, 'get_multi_channel_verification_status');
@@ -500,12 +531,29 @@ describe('sessions tools', () => {
   it('create_session calls POST', async () => {
     http.post.mockResolvedValueOnce({ id: 'ses_123' });
     const tool = findTool(tools, 'create_session');
-    await tool.handler({ channel: 'sms', phone_number: '+1234567890' });
+    await tool.handler({ channel: 'telegram', profile_id: '507f1f77bcf86cd799439011', context: { action: 'login' } });
 
     expect(http.post).toHaveBeenCalledWith('/api/v1/sessions', {
-      channel: 'sms',
-      phone_number: '+1234567890',
+      channel: 'telegram',
+      profile_id: '507f1f77bcf86cd799439011',
+      context: { action: 'login' },
     });
+  });
+
+  // POST /api/v1/sessions takes exactly these three: sms works like SMS login (a short code texted to
+  // one of our numbers), so an agent can offer it to a person with neither messenger.
+  it('create_session accepts telegram, whatsapp and sms, and nothing else', () => {
+    const input = z.object(findTool(tools, 'create_session').schema as z.ZodRawShape);
+    for (const channel of ['telegram', 'whatsapp', 'sms']) {
+      expect(input.safeParse({ channel }).success).toBe(true);
+    }
+    expect(input.safeParse({ channel: 'email' }).success).toBe(false);
+  });
+
+  it('create_session tells the agent what to show for sms', () => {
+    const { description } = findTool(tools, 'create_session');
+    expect(description).toContain('sms_message');
+    expect(description).toContain('sms_dids');
   });
 
   it('get_session calls GET with ID', async () => {
@@ -1972,19 +2020,29 @@ describe('authorizations tools', () => {
     ]);
   });
 
+  const consentArgs = {
+    hitl_id: '64b7f0c2a1b2c3d4e5f60718',
+    recipient: '123456789',
+    phone: '+15551234567',
+    channel: 'telegram',
+  };
+
   it('create_authorization calls http.post', async () => {
     http.post.mockResolvedValueOnce({ id: 'auth_123', status: 'pending' });
     const tool = findTool(tools, 'create_authorization');
-    await tool.handler({
-      phone: '+15551234567',
-      channel: 'whatsapp',
-      business_name: 'Acme Corp',
-    });
-    expect(http.post).toHaveBeenCalledWith('/api/v1/authorizations', {
-      phone: '+15551234567',
-      channel: 'whatsapp',
-      business_name: 'Acme Corp',
-    });
+    await tool.handler(consentArgs);
+    expect(http.post).toHaveBeenCalledWith('/api/v1/authorizations', consentArgs);
+  });
+
+  it('create_authorization accepts a call without business_name and marks it deprecated (#416)', () => {
+    const tool = findTool(tools, 'create_authorization');
+    const schema = z.object(tool.schema as z.ZodRawShape);
+    expect(schema.safeParse(consentArgs).success).toBe(true);
+    expect(schema.safeParse({ ...consentArgs, business_name: 'Acme Corp' }).success).toBe(true);
+    // Positive control: the schema still refuses a call missing a field the server requires.
+    const { hitl_id: _omitted, ...withoutSetup } = consentArgs;
+    expect(schema.safeParse(withoutSetup).success).toBe(false);
+    expect((tool.schema.business_name as z.ZodTypeAny).description).toMatch(/^Deprecated and ignored/);
   });
 
   it('get_authorization calls http.get with encoded ID', async () => {
@@ -2032,11 +2090,7 @@ describe('authorizations tools', () => {
   it('returns error result on ApiError', async () => {
     http.post.mockRejectedValueOnce(new ApiError('Authorization exists', 'authorization_exists', 409));
     const tool = findTool(tools, 'create_authorization');
-    const result = await tool.handler({
-      phone: '+15551234567',
-      channel: 'whatsapp',
-      business_name: 'Acme',
-    }) as { isError?: boolean };
+    const result = await tool.handler(consentArgs) as { isError?: boolean };
     expect(result.isError).toBe(true);
   });
 });

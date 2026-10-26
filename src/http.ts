@@ -5,7 +5,7 @@
 //
 // Of the carriers a version bump has to move, this is the one it misses: a bare constant at the
 // top of a module about HTTP, where nothing about editing the manifest leads a reader.
-const VERSION = '1.7.0';
+const VERSION = '1.7.1';
 
 // Every request names this client: the issuer tells a request an agent made, signed in as a person,
 // from one the person made in the dashboard by this prefix, and labels it with the name the agent's
@@ -127,6 +127,8 @@ export const SESSION_AUTH_ROUTES: ReadonlyArray<{ method: string; pattern: RegEx
   { method: 'DELETE', pattern: /^\/api\/v1\/me\/assets\/[^/]+$/ },
   { method: 'POST', pattern: /^\/api\/v1\/me\/assets\/revoke$/ },
   { method: 'DELETE', pattern: /^\/api\/v1\/me\/profiles\/[^/]+$/ },
+  // The terminal login ends the sign-in session it used (`cli.ts`); the route is `jwtAuth` only.
+  { method: 'POST', pattern: /^\/api\/v1\/auth\/logout$/ },
 ];
 
 /**

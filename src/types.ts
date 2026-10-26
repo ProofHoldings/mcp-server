@@ -4,7 +4,7 @@ import { z } from 'zod';
 export type ToolRegistrar = McpServer['tool'];
 
 export const credentialsSchema = z
-  .record(z.string().max(2000))
+  .record(z.string(), z.string().max(2000))
   .refine((obj) => Object.keys(obj).length <= 20, {
     message: 'Too many credential fields (max 20)',
   })

@@ -11,8 +11,8 @@ describe('Sessions (3 tools)', () => {
   describe('create_session', () => {
     it('creates a phone verification session', async () => {
       const result = await callTool('create_session', {
-        channel: 'sms',
-        phone_number: '+15555550100',
+        channel: 'telegram',
+        context: { action: 'login' },
       });
       const data = parseJsonResult(result) as Record<string, unknown>;
       expect(data).toHaveProperty('id');
@@ -22,10 +22,8 @@ describe('Sessions (3 tools)', () => {
 
     it('creates a session with metadata', async () => {
       const result = await callTool('create_session', {
-        channel: 'sms',
-        phone_number: '+15555550101',
-        external_user_id: 'test-user-1',
-        metadata: { source: 'integration-test' },
+        channel: 'whatsapp',
+        client_metadata: { source: 'integration-test' },
       });
       const data = parseJsonResult(result) as Record<string, unknown>;
       expect(data).toHaveProperty('id');

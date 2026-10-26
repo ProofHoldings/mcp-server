@@ -22,6 +22,8 @@ interface Step {
   status?: number;
   body?: unknown;
   cookies?: boolean;
+  /** Runs when the request reaches this step, before the response — to change local state mid-flow. */
+  onRequest?: () => void;
 }
 
 interface Seen {
@@ -31,7 +33,17 @@ interface Seen {
   body: unknown;
 }
 
-function fakeApi(steps: Step[]) {
+// A signed-in login ends its session with `POST /api/v1/auth/logout` (logout in the auth controller
+// answers `{ success, message }`). The fake answers it on its own, outside the queue, so every
+// signed-in test keeps its step list; `logout` picks a refusal and `onLogout` runs when it is sent.
+interface LogoutAnswer {
+  logout?: number | 'network';
+  onLogout?: () => void;
+}
+
+const LOGOUT_PATH = '/api/v1/auth/logout';
+
+function fakeApi(steps: Step[], logoutAnswer: LogoutAnswer = {}) {
   const seen: Seen[] = [];
   const queue = [...steps];
   const fetchMock = vi.fn(async (input: string | URL, init?: RequestInit) => {
@@ -39,10 +51,18 @@ function fakeApi(steps: Step[]) {
     const method = (init?.method ?? 'GET').toUpperCase();
     const headers = Object.fromEntries(Object.entries((init?.headers ?? {}) as Record<string, string>));
     seen.push({ method, path: url.pathname, headers, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+    if (method === 'POST' && url.pathname === LOGOUT_PATH) {
+      logoutAnswer.onLogout?.();
+      if (logoutAnswer.logout === 'network') throw new TypeError('fetch failed');
+      const status = logoutAnswer.logout ?? 200;
+      const body = status === 200 ? { success: true, message: 'Logged out successfully' } : err('unauthorized', 'Not authenticated');
+      return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+    }
     const step = queue.shift();
     if (!step) throw new Error(`unexpected request ${method} ${url.pathname}`);
     const pathOk = typeof step.path === 'string' ? step.path === url.pathname : step.path.test(url.pathname);
     if (step.method !== method || !pathOk) throw new Error(`expected ${step.method} ${step.path}, got ${method} ${url.pathname}`);
+    step.onRequest?.();
     const responseHeaders = new Headers({ 'Content-Type': 'application/json' });
     if (step.cookies) {
       responseHeaders.append('Set-Cookie', `token=${SESSION_JWT}; Path=/; HttpOnly; Secure; SameSite=Lax`);
@@ -517,6 +537,91 @@ describe('proof-mcp commands', () => {
 
       expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(1);
       expect(t.all()).toMatch(/expired/i);
+    });
+  });
+
+  describe('ending the sign-in session', () => {
+    // The verified poll hands the CLI a refresh token, so the session it signed in with stays on the
+    // account's signed-in devices for days unless the CLI ends it (l-fix-mcp-1-7-1-followups).
+    const signedIn: Step[] = [
+      { method: 'POST', path: '/api/v1/auth/sessions', status: 201, body: loginStart.telegram },
+      { method: 'GET', path: `/api/v1/auth/sessions/${loginStart.telegram.id}`, body: verifiedPoll('telegram'), cookies: true },
+      { method: 'POST', path: '/api/v1/me/2fa/start', body: { ...twofaTelegram, channel: 'whatsapp' } },
+      { method: 'GET', path: '/api/v1/me/2fa/2fa_abcdef', body: twofaVerified },
+    ];
+    const mint: Step = { method: 'POST', path: '/api/v1/me/api-keys', status: 201, body: keyCreated };
+    const logouts = (seen: Seen[]) => seen.filter((s) => s.method === 'POST' && s.path === LOGOUT_PATH);
+
+    it('logs out last, with the session, once the key is minted and saved', async () => {
+      let savedAtLogout: StoredCredential | undefined;
+      const api = fakeApi([...signedIn, mint], { onLogout: () => { savedAtLogout = saved()[BASE]; } });
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO(['1']);
+
+      expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(0);
+      expect(api.remaining()).toBe(0);
+      const last = api.seen[api.seen.length - 1];
+      expect(last).toMatchObject({ method: 'POST', path: LOGOUT_PATH });
+      expect(last.headers.Authorization).toBe(`Bearer ${SESSION_JWT}`);
+      expect(logouts(api.seen)).toHaveLength(1);
+      expect(api.seen[api.seen.length - 2]).toMatchObject({ method: 'POST', path: '/api/v1/me/api-keys' });
+      expect(savedAtLogout?.api_key).toBe(SECRET_KEY);
+      expect(t.err).toEqual([]);
+    });
+
+    it.each([
+      ['a network failure', 'network' as const],
+      ['a refusal (401)', 401],
+      ['a server error (500)', 500],
+    ])('a logout that fails with %s keeps the saved key and exit 0, and says where to sign it out', async (_label, logout) => {
+      const api = fakeApi([...signedIn, mint], { logout });
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO(['1']);
+
+      expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(0);
+      expect(logouts(api.seen)).toHaveLength(1);
+      expect(saved()[BASE].api_key).toBe(SECRET_KEY);
+      expect(t.err).toHaveLength(1);
+      expect(t.err[0]).toMatch(/sign-in session could not be ended/i);
+      expect(t.err[0]).toMatch(/Signed-in devices/);
+    });
+
+    it('a mint refused after signing in still ends the session, and reports the refusal', async () => {
+      const api = fakeApi([
+        ...signedIn,
+        { method: 'POST', path: '/api/v1/me/api-keys', status: 403, body: err('account_scheduled_for_deletion', 'This account is scheduled for deletion. Cancel the deletion to continue.') },
+      ]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO(['1']);
+
+      expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(1);
+      expect(logouts(api.seen)).toHaveLength(1);
+      expect(api.seen[api.seen.length - 1].headers.Authorization).toBe(`Bearer ${SESSION_JWT}`);
+      expect(t.all()).toContain('scheduled for deletion');
+    });
+
+    it('a key minted but not saved still ends the session, and names the key to revoke', async () => {
+      // The read before login sees no file; once the key is minted the credentials path becomes a
+      // directory, so the save fails for any user. A read-only directory would not: CI runs as root.
+      const api = fakeApi([...signedIn, { ...mint, onRequest: () => mkdirSync(join(file, 'blocker'), { recursive: true }) }]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO(['1']);
+
+      expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(1);
+      expect(logouts(api.seen)).toHaveLength(1);
+      expect(t.all()).toContain('was created but could not be saved');
+      expect(t.all()).toContain(keyCreated.id);
+    });
+
+    it('a login that never signed in sends no logout', async () => {
+      const api = fakeApi([
+        { method: 'POST', path: '/api/v1/auth/sessions', status: 201, body: loginStart.telegram },
+        { method: 'GET', path: `/api/v1/auth/sessions/${loginStart.telegram.id}`, status: 404, body: err('not_found', 'Session not found') },
+      ]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+
+      expect(await run('login', ['--channel', 'telegram'], fakeIO([]).io)).toBe(1);
+      expect(logouts(api.seen)).toHaveLength(0);
     });
   });
 

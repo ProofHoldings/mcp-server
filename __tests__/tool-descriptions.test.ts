@@ -271,6 +271,29 @@ describe('get_current_user — says it needs a login session, because the key ca
   });
 });
 
+describe('the session tools describe the signed-in devices list as it is', () => {
+  // The list holds every session that can still renew, idle ones included, and `expires_at` is when
+  // it stops being able to renew (OpenAPI AuthSessionListItem). "All active sessions ... and expiry"
+  // read as live access tokens (l-fix-mcp-1-7-1-followups).
+  it('list_auth_sessions says signed-in devices, idle included, and what expires_at means', async () => {
+    const tool = (await captureAllDescriptions()).find((t) => t.name === 'list_auth_sessions');
+    expect(tool).toBeDefined();
+    const description = tool!.texts[0];
+    expect(description).toMatch(/signed-in devices/i);
+    expect(description).toMatch(/idle ones included/i);
+    expect(description).toMatch(/expires_at[^.]*stops being able to renew/i);
+    expect(description).not.toMatch(/active authentication sessions/i);
+  });
+
+  it('revoke_auth_session says it signs out one device and when it cannot', async () => {
+    const tool = (await captureAllDescriptions()).find((t) => t.name === 'revoke_auth_session');
+    expect(tool).toBeDefined();
+    const description = tool!.texts[0];
+    expect(description).toMatch(/sign out one device/i);
+    expect(description).toMatch(/cannot end the current one/i);
+  });
+});
+
 describe('API key regeneration and usage — the new key has a new id, and usage covers the keys it replaced', () => {
   // `regenerate_api_key` used to promise the key kept its ID. The server issues a new id, so an agent
   // that believed it kept calling the old one and got 404s.
