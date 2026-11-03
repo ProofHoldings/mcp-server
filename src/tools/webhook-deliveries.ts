@@ -26,6 +26,9 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     {
       status: z.enum(['pending', 'success', 'failed']).optional().describe('Filter by delivery status'),
       event_type: z.string().optional().describe('Filter by event type (e.g. verification.completed)'),
+      verification_request_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Only deliveries for this verification request'),
+      endpoint_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Only deliveries to this webhook endpoint'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Only this sub-account\'s deliveries'),
       page: z.number().int().positive().optional().describe('Page number'),
       limit: z.number().int().min(1).max(100).optional().describe('Items per page'),
     },
@@ -34,6 +37,9 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const query: Record<string, string | number | boolean | undefined> = {};
         if (args.status !== undefined) query.status = args.status;
         if (args.event_type !== undefined) query.event_type = args.event_type;
+        if (args.verification_request_id !== undefined) query.verification_request_id = args.verification_request_id;
+        if (args.endpoint_id !== undefined) query.endpoint_id = args.endpoint_id;
+        if (args.profile_id !== undefined) query.profile_id = args.profile_id;
         if (args.page !== undefined) query.page = args.page;
         if (args.limit !== undefined) query.limit = args.limit;
         const result = await http.get('/api/v1/webhook-deliveries', query);

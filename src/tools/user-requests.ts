@@ -1,17 +1,23 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, VERIFICATION_CHANNEL_VALUES } from '../types.js';
+import { jsonResult, errorResult, LIVE_CHANNEL_VALUES } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'list_my_requests',
     'List verification requests created by the authenticated user.',
-    {},
-    async () => {
+    {
+      api_key_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Only requests created with this API key or a key it replaced (24 hex characters); an API key may name only itself'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Only this sub-account\'s requests (24 hex characters)'),
+    },
+    async (args) => {
       try {
-        const result = await http.get('/api/v1/me/verification-requests');
+        const query: Record<string, string | number | boolean | undefined> = {};
+        if (args.api_key_id !== undefined) query.api_key_id = args.api_key_id;
+        if (args.profile_id !== undefined) query.profile_id = args.profile_id;
+        const result = await http.get('/api/v1/me/verification-requests', query);
         return jsonResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
@@ -39,8 +45,9 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'create_user_request',
     'Create a new verification request to ask another user to share verified assets. Each asset is an object naming its type, e.g. { "type": "email" }.',
     {
-      // The enums and the string caps and patterns below are the API model's own
-      // (src/models/VerificationRequest.ts), held equal by
+      // The asset types and channels below are the ones the API can complete today (social, wallet and
+      // account have no live channel and are refused), and the string caps and patterns are the API
+      // model's own (src/models/VerificationRequest.ts) — both held by
       // src/__tests__/drift/mcp-user-request-contract.test.ts: a value outside them is a request the API
       // cannot store, and only this schema can tell the agent which field it was. The rest is compared
       // with its source by no test: the asset count and the expiry bound are the controller's own
@@ -51,10 +58,10 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       assets: z
         .array(
           z.object({
-            type: z.enum(['phone', 'email', 'domain', 'social', 'wallet', 'telegram_bot']).describe('What to verify'),
+            type: z.enum(['phone', 'email', 'domain', 'telegram_bot']).describe('What to verify'),
             identifier: z.string().min(1).max(500).optional().describe('The exact value to verify (e.g. an email address); omit to let the recipient choose'),
-            channel: z.enum(VERIFICATION_CHANNEL_VALUES).optional().describe('Verification channel to use for this asset'),
-            allowed_channels: z.array(z.enum(VERIFICATION_CHANNEL_VALUES)).max(10).optional().describe('Channels the recipient may choose from'),
+            channel: z.enum(LIVE_CHANNEL_VALUES).optional().describe('Verification channel to use for this asset'),
+            allowed_channels: z.array(z.enum(LIVE_CHANNEL_VALUES)).max(10).optional().describe('Channels the recipient may choose from'),
             required: z.boolean().optional().describe('Whether this asset must be verified (default: true)'),
           }),
         )
@@ -127,10 +134,14 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'Extend the expiration time of a pending verification request.',
     {
       id: z.string().describe('Verification request ID to extend'),
+      extends_by_hours: z.number().int().min(1).max(720).optional().describe('Hours from now until the request expires, 1–720 (default: 168, i.e. 7 days). An expired request is reactivated.'),
     },
-    async ({ id }) => {
+    async ({ id, extends_by_hours }) => {
       try {
-        const result = await http.post(`/api/v1/me/verification-requests/${encodeURIComponent(id)}/extend`);
+        const result = await http.post(
+          `/api/v1/me/verification-requests/${encodeURIComponent(id)}/extend`,
+          extends_by_hours === undefined ? {} : { extends_by_hours },
+        );
         return jsonResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
@@ -141,13 +152,14 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'share_request_email',
-    'Send an email notification to the subject of a verification request.',
+    'Email the link of a pending verification request to a recipient.',
     {
       id: z.string().describe('Verification request ID'),
+      email: z.string().email().describe('Recipient email address the verification link is sent to'),
     },
-    async ({ id }) => {
+    async ({ id, email }) => {
       try {
-        const result = await http.post(`/api/v1/me/verification-requests/${encodeURIComponent(id)}/share-email`);
+        const result = await http.post(`/api/v1/me/verification-requests/${encodeURIComponent(id)}/share-email`, { email });
         return jsonResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);

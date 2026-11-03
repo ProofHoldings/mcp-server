@@ -304,6 +304,35 @@ describe('proof-mcp commands', () => {
       expect(await run('login', ['--email', 'alex@example.com'], t.io)).toBe(0);
     });
 
+    // h-fix-email-links-get-completes (#541): the link opens a page with two buttons, and only
+    // "Sign in the browser that requested this" signs THIS terminal in — so the prompt names it.
+    it('email: the prompt names the button that signs this terminal in', async () => {
+      const tail = stepUpAndMint();
+      const api = fakeApi([
+        { method: 'POST', path: '/api/v1/auth/sessions', status: 201, body: loginStart.email },
+        { method: 'POST', path: `/api/v1/auth/sessions/${loginStart.email.id}/submit`, body: { success: true, user_id: 'u', status: 'verified' }, cookies: true },
+        ...tail.steps,
+      ]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO(['123456', ...tail.answers]);
+
+      expect(await run('login', ['--email', 'alex@example.com'], t.io)).toBe(0);
+      expect(t.all()).toContain('Sign in the browser that requested this');
+    });
+
+    it('email: a sign-in completed in another browser ends the login with its own line', async () => {
+      const api = fakeApi([
+        { method: 'POST', path: '/api/v1/auth/sessions', status: 201, body: loginStart.email },
+        { method: 'GET', path: `/api/v1/auth/sessions/${loginStart.email.id}`, body: { id: loginStart.email.id, status: 'completed_elsewhere' } },
+      ]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO(['']);
+
+      expect(await run('login', ['--email', 'alex@example.com'], t.io)).toBe(1);
+      expect(t.all()).toMatch(/signed in the browser you opened the link in, not this terminal/);
+      expect(api.seen).toHaveLength(2);
+    });
+
     it('email: asks again for an answer that is not an email address', async () => {
       const tail = stepUpAndMint();
       const api = fakeApi([

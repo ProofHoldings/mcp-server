@@ -11,16 +11,12 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     {
       type: z.enum(['phone', 'email', 'domain', 'social', 'wallet']).optional().describe('Filter by asset type'),
       status: z.enum(['active', 'revoked', 'expired']).optional().describe('Filter by status'),
-      page: z.number().int().positive().optional().describe('Page number'),
-      limit: z.number().int().min(1).max(100).optional().describe('Items per page'),
     },
     async (args) => {
       try {
         const query: Record<string, string | number | boolean | undefined> = {};
         if (args.type !== undefined) query.type = args.type;
         if (args.status !== undefined) query.status = args.status;
-        if (args.page !== undefined) query.page = args.page;
-        if (args.limit !== undefined) query.limit = args.limit;
         const result = await http.get('/api/v1/me/assets', query);
         return jsonResult(result);
       } catch (e) {

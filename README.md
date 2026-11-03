@@ -1,6 +1,6 @@
 # @proof-holdings/mcp-server
 
-MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 167 tools for AI agents to create verifications, validate proofs, manage assets, and more.
+MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 176 tools for AI agents to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect
 
@@ -104,7 +104,7 @@ Config file location by client:
 Keep the scoped `npx -y @proof-holdings/mcp-server` command even after a global install. A bare command
 name is looked up on `PATH`, or by `npx` in the npm registry, where it can belong to someone else's package.
 
-## Tools (167 tools)
+## Tools (176 tools)
 
 Group totals are exact. The tables name the tools you are most likely to reach for rather than all
 of them — your MCP client's own `tools/list` is the complete, current list, and it is the one this
@@ -133,12 +133,13 @@ server answers from.
 | `verify_domain_with_credentials` | Prove control using stored credentials |
 | `setup_domain_email` | Set up sending from the domain |
 
-### Account, settings & billing (37 tools)
+### Account, settings & billing (39 tools)
 
 | Tool | Description |
 |---|---|
 | `get_platform_summary` | One-call snapshot of the account |
 | `get_usage` | Quota and usage for the period |
+| `get_balance` | The prepaid balance and the auto top-up setting |
 | `search` | Search across the account |
 | `create_account` | Bootstrap a new account (no key needed) |
 | `create_api_key` | Create a scoped API key |
@@ -175,10 +176,25 @@ server answers from.
 
 | Tool | Description |
 |---|---|
-| `list_templates` | List a project's message templates |
+| `list_templates` | List a sub-account's message templates |
 | `render_template` | Render a template with variables |
 | `list_webhook_deliveries` | List webhook deliveries |
 | `retry_webhook_delivery` | Retry a failed delivery |
+
+### Webhook endpoints (7 tools)
+
+Each endpoint has its own URL, events and signing secret, and serves either every sub-account or
+the ones you select. A signing secret is returned only on create and on rotate — store it then.
+
+| Tool | Description |
+|---|---|
+| `list_webhook_endpoints` | List the account's webhook endpoints |
+| `get_webhook_endpoint` | Get one endpoint (no secret) |
+| `create_webhook_endpoint` | Add an endpoint; returns its signing secret |
+| `update_webhook_endpoint` | Change URL, events, scope, sub-accounts or status |
+| `delete_webhook_endpoint` | Delete an endpoint |
+| `rotate_webhook_endpoint_secret` | Replace an endpoint's signing secret |
+| `rotate_callback_secret` | Replace a sub-account's callback signing secret |
 
 ### Delegations & proofs (10 tools)
 

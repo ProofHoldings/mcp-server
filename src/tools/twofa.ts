@@ -3,31 +3,20 @@ import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
 import { jsonResult, errorResult, pollUntilTerminal, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
 import { ApiError } from '../http.js';
+import { PUBLIC_TWO_FA_ACTION_TYPES } from '../generated/two-fa-action-types.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'start_2fa',
     'Start a two-factor authentication challenge for a sensitive operation. Sends a verification code via the chosen channel. Returns a session ID, and for messaging channels: deep_link, qr_code (base64 PNG), and qr_text (UTF-8 text QR for terminal display).\n\nAgent usage — full 2FA flow: (1) Call start_2fa with the appropriate action_type and channel. (2) Present the challenge, and do NOT announce a message the server did not send: email is the ONLY channel it dispatches on. On telegram/whatsapp the user opens `deep_link` and sends the message themselves; on sms they send `sms_message` to a number from `sms_dids`; the response\'s own `instructions` field says which. On email, a 200 carrying `requires_email_selection: true` and `available_emails` means nothing was sent and no session exists — ask which address and call again with `email_id`. For telegram/whatsapp, pass `deep_link` to render_auth_link; for sms, show `sms_message`. Never hand `qr_text` to a link renderer — it is the link already rendered as QR art, so print it verbatim inside a fenced code block only when a real terminal needs the QR. (3) Poll get_2fa_status with the returned session_id until status is "verified" (the user enters the code on their device) or "expired". (4) If verified, proceed with the protected operation (e.g. create_api_key). If expired, inform the user and offer to restart. Typical channels: "telegram" or "email". For email, the user may receive a magic link instead of a code — the backend handles this automatically.\n\n' + CHALLENGE_IN_REPLY,
     {
-      action_type: z.enum([
-        'api_key_view',
-        'api_key_create',
-        'api_key_revoke',
-        'api_key_regenerate',
-        'phone_add',
-        'phone_remove',
-        'email_add',
-        'email_remove',
-        'account_delete',
-        'revocation_bulk',
-        'domain_remove',
-        'profile_delete',
-        'phone_primary',
-        'email_primary',
-      ]).describe('The sensitive action requiring 2FA'),
+      action_type: z.enum(PUBLIC_TWO_FA_ACTION_TYPES).describe('The sensitive action requiring 2FA: any action type the API documents'),
       channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Channel to receive the verification code'),
       email_id: z.string().optional().describe('Specific email ID for email channel (optional)'),
-      targets: z.array(z.string().min(1).max(256)).min(1).max(25).optional().describe('The ids the step-up is FOR — the grant is bound to exactly these and refused for any other request (`reason: target_mismatch`). revocation_bulk: the asset id you will pass to revoke_asset (one code per asset); phone_remove / email_remove: the phone or email record id; domain_remove: the domain id; profile_delete: the project id; account_delete: your own user id (get_current_user). Leave out for the other action types.'),
+      phone_id: z.string().optional().describe('Optional: specific UserPhone id for phone-channel 2FA'),
+      ttl_seconds: z.number().int().min(60).max(86400).optional().describe('Requested grant lifetime in seconds. Server caps to 300s for destructive action types, 86400s for configuration scopes. Defaults to 300 if omitted.'),
+      single_use: z.boolean().optional().describe('Whether the grant is consumed on first use. Server forces true for destructive action types. Defaults to true.'),
+      targets: z.array(z.string().min(1).max(256)).min(1).max(25).optional().describe('The ids the step-up is FOR — the grant is bound to exactly these and refused for any other request (`reason: target_mismatch`). revocation_bulk: the asset id you will pass to revoke_asset (one code per asset); phone_remove / email_remove: the phone or email record id; domain_remove: the domain id; profile_delete: the sub-account id; account_delete: your own user id (get_current_user). Leave out for the other action types.'),
     },
     async (args) => {
       try {

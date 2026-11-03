@@ -33,6 +33,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         display_order: z.number().int().min(0).optional().describe('Display position (0-based)'),
         label: z.string().max(50).optional().describe('Custom label for the proof'),
       })).max(50).describe('Array of proof display configurations (max 50)'),
+      proof_order: z.enum(['default', 'owner']).optional().describe('Who orders the shown proofs: `default` (domain, social, Telegram bot, email, phone, wallet, then display_order) or `owner` (display_order alone). Omitted, the profile keeps its current setting.'),
     },
     async (args) => {
       try {

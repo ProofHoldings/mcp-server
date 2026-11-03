@@ -309,6 +309,9 @@ describe('createProofServer — every tool tells the client what it does to the 
     'revoke_delegation', // terminal
     'revoke_proof', // terminal
     'regenerate_api_key', // invalidates the old key
+    // Replace a signing secret: the old one stops verifying (as regenerate_api_key).
+    'rotate_webhook_endpoint_secret',
+    'rotate_callback_secret',
     // Upsert the account-level DnsProviderCredential, replacing the token every other domain uses.
     'connect_cloudflare',
     'connect_godaddy',

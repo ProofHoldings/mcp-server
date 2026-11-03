@@ -4,6 +4,12 @@ import type { ToolRegistrar } from '../types.js';
 import { jsonResult, errorResult, pollUntilTerminal, credentialsSchema, VERIFICATION_TYPE_VALUES, VERIFICATION_CHANNEL_VALUES, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
 import { ApiError } from '../http.js';
 
+/** The output schema of `delete_domain_verification`: the API answers 204 and the tool reports what it removed. */
+export const DELETE_DOMAIN_VERIFICATION_OUTPUT = z.looseObject({
+  deleted: z.literal(true).describe('The domain verification was deleted'),
+  id: z.string().describe('The id of the deleted domain verification'),
+});
+
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'create_verification',
@@ -18,6 +24,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       email_prefix: z.enum(['admin', 'administrator', 'webmaster', 'hostmaster', 'postmaster']).optional().describe('Mailbox prefix for domain email verification'),
       bot_token: z.string().min(1).max(500).optional().describe('Telegram bot token (required for channel "telegram_bot_token")'),
       proof_expiry_days: z.number().int().min(1).max(365).optional().describe('Per-request proof expiry override in days (1-365)'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe("The sub-account (24 hex characters) this is for; omitted, the key's own sub-account, else the primary. Its branding and templates are used for every message."),
     },
     async (args) => {
       try {
@@ -52,8 +59,8 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'List verifications with optional filters. Returns paginated results.',
     {
       status: z.enum(['pending', 'verified', 'failed', 'expired', 'revoked']).optional().describe('Filter by status'),
-      channel: z.enum(['sms', 'whatsapp', 'telegram', 'email']).optional().describe('Filter by channel'),
-      external_user_id: z.string().optional().describe('Filter by external user ID'),
+      type: z.enum(VERIFICATION_TYPE_VALUES).optional().describe('Filter by asset type'),
+      channel: z.enum(VERIFICATION_CHANNEL_VALUES).optional().describe('Filter by channel'),
       page: z.number().int().positive().optional().describe('Page number'),
       limit: z.number().int().min(1).max(100).optional().describe('Items per page'),
     },
@@ -61,8 +68,8 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       try {
         const query: Record<string, string | number | boolean | undefined> = {};
         if (args.status !== undefined) query.status = args.status;
+        if (args.type !== undefined) query.type = args.type;
         if (args.channel !== undefined) query.channel = args.channel;
-        if (args.external_user_id !== undefined) query.external_user_id = args.external_user_id;
         if (args.page !== undefined) query.page = args.page;
         if (args.limit !== undefined) query.limit = args.limit;
         const result = await http.get('/api/v1/verifications', query);
@@ -280,7 +287,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       external_user_id: z.string().min(1).max(255).optional().describe('Your application user ID for grouping verifications'),
       client_metadata: z.record(z.string(), z.unknown()).optional().describe('Your own key-value data, stored with the request'),
       proof_expiry_days: z.number().int().min(1).max(365).optional().describe('Per-request proof expiry override in days (1-365)'),
-      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe("Sub-account (project) whose name and templates the request uses; omitted: the key's project, else the primary"),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe("Sub-account whose name and templates the request uses; omitted: the key's sub-account, else the primary"),
     },
     async (args) => {
       try {

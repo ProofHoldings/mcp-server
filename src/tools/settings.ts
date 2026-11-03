@@ -31,11 +31,13 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'Get a one-call account snapshot: quota with end-of-month projection, request health (pending/completed/expired counts + success rate), per-channel completion rates, HITL counts, and active API key count. The same data the dashboard home renders. The hitl_channels sub-object requires the hitl:read scope.',
     {
       environment: z.enum(['production', 'test']).optional().describe('Scope request/channel/HITL metrics to test or production data (default: production)'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Scope the metrics and key counts to one sub-account (24 hex characters); the quota stays account-wide'),
     },
     async (args) => {
       try {
         const query: Record<string, string | number | boolean | undefined> = {};
         if (args.environment !== undefined) query.environment = args.environment;
+        if (args.profile_id !== undefined) query.profile_id = args.profile_id;
         const result = await http.get('/api/v1/me/summary', query);
         return jsonResult(result);
       } catch (e) {
@@ -47,7 +49,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_settings',
-    'Get account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding (name, logo, colour, email theme, support email) belongs to each sub-account (project): read it with get_profile. The webhook signing secret is NOT returned to an API key — the response reports webhook.secret_set instead, and the value itself is visible only in the dashboard or in the update_settings response that created or rotated it.',
+    'Get account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding (name, logo, colour, email theme, support email) belongs to each sub-account: read it with get_profile. The webhook signing secret is NOT returned to an API key — the response reports webhook.secret_set instead, and the value itself is visible only in the dashboard or in the update_settings response that created or rotated it.',
     {},
     async () => {
       try {
@@ -62,7 +64,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'update_settings',
-    'Update account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding belongs to each sub-account (project): change it with update_profile. Setting the first webhook endpoint creates the signing secret and returns it in this response; the value is returned only when this call created or rotated it, so record it then.',
+    'Update account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding belongs to each sub-account: change it with update_profile. Setting the first webhook endpoint creates the signing secret and returns it in this response; the value is returned only when this call created or rotated it, so record it then.',
     {
       webhook: z.object({
         url: z.string().url().max(2000).nullable().optional().describe('HTTPS endpoint outbound webhooks are delivered to, at most 2000 characters; null removes it. Private, loopback and link-local addresses are refused.'),
@@ -70,6 +72,9 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         rotate_secret: z.boolean().optional().describe('Replace the signing secret and return the new value. The previous value stops verifying immediately.'),
       }).optional().describe('Outbound webhook configuration. Deliveries carry an HMAC-SHA256 X-Proof-Signature over "<X-Proof-Timestamp>.<body>".'),
       proof_expiry_days: z.number().int().min(1).max(365).optional().describe('Default proof-token lifetime in days for newly issued proofs'),
+      hitl: z.object({
+        approver_password_min_length: z.number().int().min(8).max(128).nullable().optional().describe('The shortest encryption password an approver may choose when enrolling (8-128); null removes the minimum. Applies to new enrolments only.'),
+      }).optional().describe('Approval-setup settings'),
     },
     async (args) => {
       try {

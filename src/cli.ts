@@ -422,6 +422,12 @@ function showChallenge(io: CliIO, r: Challenge): void {
   throw new LoginFailed('The server returned a challenge this version cannot show. Try another channel.');
 }
 
+/**
+ * An email sign-in finished with "Sign in here" on the link's page in another browser (#541): that
+ * browser is signed in and this terminal never will be. The poll reports it as `completed_elsewhere`.
+ */
+const COMPLETED_ELSEWHERE = `That sign-in went elsewhere: the link signed in the browser you opened the link in, not this terminal. Run ${LOGIN_COMMAND} again and, on the link's page, press "Sign in the browser that requested this".`;
+
 /** Poll until `verified`; a 404 or the deadline means the challenge expired. Network blips are ridden out. */
 async function waitForVerified(ctx: Context, http: HttpClient, path: string, expiresAt: string | undefined, expired: string): Promise<void> {
   const deadline = Date.parse(expiresAt ?? '') || ctx.now() + 600_000;
@@ -431,6 +437,7 @@ async function waitForVerified(ctx: Context, http: HttpClient, path: string, exp
       const r = await http.get<{ status?: string }>(path);
       if (r.status === 'verified') return;
       if (r.status === 'expired' || r.status === 'failed') throw new LoginFailed(expired);
+      if (r.status === 'completed_elsewhere') throw new LoginFailed(COMPLETED_ELSEWHERE);
     } catch (e) {
       if (e instanceof LoginFailed) throw e;
       if (!(e instanceof ApiError)) throw e;
@@ -446,21 +453,26 @@ async function waitForVerified(ctx: Context, http: HttpClient, path: string, exp
  * Prompt for a mailed code until it is accepted. An empty answer checks the status instead, for
  * someone who opened the link in the email rather than typing the code.
  */
-async function enterCode(ctx: Context, http: HttpClient, submitPath: string, statusPath: string, expired: string): Promise<void> {
+async function enterCode(
+  ctx: Context, http: HttpClient, submitPath: string, statusPath: string, expired: string,
+  intro = 'Type the code from the email. If you opened the link in the email instead, just press Enter.',
+): Promise<void> {
   const { io } = ctx;
-  io.print('Type the code from the email. If you opened the link in the email instead, just press Enter.');
+  io.print(intro);
   for (;;) {
     const code = (await io.prompt('Code: ')).trim();
     try {
       if (!code) {
         const r = await http.get<{ status?: string }>(statusPath);
         if (r.status === 'verified') return;
+        if (r.status === 'completed_elsewhere') throw new LoginFailed(COMPLETED_ELSEWHERE);
         io.print('Not confirmed yet. Type the code, or press Enter once you have opened the link.');
         continue;
       }
       await http.post(submitPath, { code });
       return;
     } catch (e) {
+      if (e instanceof LoginFailed) throw e;
       if (!(e instanceof ApiError)) throw e;
       if (WRONG_CODE_CODES.has(e.code)) {
         io.error('Wrong code. Try again.');
@@ -490,7 +502,9 @@ async function logIn(ctx: Context, http: HttpClient, channel: Channel, emailFlag
   if (channel === 'email') {
     io.print('');
     io.print(`We sent a code to ${start.email ?? email}.`);
-    await enterCode(ctx, http, `${statusPath}/submit`, statusPath, expired);
+    // The link opens a page with two buttons; only the second signs THIS terminal in (#541).
+    await enterCode(ctx, http, `${statusPath}/submit`, statusPath, expired,
+      'Type the code from the email. Or open the link in the email, press "Sign in the browser that requested this", then press Enter here.');
   } else {
     showChallenge(io, start);
     await waitForVerified(ctx, http, statusPath, start.expires_at, expired);

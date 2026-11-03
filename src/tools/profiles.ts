@@ -23,8 +23,8 @@ const customLinksSchema = z.array(z.object({
 
 // A project's email branding (h-subaccount-branding-per-project): every message takes these from
 // its own project, never from account settings.
-const emailThemeSchema = z.enum(['dark', 'light']).optional().describe('Theme of this project\'s emails');
-const supportEmailSchema = z.string().email().max(254).optional().describe('Support email this project\'s messages show');
+const emailThemeSchema = z.enum(['dark', 'light']).optional().describe('Theme of this sub-account\'s emails');
+const supportEmailSchema = z.string().email().max(254).optional().describe('Support email this sub-account\'s messages show');
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   // =========================================================================
@@ -102,9 +102,10 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       is_public: z.boolean().optional().describe('Whether the profile is publicly visible'),
       is_primary: z.boolean().optional().describe('Set as primary profile'),
       email_theme: emailThemeSchema,
-      support_email: supportEmailSchema.nullable().describe('Support email this project\'s messages show (null to remove)'),
+      support_email: supportEmailSchema.nullable().describe('Support email this sub-account\'s messages show (null to remove)'),
       show_verification_dates: z.boolean().optional().describe('Show verification dates on public profile'),
       show_proof_channels: z.boolean().optional().describe('Show proof channels on public profile'),
+      show_delegations: z.boolean().optional().describe('List the published, in-force delegations for the domains the profile shows (default true)'),
       theme: themeSchema,
       custom_links: customLinksSchema,
     },
@@ -121,7 +122,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'delete_profile',
-    'Delete a project (profile). Revokes its API keys, archives the HITL setups and declines the pending requests created with its own keys, keeps its history but unlinks it, deletes its message templates, and retires its username for good. The last project cannot be deleted; deleting the primary project makes the oldest remaining one primary (the response names it). In a start_login session: one code first — start_2fa_for_action with action_type profile_delete and targets [this project id]. With an API key alone only an EMPTY project (no API keys, HITL setups or pending requests) can be deleted; anything else answers owner_session_required. Cannot be undone.',
+    'Delete a sub-account (profile). Revokes its API keys, archives the HITL setups and declines the pending requests created with its own keys, keeps its history but unlinks it, deletes its message templates, and retires its username for good. The last sub-account cannot be deleted; deleting the primary sub-account makes the oldest remaining one primary (the response names it). In a start_login session: one code first — start_2fa_for_action with action_type profile_delete and targets [this sub-account id]. With an API key alone only an EMPTY sub-account (no API keys, HITL setups or pending requests) can be deleted; anything else answers owner_session_required. archive_default_linked is deliberately not offered here: archiving or cancelling everything linked only by default is an irreversible fan-out, so archive each item explicitly instead. Cannot be undone.',
     {
       profile_id: z.string().describe('Profile ID'),
     },
@@ -169,10 +170,14 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         display_order: z.number().int().min(0).optional().describe('Display order'),
         label: z.string().max(50).optional().describe('Custom label (e.g. "Support Phone")'),
       })).max(50).describe('Proofs to display on profile'),
+      proof_order: z.enum(['default', 'owner']).optional().describe('Who orders the shown proofs: `default` (domain, social, Telegram bot, email, phone, wallet, then display_order) or `owner` (display_order alone). Omitted, the profile keeps its current setting.'),
     },
-    async ({ profile_id, proofs }) => {
+    async ({ profile_id, proofs, proof_order }) => {
       try {
-        const result = await http.put(`/api/v1/profiles/profiles/${encodeURIComponent(profile_id)}/proofs`, { proofs });
+        const result = await http.put(`/api/v1/profiles/profiles/${encodeURIComponent(profile_id)}/proofs`, {
+          proofs,
+          ...(proof_order !== undefined && { proof_order }),
+        });
         return jsonResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
@@ -206,6 +211,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       is_public: z.boolean().optional().describe('Whether the profile is publicly visible'),
       show_verification_dates: z.boolean().optional().describe('Show verification dates'),
       show_proof_channels: z.boolean().optional().describe('Show proof channels'),
+      show_delegations: z.boolean().optional().describe('List the published, in-force delegations for the domains the profile shows (default true)'),
       theme: themeSchema,
       custom_links: customLinksSchema,
     },
@@ -223,10 +229,31 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'get_profile_assets',
     'Get available verified assets that can be displayed on the user\'s profile. Returns assets eligible for public proof display.',
-    {},
-    async () => {
+    {
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('The sub-account whose shown proofs set each asset\'s is_public flag (24 hex characters); omitted, the primary'),
+    },
+    async (args) => {
       try {
-        const result = await http.get('/api/v1/profiles/me/assets');
+        const query: Record<string, string | number | boolean | undefined> = {};
+        if (args.profile_id !== undefined) query.profile_id = args.profile_id;
+        const result = await http.get('/api/v1/profiles/me/assets', query);
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'rotate_callback_secret',
+    'Rotate a sub-account\'s callback signing secret — the secret that signs every callback_url delivery of its verification requests — and return the new one. This is the only time it is returned, so store it now. Callback deliveries already queued keep the secret they were signed with. An account still delivering through its settings webhook URL is switched over to webhook endpoints first.',
+    {
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).describe('Sub-account (profile) ID, 24 hex characters'),
+    },
+    async ({ profile_id }) => {
+      try {
+        const result = await http.post(`/api/v1/profiles/profiles/${encodeURIComponent(profile_id)}/callback-secret/rotate`);
         return jsonResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);

@@ -29,10 +29,29 @@ export const VERIFICATION_CHANNEL_VALUES = [
   'telegram_bot_token',
 ] as const;
 
+/**
+ * The channels a verification can be completed on today — the `live` ones in the API's
+ * src/config/channelAvailability.ts, held equal by src/__tests__/drift/mcp-user-request-contract.test.ts.
+ * A planned channel is refused 400 `channel_not_available`, so a tool offering it offers a call that fails.
+ */
+export const LIVE_CHANNEL_VALUES = [
+  'whatsapp', 'telegram', 'sms',
+  'email',
+  'dns', 'http', 'auto',
+  'telegram_bot_token',
+] as const;
+
+/**
+ * A tool's successful result: the body as pretty-printed text, exactly as before output schemas
+ * existed (clients that read only text see no change), and the same body as `structuredContent`
+ * for the tool's declared `outputSchema` (`m-mcp-tool-output-schemas`). The SDK refuses a result
+ * with no `structuredContent` from a tool that declares a schema, so every object body carries it.
+ */
 export function jsonResult(data: unknown) {
-  return {
-    content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
-  };
+  const text = { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+  return data !== null && typeof data === 'object' && !Array.isArray(data)
+    ? { ...text, structuredContent: data as Record<string, unknown> }
+    : text;
 }
 
 export function errorResult(message: string) {
@@ -111,6 +130,19 @@ async function withinBudget<T>(work: Promise<T>, remainingMs: number): Promise<T
     clearTimeout(timer);
   }
 }
+
+/**
+ * The fields of the pending envelope `pollUntilTerminal` answers on timeout, named here beside the
+ * code that builds it. Every `wait_for_*` tool's output schema carries them (descriptions only, like
+ * the rest of a described schema), merged in by `outputSchemaFor` in `./output-schema.ts`.
+ */
+export const TIMEOUT_ENVELOPE_PROPERTIES: Record<string, { description: string }> = {
+  status: { description: '"pending" when the wait ran out before a terminal state; otherwise the resource\'s own status' },
+  last_status: { description: 'On timeout: the last non-terminal status observed, or null when none was' },
+  waited_seconds: { description: 'On timeout: seconds actually waited' },
+  timeout_seconds: { description: 'On timeout: the wait budget this call was given' },
+  message: { description: 'On timeout: what to do next (call the tool again with the same identifier)' },
+};
 
 export async function pollUntilTerminal(
   fetch: () => Promise<Record<string, unknown>>,

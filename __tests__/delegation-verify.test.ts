@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { registerTools, rotationHints } from '../src/tools/delegation-verify.js';
+import { registerTools, rotationHints, VERIFY_DELEGATION_OUTPUT, VERIFY_DELEGATIONS_OUTPUT } from '../src/tools/delegation-verify.js';
 import { resetJwksCache } from '@proof-holdings/delegation-verifier';
 
 const BASE_URL = 'https://api.proof.holdings';
@@ -22,6 +22,17 @@ interface RegisteredTool {
   handler: (args: Record<string, unknown>) => Promise<{ content: { text: string }[]; isError?: boolean }>;
 }
 
+/** Every non-error result any case below produces, per tool — checked against the output schemas last. */
+const verdicts: Record<string, unknown[]> = { verify_delegation: [], verify_delegations: [] };
+
+function recordingVerdicts(name: string, handler: RegisteredTool['handler']): RegisteredTool['handler'] {
+  return async (args) => {
+    const result = await handler(args);
+    if (!result.isError && name in verdicts) verdicts[name].push(JSON.parse(result.content[0].text));
+    return result;
+  };
+}
+
 function captureTools(): RegisteredTool[] {
   const tools: RegisteredTool[] = [];
   const mockTool = (
@@ -30,7 +41,7 @@ function captureTools(): RegisteredTool[] {
     schema: Record<string, unknown>,
     handler: RegisteredTool['handler']
   ) => {
-    tools.push({ name, description, schema, handler });
+    tools.push({ name, description, schema, handler: recordingVerdicts(name, handler) });
   };
   registerTools(mockTool as never, { baseUrl: BASE_URL });
   return tools;
@@ -613,5 +624,50 @@ describe('key-rotation hints (h-verifier-jwks-multikey SC-10)', () => {
 
   it('adds nothing to any other failure', () => {
     expect(rotationHints({ valid: false, reason: 'revoked', outcome: 'invalid', message: 'revoked' })).toEqual({});
+  });
+});
+
+/**
+ * The output schemas (`m-mcp-tool-output-schemas`) against REAL verdicts: every result the cases
+ * above produced, signed by a real issuer and read through the real verifier. Declared last, so the
+ * cases have run. A schema that refuses one of these would turn that verdict into an error result.
+ */
+describe('every verdict above validates against its tool\'s output schema', () => {
+  it.each([
+    ['verify_delegation', VERIFY_DELEGATION_OUTPUT],
+    ['verify_delegations', VERIFY_DELEGATIONS_OUTPUT],
+  ] as const)('%s', (name, schema) => {
+    expect(verdicts[name].length).toBeGreaterThan(4);
+    const refused = verdicts[name]
+      .map((verdict) => ({ verdict, parsed: schema.safeParse(verdict) }))
+      .filter(({ parsed }) => !parsed.success)
+      .map(({ verdict, parsed }) => ({ verdict, issues: parsed.error?.issues }));
+    expect(refused).toEqual([]);
+  });
+});
+
+/**
+ * A `jwks_stale` verdict whose key-set age is unknown — `cacheAgeSeconds: null`, which the verifier's
+ * own type allows — is not produced by any case above (it needs a saved key set), so it is built
+ * here exactly as both handlers build their failure results, from the same `rotationHints` spread.
+ */
+describe('a jwks_stale verdict with an unknown cache age validates against both output schemas', () => {
+  const stale = rotationHints({
+    valid: false,
+    reason: 'jwks_stale',
+    outcome: 'unconfirmed',
+    message: 'stale',
+    cacheAgeSeconds: null,
+    refreshHint: { jwksUri: 'https://api.proof.holdings/.well-known/jwks.json', method: 'refreshJwks' },
+  });
+
+  it('verify_delegation', () => {
+    const verdict = { verified: false, reason: 'jwks_stale', outcome: 'unconfirmed', message: 'stale', ...stale };
+    expect(VERIFY_DELEGATION_OUTPUT.safeParse(verdict).success).toBe(true);
+  });
+
+  it('verify_delegations', () => {
+    const item = { outcome: 'unconfirmed', reason: 'jwks_stale', message: 'stale', ...stale, verified: false, checked_at: '2026-01-01T00:00:00.000Z' };
+    expect(VERIFY_DELEGATIONS_OUTPUT.safeParse({ results: [item] }).success).toBe(true);
   });
 });

@@ -294,6 +294,36 @@ describe('the session tools describe the signed-in devices list as it is', () =>
   });
 });
 
+describe('the approval link is the owner\'s — no description offers it to an approver', () => {
+  // `POST /confirmations/:id/approval-link` mints the OWNER's link (decided with the config key); an
+  // approver cannot use it; "Send again" (`POST /:id/resend`) is what sends an approver theirs again. `wait_for_confirmation`
+  // told agents to fetch one "if the approver needs one" (l-approval-link-replaced-wording, SC-3).
+  const offersItToAnApprover = (text: string) =>
+    sentencesOf(text).filter((s) => s.includes('get_confirmation_approval_link') && /approver needs/i.test(s));
+
+  it('get_confirmation_approval_link says it is the owner\'s link and an approver cannot use it', async () => {
+    const tool = (await captureAllDescriptions()).find((t) => t.name === 'get_confirmation_approval_link');
+    expect(tool).toBeDefined();
+    const description = tool!.texts[0];
+    expect(description).toMatch(/owner/i);
+    expect(description).toMatch(/approver cannot use it/i);
+  });
+
+  it('no description sends an approver to get_confirmation_approval_link', async () => {
+    const tools = await captureAllDescriptions();
+    const offenders = tools.flatMap((t) => t.texts.flatMap(offersItToAnApprover).map((s) => `${t.name}: ${s}`));
+    expect(offenders).toEqual([]);
+  });
+
+  it('fails the sentence wait_for_confirmation shipped with', () => {
+    expect(
+      offersItToAnApprover(
+        'If the approver needs one anyway, call get_confirmation_approval_link for a fresh `approval_url`; it needs the confirmation to be still pending.',
+      ),
+    ).toHaveLength(1);
+  });
+});
+
 describe('API key regeneration and usage — the new key has a new id, and usage covers the keys it replaced', () => {
   // `regenerate_api_key` used to promise the key kept its ID. The server issues a new id, so an agent
   // that believed it kept calling the old one and got 404s.
@@ -398,7 +428,7 @@ describe('the deletion tools say what they do before an agent calls them', () =>
     revoke_asset: { verb: 'Revoke', facts: ['asset stays on the account', 'revocation_bulk', 'every delegation', 're-verification', 'suspend_proof', 'Cannot be undone'] },
     delete_domain: { verb: 'Remove', facts: ['every delegation', '_proof TXT', 'domain_remove', 'left for you to remove', 'Cannot be undone'] },
     delete_domain_verification: { verb: 'Delete', facts: ['nothing is revoked', 'domain_verified', 'delete_domain'] },
-    delete_profile: { verb: 'Delete', facts: ['last project cannot be deleted', 'oldest remaining', 'profile_delete', 'EMPTY project', 'retires its username', 'Cannot be undone'] },
+    delete_profile: { verb: 'Delete', facts: ['last sub-account cannot be deleted', 'oldest remaining', 'profile_delete', 'EMPTY sub-account', 'retires its username', 'Cannot be undone'] },
     remove_phone: { verb: 'Remove', facts: ['Always requires one code', 'phone_remove', 'circles_need_phone', 'new primary', 'Cannot be undone'] },
     remove_email: { verb: 'Remove', facts: ['Always requires one code', 'email_remove', 'Lookalike Watch', 'new primary', 'Cannot be undone'] },
     revoke_proof: { verb: 'Revoke', facts: ['every delegation issued from it', 'delegations:write', 'suspend_proof', 'Cannot be undone'] },
@@ -411,5 +441,31 @@ describe('the deletion tools say what they do before an agent calls them', () =>
     const description = tool!.texts[0];
     expect(description.startsWith(`${EXPECTED[name].verb} `)).toBe(true);
     for (const fact of EXPECTED[name].facts) expect(`${name}: ${description.includes(fact)}`).toBe(`${name}: true`);
+  });
+});
+
+/**
+ * m-subaccount-vocabulary-docs-api (#529 item 13): the dashboard names a public profile a
+ * "sub-account" (#422), so every tool description and parameter hint an agent reads says the same.
+ * The one exemption is the wire VALUE `scope "project"` that `get_template` returns, quoted as it
+ * arrives — removing it is checked too, so the exemption cannot outlive the text it excuses.
+ */
+describe('tool text says "sub-account", never "project", for a public profile', () => {
+  const WIRE_SCOPE = 'scope "project"';
+
+  it('no description or hint names a sub-account a project', async () => {
+    const tools = await captureAllDescriptions();
+    const offenders = tools.flatMap((t) =>
+      t.texts
+        .map((text) => text.split(WIRE_SCOPE).join(' '))
+        .filter((text) => /\bprojects?\b/i.test(text))
+        .map((text) => `${t.module} ${t.name}: ${text.match(/.{0,50}\bprojects?\b.{0,50}/i)![0]}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('the wire-value exemption still matches the text it excuses', async () => {
+    const tools = await captureAllDescriptions();
+    expect(tools.some((t) => t.texts.some((text) => text.includes(WIRE_SCOPE)))).toBe(true);
   });
 });

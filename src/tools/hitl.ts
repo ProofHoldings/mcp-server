@@ -30,7 +30,9 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'Create a HITL (Human-in-the-Loop) config. Defines which messaging channels receive approval requests and the default timeout.\n\nAgent usage: After creating a HITL config, you must call request_hitl_authorization before it can be used with create_confirmation. For Telegram channels, use create_chat_id_discovery first to discover the user\'s chat ID, then include it in the channel config.',
     {
       name: z.string().min(1).max(200).describe('Human-readable name for this HITL config'),
-      channels: z.array(hitlChannelSchema).min(1).describe('Messaging channels for approval requests (telegram or whatsapp)'),
+      channels: z.array(hitlChannelSchema).min(1).optional().describe('Messaging channels for approval requests (telegram or whatsapp). Either channels or circle_id is required.'),
+      circle_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Route approvals through this circle\'s members instead of listed channels (24 hex characters)'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('The sub-account (24 hex characters) whose branding the approval messages carry; omitted, the primary'),
       timeout_seconds: z.number().int().min(60).max(86400).optional().describe('Default timeout in seconds (60–86400, default: 3600)'),
     },
     async (args) => {
@@ -67,6 +69,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     {
       status: hitlStatusEnum.optional().describe('Filter by status (active or archived)'),
       environment: z.enum(['production', 'test']).optional().describe('Filter by environment (production or test)'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Only this sub-account\'s configs (24 hex characters)'),
       page: z.number().int().positive().optional().describe('Page number'),
       limit: z.number().int().min(1).max(100).optional().describe('Items per page'),
     },
@@ -75,6 +78,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const query: Record<string, string | number | boolean | undefined> = {};
         if (args.status !== undefined) query.status = args.status;
         if (args.environment !== undefined) query.environment = args.environment;
+        if (args.profile_id !== undefined) query.profile_id = args.profile_id;
         if (args.page !== undefined) query.page = args.page;
         if (args.limit !== undefined) query.limit = args.limit;
         const result = await http.get('/api/v1/hitl', query);

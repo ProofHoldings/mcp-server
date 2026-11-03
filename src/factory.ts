@@ -1,8 +1,10 @@
-import { McpServer, type RegisteredTool } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { ZodRawShape } from 'zod';
 
 import { HttpClient } from './http.js';
 import { accessNoticeFor, serverInstructions, type AccessContext } from './authBoundary.js';
 import { annotationsFor } from './toolAnnotations.js';
+import { outputSchemaFor } from './output-schema.js';
 
 import { registerTools as registerVerifications } from './tools/verifications.js';
 import { registerTools as registerVerificationRequests } from './tools/verification-requests.js';
@@ -13,6 +15,7 @@ import { registerTools as registerAuth } from './tools/auth.js';
 import { registerTools as registerSettings } from './tools/settings.js';
 import { registerTools as registerTemplates } from './tools/templates.js';
 import { registerTools as registerWebhookDeliveries } from './tools/webhook-deliveries.js';
+import { registerTools as registerWebhookEndpoints } from './tools/webhook-endpoints.js';
 import { registerTools as registerBilling } from './tools/billing.js';
 import { registerTools as registerProfiles } from './tools/profiles.js';
 import { registerTools as registerEmails } from './tools/emails.js';
@@ -90,41 +93,49 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
       // `src/__tests__/drift/delegation-publication.test.ts` (h-npm-registry-release). If this is
       // ever replaced by a real read, delete the pin in the same change: a pin over a derived
       // value guards nothing.
-      version: '1.7.1',
+      version: '1.7.2',
     },
     { instructions: serverInstructions(access) },
   );
 
-  const bound = server.tool.bind(server);
   const toolNames = new Set<string>();
 
   /**
-   * The registrar every module below is handed, wrapping `server.tool` so the access notice is
-   * appended in ONE place (`h-fix-mcp-agent-facing-text`, SC-1).
+   * The registrar every module below is handed. The modules call it with `server.tool`'s shape —
+   * `(name, description, inputShape, handler)`, or `(name, description, handler)` for a tool with no
+   * input — and it registers through `server.registerTool`, the only SDK call that accepts an
+   * `outputSchema` (`m-mcp-tool-output-schemas`). Three things are added in this ONE place rather
+   * than in 174 registrations:
    *
-   * Editing 176 descriptions by hand would have put the same sentence in 176 places, drifting one
-   * tool at a time, and each copy would have had to know the transport it was registered on —
-   * which a description literal cannot. Here the classification in `authBoundary.ts` is read once,
-   * beside the connection that determines it. The signature is `server.tool`'s own, and only the
-   * description argument is touched: a registration whose second argument is not a string is passed
-   * through untouched rather than being coerced, because the SDK accepts several call shapes and a
-   * wrapper that assumes one would corrupt the others.
+   * - the access notice (`h-fix-mcp-agent-facing-text`, SC-1). Editing every description by hand
+   *   would have put the same sentence in every one, drifting one tool at a time, and each copy
+   *   would have had to know the transport it was registered on — which a description literal cannot;
+   * - `annotationsFor(name)` (`src/toolAnnotations.ts`);
+   * - `outputSchemaFor(name)` (`src/output-schema.ts`).
+   *
+   * The modules' call shape — which the tool counters and the tests' capture mock both read — is
+   * unchanged. A call in any other shape is refused here, at startup, rather than guessed at.
    */
   const tool = ((...args: unknown[]) => {
-    const [name, description] = args;
-    const registered = (
-      typeof name === 'string' && typeof description === 'string'
-        ? (bound as (...a: unknown[]) => RegisteredTool)(name, description + accessNoticeFor(name, access), ...args.slice(2))
-        : (bound as (...a: unknown[]) => RegisteredTool)(...args)
-    );
-    // Stamped after registration rather than passed as an argument, so the modules' call shape —
-    // which the tool counters and the tests' capture mock both read — stays exactly as it is.
-    if (typeof name === 'string') {
-      registered.update({ annotations: annotationsFor(name) });
-      toolNames.add(name);
+    const [name, description, third, fourth] = args;
+    const withInput = args.length === 4 && typeof third === 'object' && typeof fourth === 'function';
+    const withoutInput = args.length === 3 && typeof third === 'function';
+    if (typeof name !== 'string' || typeof description !== 'string' || !(withInput || withoutInput)) {
+      throw new Error(`tool registration in an unsupported shape: ${String(name)}`);
     }
+    const registered = server.registerTool(
+      name,
+      {
+        description: description + accessNoticeFor(name, access),
+        ...(withInput && { inputSchema: third as ZodRawShape }),
+        outputSchema: outputSchemaFor(name),
+        annotations: annotationsFor(name),
+      },
+      (withInput ? fourth : third) as never,
+    );
+    toolNames.add(name);
     return registered;
-  }) as typeof bound;
+  }) as McpServer['tool'];
 
   registerVerifications(tool, http);
   registerVerificationRequests(tool, http);
@@ -135,6 +146,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
   registerSettings(tool, http);
   registerTemplates(tool, http);
   registerWebhookDeliveries(tool, http);
+  registerWebhookEndpoints(tool, http);
   registerBilling(tool, http);
   registerProfiles(tool, http);
   registerEmails(tool, http);

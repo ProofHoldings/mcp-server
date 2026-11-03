@@ -448,6 +448,16 @@ describe('HttpClient JWT session auth', () => {
     expect(authHeaderOfCall(0)).toBe('Bearer pk_test_abc123');
   });
 
+  // The add-email link's Confirm button (h-fix-email-links-get-completes): public, the token in
+  // the body is the whole secret, so the POST is exempt like the GET page it comes from.
+  it('lets POST /api/v1/me/emails/verify travel with the API key', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({}));
+
+    await createClient().post('/api/v1/me/emails/verify', { token: 'a'.repeat(64) });
+
+    expect(authHeaderOfCall(0)).toBe('Bearer pk_test_abc123');
+  });
+
   it('refuses the session-only siblings of the exempt paths', async () => {
     const client = createClient();
 

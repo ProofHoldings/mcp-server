@@ -178,7 +178,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'create_circle_member_drill',
-    'Fire an on-demand Proof-Me drill against one enrolled member — a real cross-channel identity challenge carrying the scheduled-safety-check label (the account owner practices confirming). Complements the automated daily drill + monthly reinforcement sweeps.',
+    'Fire an on-demand Proof-Me drill against one enrolled member — a real cross-channel identity challenge carrying the scheduled-safety-check label (the account owner practices confirming). Complements the automated daily drill + monthly reinforcement sweeps. On Pay as you go a live key is refused `422 plan_upgrade_required`; a test key is not, and its drill reaches the member on Telegram only (`400 no_channel` when they have no verified Telegram channel).',
     {
       id: objectId.describe('Circle ID'),
       member_id: objectId.describe('Member ID to drill'),

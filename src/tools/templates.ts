@@ -10,7 +10,7 @@ import { ApiError } from '../http.js';
  * project as `?profile_id=`; a project-bound key may name only its own (403 `profile_mismatch`).
  */
 const profileId = z.string().regex(/^[0-9a-fA-F]{24}$/).optional()
-  .describe('The sub-account (project) to act on; omitted → your key\'s project, or the primary project for an account-wide key');
+  .describe('The sub-account to act on; omitted → your key\'s sub-account, or the primary sub-account for an account-wide key');
 
 /** `path` for one project, or untouched when none is named so the server's own choice applies. */
 function forProject(path: string, profile_id: string | undefined): string {
@@ -20,7 +20,7 @@ function forProject(path: string, profile_id: string | undefined): string {
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'list_templates',
-    'List the custom message templates of one sub-account (project), organized by channel and message type. Templates belong to a project, not to the account: profile_id picks it — omitted, a project-bound key lists its own project and an account-wide key the primary project.',
+    'List the custom message templates of one sub-account, organized by channel and message type. Templates belong to a sub-account, not to the account: profile_id picks it — omitted, a sub-account key lists its own sub-account and an account-wide key the primary sub-account.',
     {
       profile_id: profileId,
     },
@@ -37,7 +37,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_default_templates',
-    'Get all default message templates. These are the built-in templates a project sends when it has no custom template of its own.',
+    'Get the default message templates — one for each channel and message type a message is actually sent for. These are the built-in templates a sub-account sends when it has no custom template of its own.',
     {},
     async () => {
       try {
@@ -52,7 +52,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_template',
-    'Get the template a sub-account (project) sends for a channel and message type: its custom template if set (scope "project"), otherwise the default (scope "default"). The response names the project in profile_id.',
+    'Get the template a sub-account sends for a channel and message type: its custom template if set (scope "project"), otherwise the default (scope "default"). The response names the sub-account in profile_id.',
     {
       channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
       message_type: z.string().describe('Message type (e.g. verification_request, login_request)'),
@@ -71,7 +71,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'update_template',
-    'Create or update a sub-account\'s (project\'s) custom template for a channel and message type, replacing the default for that project only. Name the brand with {{business_name}}: a template spelling out a project\'s own name is refused (template_hardcoded_name).',
+    'Create or update a sub-account\'s custom template for a channel and message type, replacing the default for that sub-account only. Name the brand with {{business_name}}: a template spelling out a sub-account\'s own name is refused (template_hardcoded_name). A template for a channel and message type no message is sent for, or using a variable that message never fills, is still saved, with an entry in `warnings` (template_not_sent / template_variable_not_filled) saying why it will not be sent as written (an API that predates `warnings` omits the field).',
     {
       channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
       message_type: z.string().describe('Message type (e.g. verification_request, login_request)'),
@@ -94,7 +94,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'delete_template',
-    'Delete a sub-account\'s (project\'s) custom template, reverting that project to the default template for the channel and message type.',
+    'Delete a sub-account\'s custom template, reverting that sub-account to the default template for the channel and message type.',
     {
       channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
       message_type: z.string().describe('Message type (e.g. verification_request, login_request)'),
@@ -113,7 +113,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'preview_template',
-    'Preview a template with sample data before saving, as a sub-account (project) would send it. Shows how the message will look with placeholder variables filled in.',
+    'Preview a template with sample data before saving, as a sub-account would send it. Shows how the message will look with placeholder variables filled in.',
     {
       channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
       message_type: z.enum([
@@ -139,7 +139,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'render_template',
-    'Render the template a sub-account (project) sends — its custom template, otherwise the default — with provided variables. Returns the fully rendered message content.',
+    'Render the template a sub-account sends — its custom template, otherwise the default — with provided variables. Returns the fully rendered message content.',
     {
       channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
       message_type: z.string().describe('Message type'),

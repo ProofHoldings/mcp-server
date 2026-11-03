@@ -1,0 +1,68 @@
+/**
+ * Where a tool's input keys may differ from its operation's inputs in the OpenAPI document
+ * (`m-true-response-components-phase3`, T6). Each entry is a decision with its reason, never a
+ * deferral: `__tests__/input-parity.test.ts` fails on a difference no entry covers AND on an entry
+ * that no longer matches a real difference.
+ *
+ * Imports nothing, on purpose: `src/__tests__/drift/mcp-operation-inputs.test.ts` reads this file from
+ * the repository root, where the MCP package's zod cannot be loaded.
+ */
+
+export type InputParityExemption = {
+  tool: string;
+  key: string;
+  /** `spec_only`: the operation takes it and the tool does not offer it. `tool_only`: the reverse. */
+  side: 'spec_only' | 'tool_only';
+  reason: string;
+};
+
+const CLIENT_SIDE_WAIT = 'How long the tool polls before it returns; it never reaches the API.';
+
+export const INPUT_PARITY_EXEMPTIONS: readonly InputParityExemption[] = [
+  ...[
+    'wait_for_2fa',
+    'wait_for_account_creation',
+    'wait_for_chat_id_discovery',
+    'wait_for_confirmation',
+    'wait_for_login',
+    'wait_for_request',
+    'wait_for_session',
+    'wait_for_verification',
+  ].map((tool) => ({ tool, key: 'timeout_seconds', side: 'tool_only' as const, reason: CLIENT_SIDE_WAIT })),
+  {
+    tool: 'delete_profile',
+    key: 'archive_default_linked',
+    side: 'spec_only',
+    reason: 'An irreversible fan-out an agent would trigger implicitly; an agent archives each item explicitly instead.',
+  },
+  {
+    tool: 'upload_hitl_keys',
+    key: 'force',
+    side: 'spec_only',
+    reason: 'Acknowledges the key-rotation cascade, which overwrites the keys every approver enrolled against; the owner confirms it in the dashboard.',
+  },
+  {
+    tool: 'start_login',
+    key: 'return_to',
+    side: 'spec_only',
+    reason: 'The dashboard page a browser sign-in returns to; an agent signs in without a browser.',
+  },
+  {
+    tool: 'update_settings',
+    key: 'branding',
+    side: 'spec_only',
+    reason: 'Retired: the API answers 400 branding_moved, and branding is set on each sub-account with update_profile.',
+  },
+];
+
+/** A path segment a tool fills from an input of another name. */
+export const PATH_PARAM_ALIASES: readonly { tool: string; key: string; param: string; reason: string }[] = [
+  { tool: 'export_data', key: 'export_id', param: 'jobId', reason: 'The export the tool reads is the job the API names.' },
+];
+
+/** Registered tools with no API operation, so nothing to compare. */
+export const TOOLS_WITHOUT_OPERATION: readonly { tool: string; reason: string }[] = [
+  { tool: 'render_auth_link', reason: 'Renders a sign-in link the agent already holds; it calls no API.' },
+  { tool: 'verify_delegation', reason: 'Verified locally by @proof-holdings/delegation-verifier.' },
+  { tool: 'verify_delegations', reason: 'Verified locally by @proof-holdings/delegation-verifier.' },
+];

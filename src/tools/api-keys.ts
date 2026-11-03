@@ -45,12 +45,12 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'create_api_key',
-    'Create a new API key. The secret key value is returned ONLY in this response — store it securely. Note: the secret will be visible in the AI conversation context. Optionally bind the key to a sub-account (project) via profile_id — outbound messages sent with the key are then branded as that project.\n\nAgent usage: This operation requires 2FA. Before calling, complete the 2FA flow: (1) call start_2fa with action_type "api_key_create" and the user\'s preferred channel, (2) tell the user a code was sent and wait for them to verify, (3) poll get_2fa_status until status is "verified", (4) then call create_api_key — the backend session will be elevated. If you get a 403, the 2FA session has expired — restart the flow.',
+    'Create a new API key. The secret key value is returned ONLY in this response — store it securely. Note: the secret will be visible in the AI conversation context. Optionally bind the key to a sub-account via profile_id — outbound messages sent with the key are then branded as that sub-account.\n\nAgent usage: This operation requires 2FA. Before calling, complete the 2FA flow: (1) call start_2fa with action_type "api_key_create" and the user\'s preferred channel, (2) tell the user a code was sent and wait for them to verify, (3) poll get_2fa_status until status is "verified", (4) then call create_api_key — the backend session will be elevated. If you get a 403, the 2FA session has expired — restart the flow.',
     {
       name: z.string().min(1).max(100).optional().describe('Human-readable key name'),
       environment: z.enum(['production', 'test']).optional().describe('Key environment (default: production)'),
       scopes: z.array(z.enum(validScopes)).max(20).optional().describe('Permission scopes for the key'),
-      profile_id: z.string().optional().describe('Bind the new key to a sub-account (PublicProfile) project you own (24-hex id). Immutable after creation; omit for an unbound account-wide key.'),
+      profile_id: z.string().optional().describe('Bind the new key to a sub-account you own (24-hex id). Immutable after creation; omit for an unbound account-wide key.'),
     },
     async (args) => {
       try {
@@ -82,7 +82,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'regenerate_api_key',
-    'Regenerate an API key: issues a new key (a new id and secret) with the same name, environment, scopes and project. The old key stops working immediately; use the id in this response from now on. The new key lists the old one in replaced_key_ids, so its requests and usage stay with it. The new secret is returned ONLY in this response. Note: the secret will be visible in the AI conversation context.\n\nAgent usage: This operation requires 2FA. Before calling, complete the 2FA flow: (1) call start_2fa with action_type "api_key_regenerate", (2) wait for user to verify the code, (3) poll get_2fa_status until "verified", (4) then call regenerate_api_key.',
+    'Regenerate an API key: issues a new key (a new id and secret) with the same name, environment, scopes and sub-account. The old key stops working immediately; use the id in this response from now on. The new key lists the old one in replaced_key_ids, so its requests and usage stay with it. The new secret is returned ONLY in this response. Note: the secret will be visible in the AI conversation context.\n\nAgent usage: This operation requires 2FA. Before calling, complete the 2FA flow: (1) call start_2fa with action_type "api_key_regenerate", (2) wait for user to verify the code, (3) poll get_2fa_status until "verified", (4) then call regenerate_api_key.',
     {
       id: z.string().describe('API key ID to regenerate'),
     },

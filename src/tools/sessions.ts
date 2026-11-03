@@ -11,7 +11,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     {
       channel: z.enum(['telegram', 'whatsapp', 'sms']).describe('How the person proves the number: telegram or whatsapp (the bot reads it from their account) or sms (they text a short code from it). No phone number is sent'),
       client_metadata: z.record(z.string(), z.unknown()).optional().describe('Your own key-value data, stored with the session'),
-      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Sub-account (project) whose name and templates the bot uses; omitted: the key\'s project, else the primary'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Sub-account whose name and templates the bot uses; omitted: the key\'s sub-account, else the primary'),
       context: z.object({
         action: z.enum(['login', '2fa', 'verification', 'recovery']).optional().describe('Picks the bot\'s wording: log in, 2FA, account recovery, or plain verification (the default)'),
       }).optional(),

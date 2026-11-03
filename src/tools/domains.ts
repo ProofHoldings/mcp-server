@@ -35,6 +35,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       domain: z.string().min(1).max(255).describe('Domain name to add (e.g. example.com)'),
       for_email_sending: z.boolean().optional().describe('Whether this domain is for email sending'),
       verification_method: z.enum(['auto_dns', 'manual_dns', 'http_file', 'email']).optional().describe('Preferred verification method'),
+      profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('The sub-account (24 hex characters) whose email settings this domain is for'),
     },
     async (args) => {
       try {

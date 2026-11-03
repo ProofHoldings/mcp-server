@@ -30,6 +30,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       expires_in: z.number().int().positive().optional().describe('Request expiry in seconds (default: 604800, i.e. 7 days; max: 2592000, i.e. 30 days)'),
       public_profile_id: z.string().optional().describe('Public profile ID for branding'),
       proof_expiry_days: z.number().int().optional().describe('Per-request proof expiry override in days (7, 30, 90, or 365)'),
+      validity_requirement: z.string().regex(/^\d+[hdwm]$/).optional().describe('How fresh an existing proof must be to count, as <n>h, <n>d, <n>w or <n>m (e.g. "7d")'),
     },
     async (args) => {
       try {

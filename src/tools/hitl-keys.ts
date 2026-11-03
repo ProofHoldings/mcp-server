@@ -30,14 +30,16 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       public_key: z.string().describe('PEM-encoded RSA-4096 SPKI public key'),
       encrypted_private_key: z.string().describe('JSON-serialized encrypted private key envelope (PBKDF2-SHA256+AES-256-GCM)'),
       kdf_salt: z.string().describe('Base64url-encoded PBKDF2 salt'),
+      wrapped_dek: z.string().min(1).max(500).optional().describe('v2 envelope: the data key wrapped under the master key'),
+      dek_iv: z.string().min(1).max(64).optional().describe('v2 envelope: the IV of that wrapping'),
+      dek_tag: z.string().min(1).max(64).optional().describe('v2 envelope: the GCM tag of that wrapping'),
+      backup_wrapped_dek: z.string().min(1).max(500).optional().describe('v2 envelope: the data key wrapped under the recovery code'),
+      backup_dek_iv: z.string().min(1).max(64).optional().describe('v2 envelope: the IV of the recovery wrapping'),
+      backup_dek_tag: z.string().min(1).max(64).optional().describe('v2 envelope: the GCM tag of the recovery wrapping'),
     },
-    async ({ hitl_id, public_key, encrypted_private_key, kdf_salt }) => {
+    async ({ hitl_id, ...body }) => {
       try {
-        const result = await http.put(`/api/v1/hitl/${encodeURIComponent(hitl_id)}/keys`, {
-          public_key,
-          encrypted_private_key,
-          kdf_salt,
-        });
+        const result = await http.put(`/api/v1/hitl/${encodeURIComponent(hitl_id)}/keys`, body);
         return jsonResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);

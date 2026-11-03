@@ -5,7 +5,7 @@
 //
 // Of the carriers a version bump has to move, this is the one it misses: a bare constant at the
 // top of a module about HTTP, where nothing about editing the manifest leads a reader.
-const VERSION = '1.7.1';
+const VERSION = '1.7.2';
 
 // Every request names this client: the issuer tells a request an agent made, signed in as a person,
 // from one the person made in the dashboard by this prefix, and labels it with the name the agent's
@@ -146,6 +146,8 @@ export const SESSION_EXEMPT_PATHS: ReadonlyArray<{ method: string; pattern: RegE
   { method: 'GET', pattern: /^\/api\/v1\/me\/api-keys\/[^/]+\/usage$/ },
   { method: 'GET', pattern: /^\/api\/v1\/me\/verification-requests$/ },
   { method: 'GET', pattern: /^\/api\/v1\/me\/emails\/verify\/[^/]+$/ },
+  // That link's Confirm button posts the token in the body (h-fix-email-links-get-completes).
+  { method: 'POST', pattern: /^\/api\/v1\/me\/emails\/verify$/ },
   // The emailed account-deletion cancel link's two halves (h-implement-proper-deletion, ACC-3):
   // public, the token is the whole secret. A keyed client never calls them, but a public route
   // under the session prefix must be exempt or the map's completeness rule reads it as locked.

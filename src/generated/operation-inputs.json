@@ -1,0 +1,1595 @@
+{
+  "add_circle_member": {
+    "operations": [
+      "POST /api/v1/circles/{id}/members"
+    ],
+    "inputs": {
+      "id": "path",
+      "name": "body",
+      "whatsapp_phone": "body"
+    }
+  },
+  "add_circle_member_channel": {
+    "operations": [
+      "POST /api/v1/circles/{id}/members/{memberId}/channels"
+    ],
+    "inputs": {
+      "channel": "body",
+      "id": "path",
+      "identifier": "body",
+      "memberId": "path"
+    }
+  },
+  "add_domain": {
+    "operations": [
+      "POST /api/v1/me/domains"
+    ],
+    "inputs": {
+      "domain": "body",
+      "for_email_sending": "body",
+      "profile_id": "body",
+      "verification_method": "body"
+    }
+  },
+  "add_verification_provider": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/add-provider/{provider}"
+    ],
+    "inputs": {
+      "credentials": "body",
+      "id": "path",
+      "provider": "path"
+    }
+  },
+  "cancel_user_request": {
+    "operations": [
+      "DELETE /api/v1/me/verification-requests/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "cancel_verification_request": {
+    "operations": [
+      "DELETE /api/v1/verification-requests/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "check_domain_credentials": {
+    "operations": [
+      "GET /api/v1/me/domains/{id}/check-credentials"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "check_domain_email_status": {
+    "operations": [
+      "GET /api/v1/me/domains/{id}/email-status"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "check_domain_verification": {
+    "operations": [
+      "POST /api/v1/verifications/domain/{id}/check"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "check_user_domain_verification": {
+    "operations": [
+      "POST /api/v1/me/verify/domain/{sessionId}/check"
+    ],
+    "inputs": {
+      "sessionId": "path"
+    }
+  },
+  "claim_username": {
+    "operations": [
+      "POST /api/v1/profiles/me/username"
+    ],
+    "inputs": {
+      "username": "body"
+    }
+  },
+  "confirm_domain_email_code": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/verify-email/confirm"
+    ],
+    "inputs": {
+      "code": "body",
+      "id": "path"
+    }
+  },
+  "connect_cloudflare": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/connect/cloudflare"
+    ],
+    "inputs": {
+      "api_token": "body",
+      "id": "path"
+    }
+  },
+  "connect_dns_provider": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/connect/{provider}"
+    ],
+    "inputs": {
+      "credentials": "body",
+      "id": "path",
+      "provider": "path"
+    }
+  },
+  "connect_godaddy": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/connect/godaddy"
+    ],
+    "inputs": {
+      "api_key": "body",
+      "api_secret": "body",
+      "id": "path"
+    }
+  },
+  "create_account": {
+    "operations": [
+      "POST /api/v1/accounts"
+    ],
+    "inputs": {
+      "channel": "body",
+      "email": "body",
+      "phone_number": "body"
+    }
+  },
+  "create_api_key": {
+    "operations": [
+      "POST /api/v1/me/api-keys"
+    ],
+    "inputs": {
+      "environment": "body",
+      "name": "body",
+      "profile_id": "body",
+      "scopes": "body"
+    }
+  },
+  "create_authorization": {
+    "operations": [
+      "POST /api/v1/authorizations"
+    ],
+    "inputs": {
+      "bsuid": "body",
+      "business_name": "body",
+      "business_profile_id": "body",
+      "channel": "body",
+      "expires_in": "body",
+      "hitl_id": "body",
+      "phone": "body",
+      "recipient": "body",
+      "scope": "body"
+    }
+  },
+  "create_chat_id_discovery": {
+    "operations": [
+      "POST /api/v1/hitl/chat-id-discovery"
+    ],
+    "inputs": {}
+  },
+  "create_circle": {
+    "operations": [
+      "POST /api/v1/circles"
+    ],
+    "inputs": {
+      "members": "body",
+      "name": "body",
+      "owner_name": "body",
+      "profile_id": "body",
+      "proof_me_enabled": "body"
+    }
+  },
+  "create_circle_member_drill": {
+    "operations": [
+      "POST /api/v1/circles/{id}/members/{memberId}/drill"
+    ],
+    "inputs": {
+      "id": "path",
+      "memberId": "path"
+    }
+  },
+  "create_confirmation": {
+    "operations": [
+      "POST /api/v1/confirmations"
+    ],
+    "inputs": {
+      "hitl_id": "body",
+      "message": "body",
+      "proof_expiry_days": "body"
+    }
+  },
+  "create_delegation": {
+    "operations": [
+      "POST /api/v1/delegations"
+    ],
+    "inputs": {
+      "control_proof": "body",
+      "delegate": "body",
+      "expires_in": "body",
+      "scope": "body"
+    }
+  },
+  "create_dns_credential": {
+    "operations": [
+      "POST /api/v1/me/dns-credentials"
+    ],
+    "inputs": {
+      "credentials": "body",
+      "provider": "body"
+    }
+  },
+  "create_hitl": {
+    "operations": [
+      "POST /api/v1/hitl"
+    ],
+    "inputs": {
+      "channels": "body",
+      "circle_id": "body",
+      "name": "body",
+      "profile_id": "body",
+      "timeout_seconds": "body"
+    }
+  },
+  "create_identity_challenge": {
+    "operations": [
+      "POST /api/v1/identity-challenges"
+    ],
+    "inputs": {
+      "circle_id": "body",
+      "member_id": "body",
+      "suspicious_channel": "body"
+    }
+  },
+  "create_multi_channel_verification": {
+    "operations": [
+      "POST /api/v1/verifications/multi-channel"
+    ],
+    "inputs": {
+      "channels": "body",
+      "client_metadata": "body",
+      "external_user_id": "body",
+      "identifier": "body",
+      "profile_id": "body",
+      "proof_expiry_days": "body",
+      "type": "body"
+    }
+  },
+  "create_profile": {
+    "operations": [
+      "POST /api/v1/me/profiles"
+    ],
+    "inputs": {
+      "avatar_url": "body",
+      "bio": "body",
+      "business_name": "body",
+      "display_name": "body",
+      "email_theme": "body",
+      "is_business": "body",
+      "is_primary": "body",
+      "is_public": "body",
+      "support_email": "body",
+      "theme": "body"
+    }
+  },
+  "create_session": {
+    "operations": [
+      "POST /api/v1/sessions"
+    ],
+    "inputs": {
+      "channel": "body",
+      "client_metadata": "body",
+      "context": "body",
+      "profile_id": "body"
+    }
+  },
+  "create_user_request": {
+    "operations": [
+      "POST /api/v1/me/verification-requests"
+    ],
+    "inputs": {
+      "action_context": "body",
+      "action_type": "body",
+      "assets": "body",
+      "callback_url": "body",
+      "expires_in_hours": "body",
+      "partial_ok": "body",
+      "public_profile_id": "body",
+      "redirect_url": "body",
+      "reference_id": "body",
+      "validity_requirement": "body"
+    }
+  },
+  "create_verification": {
+    "operations": [
+      "POST /api/v1/verifications"
+    ],
+    "inputs": {
+      "bot_token": "body",
+      "channel": "body",
+      "client_metadata": "body",
+      "dns_provider": "body",
+      "email_prefix": "body",
+      "external_user_id": "body",
+      "identifier": "body",
+      "profile_id": "body",
+      "proof_expiry_days": "body",
+      "type": "body"
+    }
+  },
+  "create_verification_request": {
+    "operations": [
+      "POST /api/v1/verification-requests"
+    ],
+    "inputs": {
+      "action_context": "body",
+      "action_type": "body",
+      "assets": "body",
+      "callback_url": "body",
+      "expires_in": "body",
+      "partial_ok": "body",
+      "proof_expiry_days": "body",
+      "public_profile_id": "body",
+      "redirect_url": "body",
+      "reference_id": "body",
+      "validity_requirement": "body"
+    }
+  },
+  "create_webhook_endpoint": {
+    "operations": [
+      "POST /api/v1/webhook-endpoints"
+    ],
+    "inputs": {
+      "description": "body",
+      "events": "body",
+      "profile_ids": "body",
+      "scope": "body",
+      "status": "body",
+      "url": "body"
+    }
+  },
+  "delete_circle": {
+    "operations": [
+      "DELETE /api/v1/circles/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "delete_dns_credential": {
+    "operations": [
+      "DELETE /api/v1/me/dns-credentials/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "delete_domain": {
+    "operations": [
+      "DELETE /api/v1/me/domains/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "delete_domain_verification": {
+    "operations": [
+      "DELETE /api/v1/verifications/domain/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "delete_hitl": {
+    "operations": [
+      "DELETE /api/v1/hitl/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "delete_hitl_keys": {
+    "operations": [
+      "DELETE /api/v1/hitl/{id}/keys"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "delete_profile": {
+    "operations": [
+      "DELETE /api/v1/me/profiles/{profileId}"
+    ],
+    "inputs": {
+      "archive_default_linked": "body",
+      "profileId": "path"
+    }
+  },
+  "delete_template": {
+    "operations": [
+      "DELETE /api/v1/templates/{channel}/{messageType}"
+    ],
+    "inputs": {
+      "channel": "path",
+      "messageType": "path",
+      "profile_id": "query"
+    }
+  },
+  "delete_webhook_endpoint": {
+    "operations": [
+      "DELETE /api/v1/webhook-endpoints/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "export_authorizations": {
+    "operations": [
+      "GET /api/v1/authorizations/export"
+    ],
+    "inputs": {
+      "format": "query",
+      "from": "query",
+      "status": "query",
+      "to": "query"
+    }
+  },
+  "export_data": {
+    "operations": [
+      "GET /api/v1/me/export",
+      "GET /api/v1/me/export/{jobId}",
+      "POST /api/v1/me/export"
+    ],
+    "inputs": {
+      "jobId": "path"
+    }
+  },
+  "extend_request": {
+    "operations": [
+      "POST /api/v1/me/verification-requests/{id}/extend"
+    ],
+    "inputs": {
+      "extends_by_hours": "body",
+      "id": "path"
+    }
+  },
+  "get_2fa_status": {
+    "operations": [
+      "GET /api/v1/me/2fa/{sessionId}"
+    ],
+    "inputs": {
+      "sessionId": "path"
+    }
+  },
+  "get_add_email_status": {
+    "operations": [
+      "GET /api/v1/me/emails/add/{sessionId}"
+    ],
+    "inputs": {
+      "sessionId": "path"
+    }
+  },
+  "get_add_phone_status": {
+    "operations": [
+      "GET /api/v1/me/phones/add/{sessionId}"
+    ],
+    "inputs": {
+      "sessionId": "path"
+    }
+  },
+  "get_api_key_usage": {
+    "operations": [
+      "GET /api/v1/me/api-keys/{id}/usage"
+    ],
+    "inputs": {
+      "environment": "query",
+      "id": "path"
+    }
+  },
+  "get_asset": {
+    "operations": [
+      "GET /api/v1/me/assets/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_authorization": {
+    "operations": [
+      "GET /api/v1/authorizations/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_balance": {
+    "operations": [
+      "GET /api/v1/billing/balance"
+    ],
+    "inputs": {}
+  },
+  "get_circle": {
+    "operations": [
+      "GET /api/v1/circles/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_confirmation": {
+    "operations": [
+      "GET /api/v1/confirmations/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_confirmation_approval_link": {
+    "operations": [
+      "POST /api/v1/confirmations/{id}/approval-link"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_current_user": {
+    "operations": [
+      "GET /api/v1/auth/me"
+    ],
+    "inputs": {}
+  },
+  "get_default_templates": {
+    "operations": [
+      "GET /api/v1/templates/defaults"
+    ],
+    "inputs": {}
+  },
+  "get_delegation": {
+    "operations": [
+      "GET /api/v1/delegations/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_dns_providers": {
+    "operations": [
+      "GET /api/v1/me/dns-providers"
+    ],
+    "inputs": {}
+  },
+  "get_domain": {
+    "operations": [
+      "GET /api/v1/me/domains/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_hitl": {
+    "operations": [
+      "GET /api/v1/hitl/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_hitl_keys": {
+    "operations": [
+      "GET /api/v1/hitl/{id}/keys"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_identity_challenge": {
+    "operations": [
+      "GET /api/v1/identity-challenges/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_multi_channel_verification_status": {
+    "operations": [
+      "GET /api/v1/verifications/multi-channel/{group_id}/status"
+    ],
+    "inputs": {
+      "group_id": "path"
+    }
+  },
+  "get_my_profile": {
+    "operations": [
+      "GET /api/v1/profiles/me"
+    ],
+    "inputs": {}
+  },
+  "get_platform_summary": {
+    "operations": [
+      "GET /api/v1/me/summary"
+    ],
+    "inputs": {
+      "environment": "query",
+      "profile_id": "query"
+    }
+  },
+  "get_profile": {
+    "operations": [
+      "GET /api/v1/me/profiles/{profileId}"
+    ],
+    "inputs": {
+      "profileId": "path"
+    }
+  },
+  "get_profile_assets": {
+    "operations": [
+      "GET /api/v1/profiles/me/assets"
+    ],
+    "inputs": {
+      "profile_id": "query"
+    }
+  },
+  "get_proof_status": {
+    "operations": [
+      "GET /api/v1/proofs/{id}/status"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_request_by_reference": {
+    "operations": [
+      "GET /api/v1/verification-requests/by-reference/{referenceId}"
+    ],
+    "inputs": {
+      "referenceId": "path"
+    }
+  },
+  "get_request_proofs": {
+    "operations": [
+      "GET /api/v1/verification-requests/{id}/proofs"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_self_api_key": {
+    "operations": [
+      "GET /api/v1/me/api-key"
+    ],
+    "inputs": {}
+  },
+  "get_session": {
+    "operations": [
+      "GET /api/v1/sessions/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_settings": {
+    "operations": [
+      "GET /api/v1/me/settings"
+    ],
+    "inputs": {}
+  },
+  "get_subscription": {
+    "operations": [
+      "GET /api/v1/billing/subscription"
+    ],
+    "inputs": {}
+  },
+  "get_template": {
+    "operations": [
+      "GET /api/v1/templates/{channel}/{messageType}"
+    ],
+    "inputs": {
+      "channel": "path",
+      "messageType": "path",
+      "profile_id": "query"
+    }
+  },
+  "get_usage": {
+    "operations": [
+      "GET /api/v1/me/usage"
+    ],
+    "inputs": {
+      "months": "query",
+      "period": "query"
+    }
+  },
+  "get_user_domain_verification_status": {
+    "operations": [
+      "GET /api/v1/me/verify/domain/{sessionId}"
+    ],
+    "inputs": {
+      "sessionId": "path"
+    }
+  },
+  "get_verification": {
+    "operations": [
+      "GET /api/v1/verifications/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_verification_request": {
+    "operations": [
+      "GET /api/v1/verification-requests/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_verified_user": {
+    "operations": [
+      "GET /api/v1/verifications/users/{externalUserId}"
+    ],
+    "inputs": {
+      "externalUserId": "path"
+    }
+  },
+  "get_webhook_delivery": {
+    "operations": [
+      "GET /api/v1/webhook-deliveries/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_webhook_endpoint": {
+    "operations": [
+      "GET /api/v1/webhook-endpoints/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_webhook_stats": {
+    "operations": [
+      "GET /api/v1/webhook-deliveries/stats"
+    ],
+    "inputs": {}
+  },
+  "invite_circle_member": {
+    "operations": [
+      "POST /api/v1/circles/{id}/members/invite"
+    ],
+    "inputs": {
+      "id": "path",
+      "member_id": "body"
+    }
+  },
+  "list_api_keys": {
+    "operations": [
+      "GET /api/v1/me/api-keys"
+    ],
+    "inputs": {}
+  },
+  "list_assets": {
+    "operations": [
+      "GET /api/v1/me/assets"
+    ],
+    "inputs": {
+      "status": "query",
+      "type": "query"
+    }
+  },
+  "list_auth_sessions": {
+    "operations": [
+      "GET /api/v1/auth/sessions"
+    ],
+    "inputs": {}
+  },
+  "list_authorizations": {
+    "operations": [
+      "GET /api/v1/authorizations"
+    ],
+    "inputs": {
+      "channel": "query",
+      "limit": "query",
+      "page": "query",
+      "phone": "query",
+      "status": "query"
+    }
+  },
+  "list_balance_ledger": {
+    "operations": [
+      "GET /api/v1/billing/balance/ledger"
+    ],
+    "inputs": {
+      "limit": "query",
+      "page": "query"
+    }
+  },
+  "list_circle_member_channels": {
+    "operations": [
+      "GET /api/v1/circles/{id}/members/{memberId}/channels"
+    ],
+    "inputs": {
+      "id": "path",
+      "memberId": "path"
+    }
+  },
+  "list_circle_members": {
+    "operations": [
+      "GET /api/v1/circles/{id}/members"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "list_circles": {
+    "operations": [
+      "GET /api/v1/circles"
+    ],
+    "inputs": {
+      "environment": "query",
+      "limit": "query",
+      "page": "query",
+      "profile_id": "query",
+      "status": "query"
+    }
+  },
+  "list_confirmations": {
+    "operations": [
+      "GET /api/v1/confirmations"
+    ],
+    "inputs": {
+      "end_date": "query",
+      "hitl_id": "query",
+      "limit": "query",
+      "page": "query",
+      "profile_id": "query",
+      "start_date": "query",
+      "status": "query"
+    }
+  },
+  "list_delegations": {
+    "operations": [
+      "GET /api/v1/delegations"
+    ],
+    "inputs": {
+      "limit": "query",
+      "page": "query",
+      "status": "query"
+    }
+  },
+  "list_dns_credentials": {
+    "operations": [
+      "GET /api/v1/me/dns-credentials"
+    ],
+    "inputs": {}
+  },
+  "list_domains": {
+    "operations": [
+      "GET /api/v1/me/domains"
+    ],
+    "inputs": {}
+  },
+  "list_emails": {
+    "operations": [
+      "GET /api/v1/me/emails"
+    ],
+    "inputs": {}
+  },
+  "list_hitls": {
+    "operations": [
+      "GET /api/v1/hitl"
+    ],
+    "inputs": {
+      "environment": "query",
+      "limit": "query",
+      "page": "query",
+      "profile_id": "query",
+      "status": "query"
+    }
+  },
+  "list_incoming_requests": {
+    "operations": [
+      "GET /api/v1/me/verification-requests/incoming"
+    ],
+    "inputs": {}
+  },
+  "list_my_requests": {
+    "operations": [
+      "GET /api/v1/me/verification-requests"
+    ],
+    "inputs": {
+      "api_key_id": "query",
+      "profile_id": "query"
+    }
+  },
+  "list_phones": {
+    "operations": [
+      "GET /api/v1/me/phones"
+    ],
+    "inputs": {}
+  },
+  "list_profiles": {
+    "operations": [
+      "GET /api/v1/me/profiles"
+    ],
+    "inputs": {}
+  },
+  "list_revoked_proofs": {
+    "operations": [
+      "GET /api/v1/proofs/revoked"
+    ],
+    "inputs": {}
+  },
+  "list_templates": {
+    "operations": [
+      "GET /api/v1/templates"
+    ],
+    "inputs": {
+      "profile_id": "query"
+    }
+  },
+  "list_verification_requests": {
+    "operations": [
+      "GET /api/v1/verification-requests"
+    ],
+    "inputs": {
+      "limit": "query",
+      "page": "query",
+      "reference_id": "query",
+      "status": "query"
+    }
+  },
+  "list_verifications": {
+    "operations": [
+      "GET /api/v1/verifications"
+    ],
+    "inputs": {
+      "channel": "query",
+      "limit": "query",
+      "page": "query",
+      "status": "query",
+      "type": "query"
+    }
+  },
+  "list_verified_users": {
+    "operations": [
+      "GET /api/v1/verifications/users"
+    ],
+    "inputs": {
+      "limit": "query",
+      "page": "query"
+    }
+  },
+  "list_webhook_deliveries": {
+    "operations": [
+      "GET /api/v1/webhook-deliveries"
+    ],
+    "inputs": {
+      "endpoint_id": "query",
+      "event_type": "query",
+      "limit": "query",
+      "page": "query",
+      "profile_id": "query",
+      "status": "query",
+      "verification_request_id": "query"
+    }
+  },
+  "list_webhook_endpoints": {
+    "operations": [
+      "GET /api/v1/webhook-endpoints"
+    ],
+    "inputs": {}
+  },
+  "poll_chat_id_discovery": {
+    "operations": [
+      "GET /api/v1/hitl/chat-id-discovery/{token}"
+    ],
+    "inputs": {
+      "token": "path"
+    }
+  },
+  "preview_template": {
+    "operations": [
+      "POST /api/v1/templates/preview"
+    ],
+    "inputs": {
+      "body": "body",
+      "button_text": "body",
+      "button_url_template": "body",
+      "channel": "body",
+      "message_type": "body",
+      "profile_id": "query",
+      "subject": "body"
+    }
+  },
+  "regenerate_api_key": {
+    "operations": [
+      "POST /api/v1/me/api-keys/{id}/regenerate"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "remove_circle_member": {
+    "operations": [
+      "DELETE /api/v1/circles/{id}/members/{memberId}"
+    ],
+    "inputs": {
+      "id": "path",
+      "memberId": "path"
+    }
+  },
+  "remove_circle_member_channel": {
+    "operations": [
+      "DELETE /api/v1/circles/{id}/members/{memberId}/channels/{channelId}"
+    ],
+    "inputs": {
+      "channelId": "path",
+      "id": "path",
+      "memberId": "path"
+    }
+  },
+  "remove_email": {
+    "operations": [
+      "DELETE /api/v1/me/emails/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "remove_phone": {
+    "operations": [
+      "DELETE /api/v1/me/phones/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "render_template": {
+    "operations": [
+      "POST /api/v1/templates/render"
+    ],
+    "inputs": {
+      "channel": "body",
+      "message_type": "body",
+      "profile_id": "query",
+      "variables": "body"
+    }
+  },
+  "request_hitl_authorization": {
+    "operations": [
+      "POST /api/v1/hitl/{id}/authorize"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "resend_domain_email": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/verify-email/resend"
+    ],
+    "inputs": {
+      "email_prefix": "body",
+      "id": "path"
+    }
+  },
+  "resend_email_otp": {
+    "operations": [
+      "POST /api/v1/me/emails/add/{sessionId}/resend"
+    ],
+    "inputs": {
+      "sessionId": "path"
+    }
+  },
+  "resend_verification": {
+    "operations": [
+      "POST /api/v1/verifications/{id}/resend"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "retry_webhook_delivery": {
+    "operations": [
+      "POST /api/v1/webhook-deliveries/{id}/retry"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "revoke_api_key": {
+    "operations": [
+      "DELETE /api/v1/me/api-keys/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "revoke_asset": {
+    "operations": [
+      "DELETE /api/v1/me/assets/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "revoke_auth_session": {
+    "operations": [
+      "DELETE /api/v1/auth/sessions/{sessionId}"
+    ],
+    "inputs": {
+      "sessionId": "path"
+    }
+  },
+  "revoke_authorization": {
+    "operations": [
+      "DELETE /api/v1/authorizations/{id}"
+    ],
+    "inputs": {
+      "id": "path",
+      "reason": "body"
+    }
+  },
+  "revoke_delegation": {
+    "operations": [
+      "POST /api/v1/delegations/{id}/revoke"
+    ],
+    "inputs": {
+      "id": "path",
+      "reason": "body"
+    }
+  },
+  "revoke_proof": {
+    "operations": [
+      "POST /api/v1/proofs/{id}/revoke"
+    ],
+    "inputs": {
+      "id": "path",
+      "reason": "body"
+    }
+  },
+  "rotate_callback_secret": {
+    "operations": [
+      "POST /api/v1/profiles/profiles/{profileId}/callback-secret/rotate"
+    ],
+    "inputs": {
+      "profileId": "path"
+    }
+  },
+  "rotate_webhook_endpoint_secret": {
+    "operations": [
+      "POST /api/v1/webhook-endpoints/{id}/rotate-secret"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "search": {
+    "operations": [
+      "GET /api/v1/me/search"
+    ],
+    "inputs": {
+      "environment": "query",
+      "limit": "query",
+      "q": "query",
+      "type": "query"
+    }
+  },
+  "send_account_email": {
+    "operations": [
+      "POST /api/v1/accounts/{id}/send"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "set_primary_email": {
+    "operations": [
+      "PUT /api/v1/me/emails/{id}/primary"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "set_primary_phone": {
+    "operations": [
+      "PUT /api/v1/me/phones/{id}/primary"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "set_primary_profile": {
+    "operations": [
+      "POST /api/v1/me/profiles/{profileId}/primary"
+    ],
+    "inputs": {
+      "profileId": "path"
+    }
+  },
+  "setup_domain_email": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/email-setup"
+    ],
+    "inputs": {
+      "from_email": "body",
+      "id": "path"
+    }
+  },
+  "share_request_email": {
+    "operations": [
+      "POST /api/v1/me/verification-requests/{id}/share-email"
+    ],
+    "inputs": {
+      "email": "body",
+      "id": "path"
+    }
+  },
+  "start_2fa": {
+    "operations": [
+      "POST /api/v1/me/2fa/start"
+    ],
+    "inputs": {
+      "action_type": "body",
+      "channel": "body",
+      "email_id": "body",
+      "phone_id": "body",
+      "single_use": "body",
+      "targets": "body",
+      "ttl_seconds": "body"
+    }
+  },
+  "start_2fa_for_action": {
+    "operations": [
+      "POST /api/v1/me/2fa/start"
+    ],
+    "inputs": {
+      "action_type": "body",
+      "channel": "body",
+      "email_id": "body",
+      "phone_id": "body",
+      "single_use": "body",
+      "targets": "body",
+      "ttl_seconds": "body"
+    }
+  },
+  "start_add_email": {
+    "operations": [
+      "POST /api/v1/me/emails/add"
+    ],
+    "inputs": {
+      "email": "body"
+    }
+  },
+  "start_add_phone": {
+    "operations": [
+      "POST /api/v1/me/phones/add"
+    ],
+    "inputs": {
+      "channel": "body"
+    }
+  },
+  "start_domain_email_verification": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/verify-email"
+    ],
+    "inputs": {
+      "email_prefix": "body",
+      "id": "path"
+    }
+  },
+  "start_domain_verification": {
+    "operations": [
+      "POST /api/v1/verifications/domain"
+    ],
+    "inputs": {
+      "customer_id": "body",
+      "domain": "body",
+      "verification_method": "body"
+    }
+  },
+  "start_login": {
+    "operations": [
+      "POST /api/v1/auth/sessions"
+    ],
+    "inputs": {
+      "channel": "body",
+      "email": "body",
+      "phone_number": "body",
+      "return_to": "body"
+    }
+  },
+  "start_user_domain_verification": {
+    "operations": [
+      "POST /api/v1/me/verify/domain"
+    ],
+    "inputs": {
+      "channel": "body",
+      "domain": "body"
+    }
+  },
+  "submit_verification_code": {
+    "operations": [
+      "POST /api/v1/verifications/{id}/submit"
+    ],
+    "inputs": {
+      "code": "body",
+      "id": "path"
+    }
+  },
+  "test_verify": {
+    "operations": [
+      "POST /api/v1/verifications/{id}/test-verify"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "trigger_verification": {
+    "operations": [
+      "POST /api/v1/verifications/{id}/verify"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "update_circle": {
+    "operations": [
+      "PATCH /api/v1/circles/{id}"
+    ],
+    "inputs": {
+      "id": "path",
+      "name": "body",
+      "owner_name": "body"
+    }
+  },
+  "update_hitl": {
+    "operations": [
+      "PATCH /api/v1/hitl/{id}"
+    ],
+    "inputs": {
+      "channels": "body",
+      "id": "path",
+      "name": "body",
+      "timeout_seconds": "body"
+    }
+  },
+  "update_my_profile": {
+    "operations": [
+      "PUT /api/v1/profiles/me"
+    ],
+    "inputs": {
+      "avatar_url": "body",
+      "bio": "body",
+      "custom_links": "body",
+      "display_name": "body",
+      "is_public": "body",
+      "show_delegations": "body",
+      "show_proof_channels": "body",
+      "show_verification_dates": "body",
+      "theme": "body"
+    }
+  },
+  "update_profile": {
+    "operations": [
+      "PATCH /api/v1/me/profiles/{profileId}"
+    ],
+    "inputs": {
+      "avatar_url": "body",
+      "bio": "body",
+      "business_name": "body",
+      "custom_links": "body",
+      "display_name": "body",
+      "email_theme": "body",
+      "is_business": "body",
+      "is_primary": "body",
+      "is_public": "body",
+      "profileId": "path",
+      "show_delegations": "body",
+      "show_proof_channels": "body",
+      "show_verification_dates": "body",
+      "support_email": "body",
+      "theme": "body"
+    }
+  },
+  "update_profile_proofs": {
+    "operations": [
+      "PUT /api/v1/profiles/profiles/{profileId}/proofs"
+    ],
+    "inputs": {
+      "profileId": "path",
+      "proof_order": "body",
+      "proofs": "body"
+    }
+  },
+  "update_public_proofs": {
+    "operations": [
+      "PUT /api/v1/profiles/me/proofs"
+    ],
+    "inputs": {
+      "proof_order": "body",
+      "proofs": "body"
+    }
+  },
+  "update_settings": {
+    "operations": [
+      "PATCH /api/v1/me/settings"
+    ],
+    "inputs": {
+      "branding": "body",
+      "hitl": "body",
+      "proof_expiry_days": "body",
+      "webhook": "body"
+    }
+  },
+  "update_template": {
+    "operations": [
+      "PUT /api/v1/templates/{channel}/{messageType}"
+    ],
+    "inputs": {
+      "body": "body",
+      "button_text": "body",
+      "button_url_template": "body",
+      "channel": "path",
+      "messageType": "path",
+      "profile_id": "query",
+      "subject": "body"
+    }
+  },
+  "update_webhook_endpoint": {
+    "operations": [
+      "PATCH /api/v1/webhook-endpoints/{id}"
+    ],
+    "inputs": {
+      "description": "body",
+      "events": "body",
+      "id": "path",
+      "profile_ids": "body",
+      "scope": "body",
+      "status": "body",
+      "url": "body"
+    }
+  },
+  "upload_hitl_keys": {
+    "operations": [
+      "PUT /api/v1/hitl/{id}/keys"
+    ],
+    "inputs": {
+      "backup_dek_iv": "body",
+      "backup_dek_tag": "body",
+      "backup_wrapped_dek": "body",
+      "dek_iv": "body",
+      "dek_tag": "body",
+      "encrypted_private_key": "body",
+      "force": "query",
+      "id": "path",
+      "kdf_salt": "body",
+      "public_key": "body",
+      "wrapped_dek": "body"
+    }
+  },
+  "validate_proof": {
+    "operations": [
+      "POST /api/v1/proofs/validate"
+    ],
+    "inputs": {
+      "identifier": "body",
+      "proof_token": "body"
+    }
+  },
+  "verify_2fa": {
+    "operations": [
+      "POST /api/v1/me/2fa/{sessionId}/verify"
+    ],
+    "inputs": {
+      "code": "body",
+      "sessionId": "path"
+    }
+  },
+  "verify_2fa_magic_link": {
+    "operations": [
+      "POST /api/v1/me/2fa/magic/{token}"
+    ],
+    "inputs": {
+      "token": "path"
+    }
+  },
+  "verify_domain": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/verify"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "verify_domain_with_credentials": {
+    "operations": [
+      "POST /api/v1/me/domains/{id}/verify-with-credentials"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "verify_email_otp": {
+    "operations": [
+      "POST /api/v1/me/emails/add/{sessionId}/verify"
+    ],
+    "inputs": {
+      "code": "body",
+      "sessionId": "path"
+    }
+  },
+  "wait_for_2fa": {
+    "operations": [
+      "GET /api/v1/me/2fa/{sessionId}"
+    ],
+    "inputs": {
+      "sessionId": "path"
+    }
+  },
+  "wait_for_account_creation": {
+    "operations": [
+      "GET /api/v1/accounts/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "wait_for_chat_id_discovery": {
+    "operations": [
+      "GET /api/v1/hitl/chat-id-discovery/{token}"
+    ],
+    "inputs": {
+      "token": "path"
+    }
+  },
+  "wait_for_confirmation": {
+    "operations": [
+      "GET /api/v1/confirmations/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "wait_for_login": {
+    "operations": [
+      "GET /api/v1/auth/sessions/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "wait_for_request": {
+    "operations": [
+      "GET /api/v1/verification-requests/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "wait_for_session": {
+    "operations": [
+      "GET /api/v1/sessions/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "wait_for_verification": {
+    "operations": [
+      "GET /api/v1/verifications/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  }
+}

@@ -97,6 +97,66 @@ export function rotationHints(result: VerificationFailure): Record<string, unkno
   };
 }
 
+/**
+ * The output schemas of the two tools, beside the verdicts they describe (`m-mcp-tool-output-schemas`).
+ * Open at every depth (`z.looseObject`): a raw shape or `z.object` is advertised with
+ * `additionalProperties: false`, which the SDK client enforces, so a field added to a verdict later
+ * would fail the tool. The root is one object, never a union — the SDK drops a non-object root.
+ */
+const rotationHintFields = {
+  pull_hint: z.looseObject({ issuer_origin: z.string(), handle: z.string() }).optional().describe('Where to pull a re-signed token after key_revoked'),
+  cache_age_seconds: z.number().nullable().optional().describe('How stale the key set is after jwks_stale, in seconds; null when unknown'),
+  refresh_hint: z.looseObject({ jwks_uri: z.string(), method: z.string() }).optional().describe('How to refresh the key set'),
+};
+
+export const VERIFY_DELEGATION_OUTPUT = z.looseObject({
+  verified: z.boolean().describe('true when the delegation verified; false is a verdict, read reason and outcome'),
+  reason: z.string().optional().describe('When not verified: the verifier\'s failure reason'),
+  outcome: z.string().optional().describe('When not verified: invalid (a genuine negative verdict) or unconfirmed (no confident answer right now)'),
+  message: z.string().optional().describe('When not verified: a readable explanation'),
+  ...rotationHintFields,
+  status_checked: z.boolean().optional().describe('When verified: whether revocation was checked'),
+  principal_checked: z.boolean().optional().describe('When verified: whether the principal was compared with expected_principal'),
+  attests: z.string().optional().describe('When verified: what the delegation attests, in one sentence'),
+  delegation: z
+    .looseObject({
+      issuer: z.string(),
+      principal: z.string(),
+      delegate: z.string(),
+      scope: z.array(z.string()),
+      control_proof: z.string(),
+      delegation_id: z.string(),
+      issued_at: z.string(),
+      expires_at: z.string(),
+    })
+    .optional()
+    .describe('When verified: the verified claims'),
+  disclaimer: z.string().optional().describe('When verified: what the verdict does not say'),
+});
+
+export const VERIFY_DELEGATIONS_OUTPUT = z.looseObject({
+  results: z
+    .array(
+      z.union([
+        z.looseObject({
+          outcome: z.literal('confirmed_valid'),
+          verified: z.literal(true),
+          status_checked: z.boolean(),
+          checked_at: z.string(),
+        }),
+        z.looseObject({
+          outcome: z.string().describe('confirmed_invalid, no_claim_found or unconfirmed'),
+          verified: z.literal(false),
+          reason: z.string().optional(),
+          message: z.string(),
+          ...rotationHintFields,
+          checked_at: z.string(),
+        }),
+      ]),
+    )
+    .describe('One result per item, in the order the items were given'),
+});
+
 export function registerTools(tool: ToolRegistrar, options: { baseUrl: string }) {
   tool(
     'verify_delegation',

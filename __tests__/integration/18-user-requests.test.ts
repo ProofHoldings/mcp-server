@@ -68,7 +68,7 @@ describe('User Requests (7 tools)', () => {
   // share_request_email
   describe('share_request_email', () => {
     it('returns error for nonexistent request', async () => {
-      const result = await callTool('share_request_email', { id: NONEXISTENT_ID });
+      const result = await callTool('share_request_email', { id: NONEXISTENT_ID, email: 'nobody@team.management' });
       const msg = parseErrorResult(result);
       expect(msg).toBeTruthy();
     });

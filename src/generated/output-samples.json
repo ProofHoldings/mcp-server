@@ -1,0 +1,4522 @@
+{
+  "DELETE /api/v1/auth/sessions/{sessionId} 200": [
+    {
+      "success": true,
+      "message": "Session revoked successfully"
+    }
+  ],
+  "DELETE /api/v1/authorizations/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "hitl_id": "000000000000000000000002",
+      "recipient": "123456789",
+      "status": "revoked",
+      "phone": null,
+      "channel": "telegram",
+      "scope": "confirmations",
+      "business_name": "Acme",
+      "label": null,
+      "recipient_display_name": null,
+      "enrolled": false,
+      "proof_token": "proof_token-sample",
+      "authorized_at": "2026-01-01T00:00:00.000Z",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "revoked_at": "2026-01-01T00:00:00.000Z",
+      "revocation_reason": "test",
+      "confirmations_sent": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "DELETE /api/v1/hitl/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "user_id": "000000000000000000000002",
+      "name": "renamed",
+      "profile_id": null,
+      "circle_id": null,
+      "channels": [
+        {
+          "type": "telegram",
+          "config": {
+            "chat_id": "123456789"
+          }
+        }
+      ],
+      "timeout_seconds": 3600,
+      "status": "archived",
+      "keypair": {
+        "kid": "kid-1",
+        "has_encrypted_private_key": true,
+        "has_wrapped_dek": false,
+        "has_backup_wrapper": false
+      },
+      "environment": "production",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "DELETE /api/v1/lookalike-watch 200": [
+    {
+      "id": "000000000000000000000001",
+      "status": "canceled",
+      "brand_tokens": [
+        "brand_tokens-sample"
+      ],
+      "owned_namespaces": [],
+      "notify_email": "owner@team.management",
+      "activated_at": "2026-01-01T00:00:00.000Z",
+      "last_report_period": "2026-09",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "DELETE /api/v1/me/api-keys/{id} 200": [
+    {
+      "success": true
+    }
+  ],
+  "DELETE /api/v1/me/dns-credentials/{id} 200": [
+    {
+      "success": true
+    }
+  ],
+  "DELETE /api/v1/me/verification-requests/{id} 200": [
+    {
+      "success": true,
+      "message": "Verification request cancelled"
+    }
+  ],
+  "DELETE /api/v1/templates/{channel}/{messageType} 200": [
+    {
+      "success": true,
+      "message": "Template reset to default"
+    }
+  ],
+  "DELETE /api/v1/verification-requests/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "status": "cancelled",
+      "message": "Verification request cancelled successfully"
+    }
+  ],
+  "GET /api/v1/authorizations 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "hitl_id": "000000000000000000000002",
+          "recipient": "123456789",
+          "status": "revoked",
+          "phone": null,
+          "channel": "telegram",
+          "scope": "confirmations",
+          "business_name": "Acme",
+          "label": null,
+          "recipient_display_name": null,
+          "enrolled": false,
+          "proof_token": "proof_token-sample",
+          "authorized_at": "2026-01-01T00:00:00.000Z",
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "revoked_at": "2026-01-01T00:00:00.000Z",
+          "revocation_reason": "test",
+          "confirmations_sent": 0,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000003",
+          "hitl_id": "000000000000000000000004",
+          "recipient": "123456789",
+          "status": "pending",
+          "phone": null,
+          "channel": "telegram",
+          "scope": "confirmations",
+          "business_name": "proof.holdings",
+          "label": null,
+          "recipient_display_name": null,
+          "enrolled": false,
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "confirmations_sent": 0,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 2,
+        "total_pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/authorizations/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "hitl_id": "000000000000000000000002",
+      "recipient": "123456789",
+      "status": "active",
+      "phone": null,
+      "channel": "telegram",
+      "scope": "confirmations",
+      "business_name": "Acme",
+      "label": null,
+      "recipient_display_name": null,
+      "enrolled": false,
+      "proof_token": "proof_token-sample",
+      "authorized_at": "2026-01-01T00:00:00.000Z",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "confirmations_sent": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/billing/balance 200": [
+    {
+      "billing_enabled": true,
+      "balance": {
+        "amount": 0,
+        "currency": "eur",
+        "mills": 0
+      },
+      "low_balance_threshold": 500,
+      "top_up_amounts": [
+        10,
+        50,
+        200
+      ],
+      "auto_top_up": {
+        "enabled": false,
+        "amount": null,
+        "has_payment_method": false
+      }
+    }
+  ],
+  "GET /api/v1/billing/balance/ledger 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "kind": "top_up",
+          "amount": 5000,
+          "currency": "eur",
+          "mills": 50000,
+          "proofs": null,
+          "period": null,
+          "invoice_id": "in_test_ledger",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "total_pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/billing/subscription 200": [
+    {
+      "plan": "free",
+      "status": null,
+      "current_period_start": null,
+      "current_period_end": null,
+      "cancel_at_period_end": false,
+      "scheduled_plan": null,
+      "scheduled_change_at": null
+    },
+    {
+      "plan": "pro",
+      "status": "active",
+      "current_period_start": "2026-01-01T00:00:00.000Z",
+      "current_period_end": "2026-01-01T00:00:00.000Z",
+      "cancel_at_period_end": false,
+      "scheduled_plan": null,
+      "scheduled_change_at": null
+    }
+  ],
+  "GET /api/v1/circles 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "user_id": "000000000000000000000002",
+          "name": "Family",
+          "owner_name": null,
+          "profile_id": null,
+          "environment": "production",
+          "proof_me_enabled": false,
+          "status": "active",
+          "member_count": 1,
+          "members": [
+            {
+              "id": "000000000000000000000003",
+              "name": "Mum",
+              "status": "active",
+              "has_telegram": false,
+              "has_whatsapp": false,
+              "mesh_opted_in": false,
+              "mesh_opt_out": false,
+              "enrolled_phone_hint": null,
+              "enrolled_at": "2026-01-01T00:00:00.000Z",
+              "last_verified_at": null
+            }
+          ],
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "total_pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/circles/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "user_id": "000000000000000000000002",
+      "name": "Family",
+      "owner_name": null,
+      "profile_id": null,
+      "environment": "production",
+      "proof_me_enabled": false,
+      "status": "active",
+      "member_count": 1,
+      "members": [
+        {
+          "id": "000000000000000000000003",
+          "name": "Mum",
+          "status": "active",
+          "has_telegram": false,
+          "has_whatsapp": false,
+          "mesh_opted_in": false,
+          "mesh_opt_out": false,
+          "enrolled_phone_hint": null,
+          "enrolled_at": "2026-01-01T00:00:00.000Z",
+          "last_verified_at": null
+        }
+      ],
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/confirmations 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "hitl_id": "000000000000000000000002",
+          "message": "{\"v\":1,\"alg\":\"RSA-OAEP-256+AES-256-GCM\",\"ek\":\"ek\",\"iv\":\"iv\",\"ct\":\"ct\",\"tag\":\"tag\",\"kid\":\"kid\"}",
+          "status": "approved",
+          "response": {
+            "action": "approve",
+            "text": null,
+            "channel": "browser",
+            "at": "2026-01-01T00:00:00.000Z",
+            "authorization_id": null,
+            "decided_by": "owner",
+            "kid": "0000000000000000000000000000000000000000000000000000000000000000",
+            "public_key": "public_key-sample",
+            "signed_input": "decision.000000000000000000000001.approve.00000000000000000000000000000000.-",
+            "signature": "signature-sample"
+          },
+          "proof_token": "proof_token-sample",
+          "resends": [],
+          "timeout_at": "2026-01-01T00:00:00.000Z",
+          "resolved_at": "2026-01-01T00:00:00.000Z",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000003",
+          "hitl_id": "000000000000000000000004",
+          "message": "{\"v\":1,\"alg\":\"RSA-OAEP-256+AES-256-GCM\",\"ek\":\"ek\",\"iv\":\"iv\",\"ct\":\"ct\",\"tag\":\"tag\",\"kid\":\"kid\"}",
+          "status": "pending",
+          "response": null,
+          "proof_token": null,
+          "resends": [],
+          "timeout_at": "2026-01-01T00:00:00.000Z",
+          "resolved_at": null,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 2,
+        "total_pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/confirmations/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "hitl_id": "000000000000000000000002",
+      "message": "{\"v\":1,\"alg\":\"RSA-OAEP-256+AES-256-GCM\",\"ek\":\"ek\",\"iv\":\"iv\",\"ct\":\"ct\",\"tag\":\"tag\",\"kid\":\"kid\"}",
+      "status": "pending",
+      "response": null,
+      "proof_token": null,
+      "resends": [],
+      "timeout_at": "2026-01-01T00:00:00.000Z",
+      "resolved_at": null,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "000000000000000000000001",
+      "hitl_id": "000000000000000000000002",
+      "message": "{\"v\":1,\"alg\":\"RSA-OAEP-256+AES-256-GCM\",\"ek\":\"ek\",\"iv\":\"iv\",\"ct\":\"ct\",\"tag\":\"tag\",\"kid\":\"kid\"}",
+      "status": "approved",
+      "response": {
+        "action": "approve",
+        "text": null,
+        "channel": "browser",
+        "at": "2026-01-01T00:00:00.000Z",
+        "authorization_id": null,
+        "decided_by": "owner",
+        "kid": "0000000000000000000000000000000000000000000000000000000000000000",
+        "public_key": "public_key-sample",
+        "signed_input": "decision.000000000000000000000001.approve.00000000000000000000000000000000.-",
+        "signature": "signature-sample"
+      },
+      "proof_token": "proof_token-sample",
+      "resends": [],
+      "timeout_at": "2026-01-01T00:00:00.000Z",
+      "resolved_at": "2026-01-01T00:00:00.000Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/delegations/{id}/carriers 200": [
+    {
+      "carriers": [
+        {
+          "carrier": "dns_pointer",
+          "state": "absent",
+          "reason": "no dns pointer published at this name"
+        }
+      ]
+    },
+    {
+      "carriers": [
+        {
+          "carrier": "dns_pointer",
+          "state": "present",
+          "reason": "still listed on the card at this address",
+          "cardUrl": "https://team.management/.well-known/mcp/server-card.json"
+        },
+        {
+          "carrier": "delegate_card",
+          "state": "unchecked",
+          "reason": "could not reach the card",
+          "cardUrl": "https://mcp.team.management/mcp"
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/hitl 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "user_id": "000000000000000000000002",
+          "name": "renamed",
+          "profile_id": null,
+          "circle_id": null,
+          "channels": [
+            {
+              "type": "telegram",
+              "config": {
+                "chat_id": "123456789"
+              }
+            }
+          ],
+          "timeout_seconds": 3600,
+          "status": "active",
+          "keypair": {
+            "kid": "kid-1",
+            "has_encrypted_private_key": true,
+            "has_wrapped_dek": false,
+            "has_backup_wrapper": false
+          },
+          "environment": "production",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "total_pages": 1
+      },
+      "limits": {
+        "max_active_configs": null,
+        "active_configs": 1
+      }
+    }
+  ],
+  "GET /api/v1/hitl/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "user_id": "000000000000000000000002",
+      "name": "config-000000000000000000000003",
+      "profile_id": null,
+      "circle_id": null,
+      "channels": [
+        {
+          "type": "telegram",
+          "config": {
+            "chat_id": "123456789"
+          }
+        }
+      ],
+      "timeout_seconds": 3600,
+      "status": "active",
+      "keypair": {
+        "kid": "kid-1",
+        "has_encrypted_private_key": true,
+        "has_wrapped_dek": false,
+        "has_backup_wrapper": false
+      },
+      "environment": "production",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/hitl/{id}/approver-keys 200": [
+    {
+      "approver_keys": [
+        {
+          "authorization_id": "000000000000000000000001",
+          "recipient": "111111111",
+          "channel": "telegram",
+          "public_key": "public_key-sample",
+          "kid": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    },
+    {
+      "approver_keys": [
+        {
+          "authorization_id": "000000000000000000000001",
+          "recipient": "222222222",
+          "channel": "telegram",
+          "public_key": null,
+          "kid": "kid-unreadable"
+        }
+      ]
+    },
+    {
+      "approver_keys": [
+        {
+          "authorization_id": "000000000000000000000001",
+          "public_key": "public_key-sample",
+          "kid": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/hitl/{id}/keys 200": [
+    {
+      "public_key": "public_key-sample",
+      "encrypted_private_key": "encrypted_private_key-sample",
+      "kdf_salt": "kdf-salt",
+      "kid": "0000000000000000000000000000000000000000000000000000000000000000",
+      "wrapped_dek": "wrapped-dek",
+      "dek_iv": "dek-iv",
+      "dek_tag": "dek-tag",
+      "backup_wrapped_dek": "backup-wrapped-dek",
+      "backup_dek_iv": "backup-dek-iv",
+      "backup_dek_tag": "backup-dek-tag"
+    },
+    {
+      "public_key": "public_key-sample",
+      "encrypted_private_key": "encrypted_private_key-sample",
+      "kdf_salt": "kdf-salt",
+      "kid": "0000000000000000000000000000000000000000000000000000000000000000",
+      "wrapped_dek": null,
+      "dek_iv": null,
+      "dek_tag": null,
+      "backup_wrapped_dek": null,
+      "backup_dek_iv": null,
+      "backup_dek_tag": null
+    },
+    {
+      "public_key": "public_key-sample",
+      "kid": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "public_key": null,
+      "encrypted_private_key": "encrypted_private_key-sample",
+      "kdf_salt": "kdf-salt",
+      "kid": "kid-1",
+      "wrapped_dek": null,
+      "dek_iv": null,
+      "dek_tag": null,
+      "backup_wrapped_dek": null,
+      "backup_dek_iv": null,
+      "backup_dek_tag": null
+    }
+  ],
+  "GET /api/v1/identity-challenges 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "status": "pending",
+          "channel": "telegram",
+          "circle_id": "000000000000000000000002",
+          "is_drill": false,
+          "proof_id": null,
+          "proof_token": null,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "resolved_at": null,
+          "expires_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "total_pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/identity-challenges/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "status": "pending",
+      "channel": "telegram",
+      "circle_id": "000000000000000000000002",
+      "is_drill": false,
+      "proof_id": null,
+      "proof_token": null,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "resolved_at": null,
+      "expires_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/lookalike-watch 200": [
+    {
+      "id": "000000000000000000000001",
+      "status": "active",
+      "brand_tokens": [
+        "brand_tokens-sample"
+      ],
+      "owned_namespaces": [],
+      "notify_email": "owner@team.management",
+      "activated_at": "2026-01-01T00:00:00.000Z",
+      "last_report_period": "2026-09",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/lookalike-watch/alerts 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "registry": "npm",
+          "artifact_name": "teammanagement-sdk",
+          "canonical_id": null,
+          "match_kind": "confusable",
+          "brand_token": "brand_token-sample",
+          "match_evidence": "teammanagement-sdk contains teammanagement",
+          "evidence": [
+            {
+              "location": "https://team.management/.well-known/mcp",
+              "result": "not_listed",
+              "checked_at": "2026-01-01T00:00:00.000Z"
+            }
+          ],
+          "first_seen_at": "2026-01-01T00:00:00.000Z",
+          "notified_at": null,
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1
+      }
+    }
+  ],
+  "GET /api/v1/lookalike-watch/reports 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "period": "2026-09",
+          "period_start": "2026-01-01T00:00:00.000Z",
+          "period_end": "2026-01-01T00:00:00.000Z",
+          "alert_count": 1,
+          "artifacts_checked": {
+            "npm": 1200,
+            "pypi": 340
+          },
+          "bounds": [
+            {
+              "kind": "feed_gap",
+              "source": "pypi",
+              "detail": "The PyPI feed was unreachable for 2 hours"
+            }
+          ],
+          "sent_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1
+      }
+    }
+  ],
+  "GET /api/v1/me/2fa/{sessionId} 200": [
+    {
+      "session_id": "2fa_00000000000000000000000000000000",
+      "status": "pending",
+      "action_type": "api_key_create"
+    },
+    {
+      "session_id": "2fa_00000000000000000000000000000000",
+      "status": "pending",
+      "action_type": "admin_plan_change"
+    },
+    {
+      "session_id": "2fa_00000000000000000000000000000000",
+      "status": "verified",
+      "action_type": "settings_write",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "grant_expires_at": "2026-01-01T00:00:00.000Z",
+      "grant_single_use": false
+    }
+  ],
+  "GET /api/v1/me/api-key 200": [
+    {
+      "id": "000000000000000000000001",
+      "name": "ci",
+      "key_prefix": "pk_live_",
+      "environment": "production",
+      "scopes": [
+        "verifications:read"
+      ],
+      "profile_id": null,
+      "last_used_at": null,
+      "expires_at": null,
+      "revoked_at": null,
+      "replaced_key_ids": [],
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/me/api-keys 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "name": "FIX.FIT",
+          "prefix": "pk_live_",
+          "environment": "production",
+          "scopes": [
+            "verifications:read"
+          ],
+          "profile_id": null,
+          "expires_at": null,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "replaced_key_ids": [
+            "000000000000000000000002"
+          ]
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/me/api-keys/{id}/usage 200": [
+    {
+      "api_key": {
+        "id": "000000000000000000000001",
+        "name": "ci",
+        "key_prefix": "pk_live_",
+        "environment": "production",
+        "scopes": [
+          "verifications:read"
+        ],
+        "profile_id": null,
+        "last_used_at": null,
+        "expires_at": null,
+        "revoked_at": null,
+        "replaced_key_ids": [],
+        "created_at": "2026-01-01T00:00:00.000Z"
+      },
+      "verifications": {
+        "total": 1,
+        "by_type": {
+          "email": 1
+        },
+        "by_channel": {
+          "email": 1
+        },
+        "by_status": {
+          "verified": 1
+        }
+      },
+      "verification_requests": {
+        "total": 0,
+        "by_status": {}
+      },
+      "confirmations": {
+        "total": 0,
+        "by_status": {}
+      },
+      "authorizations": {
+        "total": 0,
+        "by_status": {}
+      },
+      "attribution_cutoff_at": "2026-01-01T00:00:00.000Z",
+      "attributed_fraction": 1
+    }
+  ],
+  "GET /api/v1/me/assets 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "type": "email",
+          "channel": "magic_link",
+          "identifier": "owner@example.com",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "status": "active",
+          "proof_id": "ph_ctl_00000000000000000000000000000000",
+          "proof_status": "active",
+          "proof_expires_at": "2026-01-01T00:00:00.000Z",
+          "metadata": {},
+          "created_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000002",
+          "type": "phone",
+          "channel": "whatsapp",
+          "identifier": "+15557654321",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "status": "active",
+          "proof_id": "ph_ctl_00000000000000000000000000000000",
+          "proof_status": "active",
+          "proof_expires_at": "2026-01-01T00:00:00.000Z",
+          "metadata": {},
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/me/assets/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "type": "phone",
+      "channel": "whatsapp",
+      "identifier": "+15557654321",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "status": "active",
+      "has_proof": true,
+      "proof_id": "ph_ctl_00000000000000000000000000000000",
+      "proof_status": "active",
+      "proof_expires_at": "2026-01-01T00:00:00.000Z",
+      "metadata": {},
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "proof_token": "proof_token-sample"
+    }
+  ],
+  "GET /api/v1/me/dns-credentials 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "provider": "cloudflare",
+          "name": "Cloudflare Account",
+          "is_valid": true,
+          "domains_count": 0,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000002",
+          "provider": "godaddy",
+          "name": "GoDaddy Account",
+          "is_valid": false,
+          "domains_count": 0,
+          "last_used_at": "2026-01-01T00:00:00.000Z",
+          "last_validated_at": "2026-01-01T00:00:00.000Z",
+          "validation_error": "Token expired",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/me/dns-providers 200": [
+    {
+      "providers": {
+        "cloudflare": {
+          "name": "Cloudflare",
+          "requiredCredentials": [
+            "apiToken"
+          ],
+          "optionalCredentials": [
+            "accountId"
+          ],
+          "capabilities": {
+            "hasOAuth": true,
+            "isRegistrar": false,
+            "canCreateTxt": true
+          },
+          "apiDocUrl": "https://developers.cloudflare.com/api/"
+        },
+        "dynadot": {
+          "name": "Dynadot",
+          "requiredCredentials": [
+            "apiKey"
+          ],
+          "optionalCredentials": [],
+          "capabilities": {
+            "hasOAuth": false,
+            "isRegistrar": true,
+            "canCreateTxt": true
+          }
+        }
+      },
+      "count": 2
+    }
+  ],
+  "GET /api/v1/me/domains 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "domain": "mail.team.management",
+          "status": "verified",
+          "detected_provider": "cloudflare",
+          "provider_name": "Cloudflare",
+          "supports_auto_dns": true,
+          "verification_method": "email",
+          "verification_subtype": "ownership",
+          "for_email_sending": true,
+          "for_verification": true,
+          "dns_records": [
+            {
+              "type": "TXT",
+              "name": "_proof.mail.team.management",
+              "value": "proof-verification=00000000000000000000000000000000",
+              "purpose": "ownership",
+              "verified": false
+            }
+          ],
+          "actual_dns_host": "google",
+          "actual_dns_host_name": "Google Cloud DNS",
+          "has_dns_mismatch": true,
+          "dns_mismatch_warning": "DNS is managed by Google Cloud DNS.",
+          "txt_record_name": "_proof.mail.team.management",
+          "txt_record_value": "proof-verification=00000000000000000000000000000000",
+          "http_file_path": "https://mail.team.management/.well-known/proof-holdings-verification.txt",
+          "http_file_content": "proof-verification=00000000000000000000000000000000",
+          "oauth_connected": false,
+          "godaddy_connected": false,
+          "supports_api_token": true,
+          "supports_api_key": false,
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "verified_providers": [
+            "email"
+          ],
+          "last_checked_at": "2026-01-01T00:00:00.000Z",
+          "check_count": 0,
+          "error_message": "An earlier check found no record",
+          "from_email": "hello@mail.team.management",
+          "resend": {
+            "domain_id": "resend-domain-list",
+            "status": "pending",
+            "dkim_records": [
+              {
+                "type": "CNAME",
+                "name": "resend._domainkey.mail.team.management",
+                "value": "dkim.resend.dev",
+                "purpose": "dkim",
+                "verified": false
+              }
+            ],
+            "registered_at": "2026-01-01T00:00:00.000Z"
+          },
+          "email_verification": {
+            "email_prefix": "admin",
+            "email_address": "admin@mail.team.management",
+            "expires_at": "2026-01-01T00:00:00.000Z",
+            "attempts": 0,
+            "last_sent_at": "2026-01-01T00:00:00.000Z",
+            "verified_at": "2026-01-01T00:00:00.000Z"
+          },
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z",
+          "proof_id": null,
+          "proof_status": null,
+          "proof_revoked_reason": null,
+          "proof_expires_at": null
+        },
+        {
+          "id": "000000000000000000000002",
+          "domain": "added.team.management",
+          "status": "pending",
+          "detected_provider": "cloudflare",
+          "provider_name": "Cloudflare",
+          "supports_auto_dns": true,
+          "verification_method": "manual_dns",
+          "for_email_sending": false,
+          "for_verification": true,
+          "dns_records": [
+            {
+              "type": "TXT",
+              "name": "_proof.added.team.management",
+              "value": "proof-verification=00000000000000000000000000000000",
+              "purpose": "ownership",
+              "verified": false
+            }
+          ],
+          "has_dns_mismatch": false,
+          "txt_record_name": "_proof.added.team.management",
+          "txt_record_value": "proof-verification=00000000000000000000000000000000",
+          "http_file_path": "https://added.team.management/.well-known/proof-holdings-verification.txt",
+          "http_file_content": "proof-verification=00000000000000000000000000000000",
+          "oauth_connected": false,
+          "godaddy_connected": false,
+          "supports_api_token": true,
+          "supports_api_key": false,
+          "verified_providers": [],
+          "check_count": 0,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z",
+          "proof_id": null,
+          "proof_status": null,
+          "proof_revoked_reason": null,
+          "proof_expires_at": null
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/me/domains/{id} 200": [
+    {
+      "data": {
+        "id": "000000000000000000000001",
+        "domain": "added.team.management",
+        "status": "pending",
+        "detected_provider": "cloudflare",
+        "provider_name": "Cloudflare",
+        "supports_auto_dns": true,
+        "verification_method": "manual_dns",
+        "for_email_sending": false,
+        "for_verification": true,
+        "dns_records": [
+          {
+            "type": "TXT",
+            "name": "_proof.added.team.management",
+            "value": "proof-verification=00000000000000000000000000000000",
+            "purpose": "ownership",
+            "verified": false
+          }
+        ],
+        "has_dns_mismatch": false,
+        "txt_record_name": "_proof.added.team.management",
+        "txt_record_value": "proof-verification=00000000000000000000000000000000",
+        "http_file_path": "https://added.team.management/.well-known/proof-holdings-verification.txt",
+        "http_file_content": "proof-verification=00000000000000000000000000000000",
+        "oauth_connected": false,
+        "godaddy_connected": false,
+        "supports_api_token": true,
+        "supports_api_key": false,
+        "verified_providers": [],
+        "check_count": 0,
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "proof_id": null,
+        "proof_status": null,
+        "proof_revoked_reason": null,
+        "proof_expires_at": null
+      },
+      "instructions": {
+        "method": "manual_dns",
+        "steps": [
+          "Log into your DNS provider.",
+          "Create a TXT record with name: _proof.added.team.management",
+          "Set the value to: proof-verification=00000000000000000000000000000000",
+          "Wait for DNS propagation (usually 5-30 minutes).",
+          "Click \"Verify\" to check."
+        ],
+        "dns_record": {
+          "type": "TXT",
+          "name": "_proof.added.team.management",
+          "value": "proof-verification=00000000000000000000000000000000"
+        },
+        "http_file": {
+          "path": "https://added.team.management/.well-known/proof-holdings-verification.txt",
+          "content": "proof-verification=00000000000000000000000000000000"
+        }
+      }
+    }
+  ],
+  "GET /api/v1/me/domains/{id}/check-credentials 200": [
+    {
+      "has_credentials": false,
+      "accessible_credentials": [],
+      "detected_provider": "cloudflare",
+      "suggestion": "Add DNS provider credentials to enable automatic verification"
+    },
+    {
+      "has_credentials": true,
+      "has_accessible_credential": true,
+      "accessible_credentials": [
+        {
+          "provider": "godaddy",
+          "name": "GoDaddy Account",
+          "has_access": true,
+          "is_registrar": true
+        },
+        {
+          "provider": "route53",
+          "name": "Route 53 Account",
+          "has_access": false,
+          "error": "Zone not found"
+        }
+      ],
+      "detected_provider": "godaddy",
+      "has_registrar_credentials": true,
+      "registrar_provider": "godaddy",
+      "can_try_ownership_verification": true
+    },
+    {
+      "has_credentials": true,
+      "has_accessible_credential": false,
+      "accessible_credentials": [
+        {
+          "provider": "godaddy",
+          "name": "GoDaddy Account",
+          "has_access": false,
+          "error": "Zone not found"
+        },
+        {
+          "provider": "route53",
+          "name": "Route 53 Account",
+          "has_access": false,
+          "error": "Zone not found"
+        }
+      ],
+      "detected_provider": "godaddy",
+      "has_registrar_credentials": false,
+      "can_try_ownership_verification": false,
+      "suggestion": "Your GoDaddy credentials don't have access to this domain. Try adding different credentials or use manual verification."
+    }
+  ],
+  "GET /api/v1/me/domains/{id}/email-status 200": [
+    {
+      "id": "000000000000000000000001",
+      "domain": "send.team.management",
+      "status": "verified",
+      "detected_provider": "cloudflare",
+      "provider_name": "Cloudflare",
+      "supports_auto_dns": true,
+      "verification_method": "manual_dns",
+      "for_email_sending": true,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.send.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": false
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.send.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://send.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": false,
+      "godaddy_connected": false,
+      "supports_api_token": true,
+      "supports_api_key": false,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "verified_providers": [],
+      "check_count": 0,
+      "from_email": "hello@send.team.management",
+      "resend": {
+        "domain_id": "resend-domain-fresh",
+        "status": "verified",
+        "dkim_records": [
+          {
+            "type": "TXT",
+            "name": "resend._domainkey.send.team.management",
+            "value": "p=MIGf",
+            "purpose": "dkim",
+            "verified": true,
+            "verified_at": "2026-01-01T00:00:00.000Z"
+          },
+          {
+            "type": "MX",
+            "name": "send.send.team.management",
+            "value": "feedback-smtp.resend.com",
+            "purpose": "spf",
+            "priority": 10,
+            "verified": false
+          }
+        ],
+        "registered_at": "2026-01-01T00:00:00.000Z",
+        "last_checked_at": "2026-01-01T00:00:00.000Z",
+        "verified_at": "2026-01-01T00:00:00.000Z"
+      },
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/me/emails/add/{sessionId} 200": [
+    {
+      "session_id": "addemail_00000000000000000000000000000000",
+      "email": "added@team.management",
+      "channel": "otp",
+      "status": "pending"
+    },
+    {
+      "session_id": "addemail_00000000000000000000000000000000",
+      "email": "added@team.management",
+      "channel": "otp",
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/me/phones/add/{sessionId} 200": [
+    {
+      "session_id": "addphone_00000000000000000000000000000000",
+      "channel": "telegram",
+      "status": "pending"
+    },
+    {
+      "session_id": "addphone_00000000000000000000000000000000",
+      "phone_number": "+15550104477",
+      "channel": "telegram",
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "session_id": "addphone_00000000000000000000000000000000",
+      "channel": "whatsapp",
+      "status": "pending"
+    },
+    {
+      "session_id": "addphone_00000000000000000000000000000000",
+      "channel": "sms",
+      "status": "pending"
+    }
+  ],
+  "GET /api/v1/me/profiles 200": [
+    {
+      "profiles": [
+        {
+          "id": "000000000000000000000001",
+          "profile_id": "pp_owner_me_first",
+          "is_primary": true,
+          "verification_level": "basic",
+          "is_business": false,
+          "public_proofs": [],
+          "proof_order": "default",
+          "custom_links": [],
+          "theme": {
+            "background_type": "solid",
+            "font_style": "default"
+          },
+          "is_public": false,
+          "show_verification_dates": true,
+          "show_proof_channels": false,
+          "show_delegations": true,
+          "support_email": null,
+          "email_theme": null,
+          "view_count": 0,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000002",
+          "profile_id": "pp_owner_me_second",
+          "is_primary": false,
+          "display_name": "team.management",
+          "verification_level": "basic",
+          "is_business": false,
+          "public_proofs": [
+            {
+              "asset_id": "000000000000000000000003",
+              "type": "domain",
+              "display_value": "team.management",
+              "channel": "dns",
+              "verified_at": "2026-01-01T00:00:00.000Z",
+              "is_visible": true,
+              "display_order": 0,
+              "mask_level": "full",
+              "is_revoked": false
+            }
+          ],
+          "proof_order": "default",
+          "custom_links": [
+            {
+              "title": "Website",
+              "url": "https://team.management",
+              "is_visible": true,
+              "display_order": 0,
+              "_id": "000000000000000000000004"
+            }
+          ],
+          "theme": {
+            "background_type": "solid",
+            "font_style": "default"
+          },
+          "is_public": false,
+          "show_verification_dates": true,
+          "show_proof_channels": false,
+          "show_delegations": true,
+          "support_email": null,
+          "email_theme": null,
+          "view_count": 0,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "count": 2,
+      "max_profiles": 10
+    }
+  ],
+  "GET /api/v1/me/profiles/{profileId} 200": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_owner_me_second",
+      "is_primary": false,
+      "display_name": "team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [
+        {
+          "asset_id": "000000000000000000000002",
+          "type": "domain",
+          "display_value": "team.management",
+          "channel": "dns",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "is_visible": true,
+          "display_order": 0,
+          "mask_level": "full",
+          "is_revoked": false
+        }
+      ],
+      "proof_order": "default",
+      "custom_links": [
+        {
+          "title": "Website",
+          "url": "https://team.management",
+          "is_visible": true,
+          "display_order": 0,
+          "_id": "000000000000000000000003"
+        }
+      ],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": null,
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/me/usage 200": [
+    {
+      "plan": "free",
+      "limit": 300,
+      "billing_enabled": false,
+      "card_on_file": false,
+      "hard_limit": null,
+      "balance": {
+        "balance": {
+          "amount": 0,
+          "currency": "eur",
+          "mills": 0
+        },
+        "low_balance_threshold": 500,
+        "top_up_amounts": [
+          10,
+          50,
+          200
+        ],
+        "auto_top_up": {
+          "enabled": false,
+          "amount": null,
+          "has_payment_method": false
+        }
+      },
+      "current_period": "2026-01",
+      "current_usage": 4,
+      "percentage": 1,
+      "days_remaining": 16,
+      "projected_eom_usage": 8,
+      "is_on_track": true,
+      "projection_unreliable": false,
+      "top_channels": [
+        {
+          "channel": "whatsapp",
+          "count": 1,
+          "completion_rate": 1
+        }
+      ],
+      "channels_with_zero_completions": [],
+      "periods": [
+        {
+          "period": "2026-01",
+          "total_verifications": 3,
+          "total_confirmations": 1,
+          "total_authorizations": 0,
+          "total_delegations": 0,
+          "by_type": {
+            "phone": 2,
+            "email": 1,
+            "domain": 0,
+            "social": 0,
+            "wallet": 0,
+            "telegram_bot": 0
+          },
+          "by_channel": {
+            "whatsapp": 2,
+            "email": 1
+          },
+          "by_hitl_channel": {
+            "telegram": 1
+          }
+        },
+        {
+          "period": "2025-12",
+          "total_verifications": 1,
+          "total_confirmations": 0,
+          "total_authorizations": 0,
+          "total_delegations": 0,
+          "by_type": {
+            "phone": 0,
+            "email": 0,
+            "domain": 0,
+            "social": 0,
+            "wallet": 0,
+            "telegram_bot": 0
+          },
+          "by_channel": {},
+          "by_hitl_channel": {}
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/me/verification-requests 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "reference_id": "order-42",
+          "status": "completed",
+          "computed_state": {
+            "status": "completed",
+            "is_expiring_soon": false,
+            "next_action": {
+              "code": "none",
+              "role": "requester",
+              "label": "Completed."
+            }
+          },
+          "action_type": "verification",
+          "source": "agent",
+          "api_key_id": "000000000000000000000002",
+          "api_key_model": "UserAPIKey",
+          "agent_name": "claude-code",
+          "assets": [
+            {
+              "type": "email",
+              "identifier": "someone@team.management",
+              "channel": "email",
+              "allowed_channels": [
+                "email"
+              ],
+              "required": true,
+              "status": "verified",
+              "verified_at": "2026-01-01T00:00:00.000Z",
+              "verified_identifier": "someone@team.management",
+              "verified_channel": "email"
+            }
+          ],
+          "progress": {
+            "completed": 1,
+            "completed_required": 1,
+            "required": 1,
+            "optional": 0,
+            "total": 1
+          },
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "completed_at": "2026-01-01T00:00:00.000Z",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "branding": {
+            "business_name": "team.management",
+            "logo_url": "https://team.management/logo.png"
+          },
+          "public_profile_id": "000000000000000000000003"
+        },
+        {
+          "id": "000000000000000000000004",
+          "status": "pending",
+          "computed_state": {
+            "status": "pending",
+            "is_expiring_soon": false,
+            "next_action": {
+              "code": "await_recipient",
+              "role": "requester",
+              "label": "Waiting for the recipient to complete verification."
+            }
+          },
+          "action_type": "verification",
+          "source": "dashboard",
+          "api_key_id": null,
+          "api_key_model": null,
+          "agent_name": null,
+          "assets": [
+            {
+              "type": "phone",
+              "identifier": null,
+              "channel": null,
+              "allowed_channels": null,
+              "required": true,
+              "status": "pending",
+              "verified_identifier": null,
+              "verified_channel": null
+            }
+          ],
+          "progress": {
+            "completed": 0,
+            "completed_required": 0,
+            "required": 1,
+            "optional": 0,
+            "total": 1
+          },
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "total": 2,
+        "limit": 20,
+        "offset": 0
+      },
+      "stats": {
+        "pending": 1,
+        "partial": 0,
+        "completed": 1,
+        "expired": 0,
+        "cancelled": 0
+      }
+    }
+  ],
+  "GET /api/v1/me/verification-requests/incoming 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "status": "completed",
+          "computed_state": {
+            "status": "completed",
+            "is_expiring_soon": false,
+            "next_action": {
+              "code": "none",
+              "role": "recipient",
+              "label": "Verification complete."
+            }
+          },
+          "action_type": "verification",
+          "assets": [
+            {
+              "type": "email",
+              "identifier": "someone@team.management",
+              "status": "verified",
+              "verified_at": "2026-01-01T00:00:00.000Z",
+              "verified_identifier": "someone@team.management",
+              "verified_channel": "email"
+            }
+          ],
+          "progress": {
+            "completed": 1,
+            "completed_required": 1,
+            "required": 1,
+            "optional": 0,
+            "total": 1
+          },
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "completed_at": "2026-01-01T00:00:00.000Z",
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "requester": {
+            "business_name": "team.management",
+            "logo_url": "https://team.management/logo.png"
+          }
+        },
+        {
+          "id": "000000000000000000000002",
+          "status": "pending",
+          "computed_state": {
+            "status": "pending",
+            "is_expiring_soon": false,
+            "next_action": {
+              "code": "complete_verification",
+              "role": "recipient",
+              "label": "Action needed: complete your verification."
+            }
+          },
+          "action_type": "verification",
+          "assets": [
+            {
+              "type": "phone",
+              "identifier": null,
+              "status": "pending",
+              "verified_identifier": null,
+              "verified_channel": null
+            }
+          ],
+          "progress": {
+            "completed": 0,
+            "completed_required": 0,
+            "required": 1,
+            "optional": 0,
+            "total": 1
+          },
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "total": 2,
+        "limit": 20,
+        "offset": 0
+      }
+    }
+  ],
+  "GET /api/v1/me/verify/domain/{sessionId} 200": [
+    {
+      "session_id": "domain_00000000000000000000000000000000",
+      "domain": "dns-check.team.management",
+      "channel": "dns",
+      "status": "pending",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "challenge": {
+        "record_type": "TXT",
+        "record_name": "_proof.dns-check.team.management",
+        "record_value": "proof-verify=K7M2QX"
+      }
+    },
+    {
+      "session_id": "domain_00000000000000000000000000000000",
+      "domain": "http-check.team.management",
+      "channel": "http",
+      "status": "pending",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "challenge": {
+        "file_url": "https://http-check.team.management/.well-known/proof-holdings.txt",
+        "file_content": "proof-verify=K7M2QX"
+      }
+    }
+  ],
+  "GET /api/v1/profiles/me 200": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_owner_primary_me",
+      "is_primary": true,
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [],
+      "proof_order": "default",
+      "custom_links": [],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": null,
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/profiles/me/assets 200": [
+    {
+      "assets": [
+        {
+          "id": "000000000000000000000001",
+          "type": "email",
+          "identifier": "owner@example.com",
+          "channel": "otp",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "proof_expires_at": "2026-01-01T00:00:00.000Z",
+          "is_public": false
+        },
+        {
+          "id": "000000000000000000000002",
+          "type": "phone",
+          "identifier": "+15557654321",
+          "channel": "whatsapp",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "proof_expires_at": "2026-01-01T00:00:00.000Z",
+          "is_public": false
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/profiles/p/{profileId} 200": [
+    {
+      "profile_id": "pp_public_view_hidden",
+      "verification_level": "basic",
+      "is_business": false,
+      "proofs": [
+        {
+          "type": "email",
+          "display_value": "hidden@team.management"
+        }
+      ],
+      "leading_proof": null,
+      "links": [],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "delegations": null
+    }
+  ],
+  "GET /api/v1/profiles/profiles 200": [
+    {
+      "profiles": [
+        {
+          "id": "000000000000000000000001",
+          "profile_id": "pp_owner_legacy_first",
+          "is_primary": true,
+          "verification_level": "basic",
+          "is_business": false,
+          "public_proofs": [],
+          "proof_order": "default",
+          "custom_links": [],
+          "theme": {
+            "background_type": "solid",
+            "font_style": "default"
+          },
+          "is_public": false,
+          "show_verification_dates": true,
+          "show_proof_channels": false,
+          "show_delegations": true,
+          "support_email": null,
+          "email_theme": null,
+          "view_count": 0,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000002",
+          "profile_id": "pp_owner_legacy_second",
+          "is_primary": false,
+          "display_name": "team.management",
+          "verification_level": "basic",
+          "is_business": false,
+          "public_proofs": [
+            {
+              "asset_id": "000000000000000000000003",
+              "type": "domain",
+              "display_value": "team.management",
+              "channel": "dns",
+              "verified_at": "2026-01-01T00:00:00.000Z",
+              "is_visible": true,
+              "display_order": 0,
+              "mask_level": "full",
+              "is_revoked": false
+            }
+          ],
+          "proof_order": "default",
+          "custom_links": [
+            {
+              "title": "Website",
+              "url": "https://team.management",
+              "is_visible": true,
+              "display_order": 0,
+              "_id": "000000000000000000000004"
+            }
+          ],
+          "theme": {
+            "background_type": "solid",
+            "font_style": "default"
+          },
+          "is_public": false,
+          "show_verification_dates": true,
+          "show_proof_channels": false,
+          "show_delegations": true,
+          "support_email": null,
+          "email_theme": null,
+          "view_count": 0,
+          "created_at": "2026-01-01T00:00:00.000Z",
+          "updated_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "count": 2,
+      "max_profiles": 10
+    }
+  ],
+  "GET /api/v1/profiles/profiles/{profileId} 200": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_owner_legacy_second",
+      "is_primary": false,
+      "display_name": "team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [
+        {
+          "asset_id": "000000000000000000000002",
+          "type": "domain",
+          "display_value": "team.management",
+          "channel": "dns",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "is_visible": true,
+          "display_order": 0,
+          "mask_level": "full",
+          "is_revoked": false
+        }
+      ],
+      "proof_order": "default",
+      "custom_links": [
+        {
+          "title": "Website",
+          "url": "https://team.management",
+          "is_visible": true,
+          "display_order": 0,
+          "_id": "000000000000000000000003"
+        }
+      ],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": null,
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/profiles/u/{username} 200": [
+    {
+      "profile_id": "pp_public_view_shown",
+      "username": "team_management_public",
+      "display_name": "team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "proofs": [
+        {
+          "type": "email",
+          "display_value": "public@team.management",
+          "label": "Support",
+          "verified_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "leading_proof": {
+        "type": "email",
+        "display_value": "public@team.management",
+        "label": "Support"
+      },
+      "links": [
+        {
+          "title": "Website",
+          "url": "https://team.management",
+          "icon": "globe"
+        }
+      ],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "delegations": []
+    }
+  ],
+  "GET /api/v1/proofs/revoked 200": [
+    {
+      "revoked": [
+        {
+          "proof_id": "000000000000000000000001",
+          "public_proof_id": null,
+          "proof_type": "verification",
+          "revoked_at": "2026-01-01T00:00:00.000Z",
+          "reason": "fraud"
+        }
+      ],
+      "issued_at": "2026-01-01T00:00:00.000Z",
+      "count": 1,
+      "has_more": false,
+      "status_list_uri": "http://localhost:3001/api/v1/proofs/status-list",
+      "signature": "signature-sample",
+      "kid": "proof-holdings-2026-01"
+    }
+  ],
+  "GET /api/v1/templates 200": [
+    {
+      "profile_id": "000000000000000000000001",
+      "custom_templates": [
+        {
+          "id": "000000000000000000000002",
+          "profile_id": "000000000000000000000001",
+          "channel": "telegram",
+          "message_type": "verification_request",
+          "body": "Code {{code}}",
+          "is_active": true,
+          "version": 2,
+          "updated_at": "2026-01-01T00:00:00.000Z",
+          "last_fallback_at": null,
+          "last_fallback_variables": []
+        }
+      ],
+      "available_channels": [
+        "telegram",
+        "whatsapp",
+        "sms",
+        "email"
+      ],
+      "available_message_types": [
+        "verification_request",
+        "verification_success",
+        "verification_expired",
+        "login_request",
+        "login_success",
+        "2fa_request",
+        "2fa_success",
+        "account_deletion_request",
+        "account_deletion_success",
+        "confirmation_request",
+        "confirmation_approved",
+        "confirmation_denied"
+      ],
+      "available_variables": [
+        {
+          "name": "business_name",
+          "description": "Your business display name"
+        },
+        {
+          "name": "code",
+          "description": "Verification code (when applicable)"
+        },
+        {
+          "name": "expires_in",
+          "description": "Time until expiry (e.g., \"10 minutes\")"
+        },
+        {
+          "name": "user_identifier",
+          "description": "Masked phone/email"
+        },
+        {
+          "name": "channel",
+          "description": "Current channel name"
+        },
+        {
+          "name": "callback_url",
+          "description": "Success callback URL"
+        },
+        {
+          "name": "support_email",
+          "description": "Your support email"
+        },
+        {
+          "name": "action_label",
+          "description": "The action requested (e.g. \"Two-Factor Authentication\")"
+        },
+        {
+          "name": "action_title",
+          "description": "Short title of what was requested"
+        },
+        {
+          "name": "action_description",
+          "description": "What the recipient is being asked to do"
+        },
+        {
+          "name": "amount",
+          "description": "Amount for approval-type actions"
+        },
+        {
+          "name": "currency",
+          "description": "Currency for approval-type actions"
+        },
+        {
+          "name": "entity",
+          "description": "Entity/counterparty for approval-type actions"
+        }
+      ],
+      "sendable": [
+        {
+          "channel": "telegram",
+          "message_type": "verification_request",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "telegram",
+          "message_type": "2fa_request",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "telegram",
+          "message_type": "login_request",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "telegram",
+          "message_type": "verification_success",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "telegram",
+          "message_type": "2fa_success",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "telegram",
+          "message_type": "login_success",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "whatsapp",
+          "message_type": "verification_success",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "whatsapp",
+          "message_type": "2fa_success",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "whatsapp",
+          "message_type": "login_success",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "email",
+          "message_type": "verification_request",
+          "variables": [
+            "business_name",
+            "code",
+            "expires_in",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "email",
+          "message_type": "2fa_request",
+          "variables": [
+            "business_name",
+            "code",
+            "expires_in",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        },
+        {
+          "channel": "email",
+          "message_type": "login_request",
+          "variables": [
+            "business_name",
+            "code",
+            "expires_in",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "amount",
+            "currency",
+            "entity"
+          ]
+        }
+      ]
+    }
+  ],
+  "GET /api/v1/templates/defaults 200": [
+    {
+      "defaults": {
+        "verification_request": {
+          "telegram": {
+            "body": "📱 *{{business_name}}* wants to verify your phone number.\n\n{{action_description}}\n\nPlease tap the button below to share your phone number.",
+            "button_text": "Share Phone Number"
+          },
+          "email": {
+            "subject": "Verify your email for {{business_name}}",
+            "body": "Hello,\n\n{{business_name}} wants to verify your email address.\n\n{{action_description}}\n\nIf you didn't request this, you can ignore this email."
+          }
+        },
+        "2fa_request": {
+          "telegram": {
+            "body": "🔒 *{{business_name}}* is requesting 2FA verification.\n\n{{action_description}}\n\nPlease tap the button below to confirm.",
+            "button_text": "Confirm 2FA"
+          },
+          "email": {
+            "subject": "2FA Verification - {{business_name}}",
+            "body": "Hello,\n\n{{business_name}} is requesting 2FA verification.\n\n{{action_description}}"
+          }
+        },
+        "login_request": {
+          "telegram": {
+            "body": "🔐 *{{business_name}}* is requesting login verification.\n\n{{action_description}}\n\nPlease tap the button below to share your phone number and log in.",
+            "button_text": "Share Phone Number"
+          },
+          "email": {
+            "subject": "Sign in to {{business_name}}",
+            "body": "Hello,\n\nYou requested to sign in to {{business_name}}.\n\n{{action_description}}\n\nIf you didn't request this, you can ignore this email."
+          }
+        },
+        "verification_success": {
+          "telegram": {
+            "body": "✅ Phone verified for *{{business_name}}*!\n\nYour phone number has been successfully verified."
+          },
+          "whatsapp": {
+            "body": "✅ Phone verified for *{{business_name}}*!\n\nYour phone number has been successfully verified."
+          }
+        },
+        "2fa_success": {
+          "telegram": {
+            "body": "✅ 2FA verified for *{{business_name}}*!\n\nYou can now close this chat."
+          },
+          "whatsapp": {
+            "body": "✅ 2FA verified for *{{business_name}}*!\n\nYou can now close this chat."
+          }
+        },
+        "login_success": {
+          "telegram": {
+            "body": "✅ Successfully logged in to *{{business_name}}*!",
+            "button_text": "Open Dashboard"
+          },
+          "whatsapp": {
+            "body": "✅ Successfully logged in to *{{business_name}}*!",
+            "button_text": "Open Dashboard"
+          }
+        }
+      }
+    }
+  ],
+  "GET /api/v1/verification-requests 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "status": "pending",
+          "computed_state": {
+            "status": "pending",
+            "is_expiring_soon": false,
+            "next_action": {
+              "code": "await_recipient",
+              "role": "requester",
+              "label": "Waiting for the recipient to complete verification."
+            }
+          },
+          "action_type": "verification",
+          "asset_count": 1,
+          "progress": {
+            "completed": 0,
+            "completed_required": 0,
+            "required": 1,
+            "total": 1
+          },
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "total_pages": 1,
+        "pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/verification-requests/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "status": "pending",
+      "computed_state": {
+        "status": "pending",
+        "is_expiring_soon": false,
+        "next_action": {
+          "code": "await_recipient",
+          "role": "requester",
+          "label": "Waiting for the recipient to complete verification."
+        }
+      },
+      "action_type": "verification",
+      "action_context": null,
+      "assets": [
+        {
+          "type": "phone",
+          "identifier": null,
+          "channel": null,
+          "allowed_channels": null,
+          "required": true,
+          "status": "pending",
+          "has_proof": false
+        }
+      ],
+      "progress": {
+        "completed": 0,
+        "completed_required": 0,
+        "required": 1,
+        "optional": 0,
+        "total": 1
+      },
+      "partial_ok": false,
+      "validity_requirement": null,
+      "verification_url": "http://localhost:3002/verify/000000000000000000000001",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "000000000000000000000001",
+      "status": "pending",
+      "computed_state": {
+        "status": "pending",
+        "is_expiring_soon": false,
+        "next_action": {
+          "code": "await_recipient",
+          "role": "requester",
+          "label": "Waiting for the recipient to complete verification."
+        }
+      },
+      "action_type": "confirmation",
+      "action_context": {
+        "title": "Pay"
+      },
+      "assets": [
+        {
+          "type": "phone",
+          "identifier": null,
+          "channel": null,
+          "allowed_channels": null,
+          "required": true,
+          "status": "pending",
+          "has_proof": false
+        }
+      ],
+      "progress": {
+        "completed": 0,
+        "completed_required": 0,
+        "required": 1,
+        "optional": 0,
+        "total": 1
+      },
+      "partial_ok": false,
+      "validity_requirement": null,
+      "verification_url": "http://localhost:3002/verify/000000000000000000000001",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/verifications 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "type": "phone",
+          "channel": "whatsapp",
+          "status": "pending",
+          "environment": "production",
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "total_pages": 1,
+        "pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/verify/request/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "status": "pending",
+      "action_type": "confirmation",
+      "action_context": {
+        "title": "Approve wire transfer",
+        "amount": 15000,
+        "currency": "USD"
+      },
+      "business": {
+        "name": "team.management",
+        "logo_url": "https://team.management/logo.png",
+        "primary_color": "#5b6cff"
+      },
+      "assets": [
+        {
+          "type": "phone",
+          "identifier": "+1••••••4477",
+          "identifier_provided": true,
+          "channel": null,
+          "allowed_channels": [
+            "telegram",
+            "whatsapp"
+          ],
+          "required": true,
+          "status": "verified",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "verified_identifier": "+1••••••4477",
+          "verified_channel": "telegram"
+        },
+        {
+          "type": "email",
+          "identifier_provided": false,
+          "channel": null,
+          "allowed_channels": null,
+          "required": false,
+          "status": "pending"
+        }
+      ],
+      "progress": {
+        "completed": 1,
+        "completed_required": 1,
+        "required": 1,
+        "optional": 1,
+        "total": 2
+      },
+      "partial_ok": true,
+      "redirect_url": "https://team.management/done",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "000000000000000000000001",
+      "status": "completed",
+      "action_type": "verification",
+      "action_context": null,
+      "business": null,
+      "assets": [
+        {
+          "type": "domain",
+          "identifier": "team.management",
+          "identifier_provided": true,
+          "channel": null,
+          "allowed_channels": null,
+          "required": true,
+          "status": "verified",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "verified_identifier": "team.management",
+          "verified_channel": "dns"
+        }
+      ],
+      "progress": {
+        "completed": 1,
+        "completed_required": 1,
+        "required": 1,
+        "optional": 0,
+        "total": 1
+      },
+      "partial_ok": false,
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "completed_at": "2026-01-01T00:00:00.000Z",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/verify/request/{id}/assets/{assetIndex}/credentials 200": [
+    {
+      "authenticated": false,
+      "has_credentials": false,
+      "message": "Login to use saved credentials"
+    },
+    {
+      "authenticated": true,
+      "has_credentials": false,
+      "message": "Credential check only supported for domain verification"
+    },
+    {
+      "authenticated": true,
+      "has_credentials": false,
+      "message": "No domain identifier specified"
+    },
+    {
+      "authenticated": true,
+      "has_credentials": false,
+      "credentials": [],
+      "message": "No DNS provider credentials saved"
+    },
+    {
+      "authenticated": true,
+      "has_credentials": true,
+      "credentials": [
+        {
+          "id": "000000000000000000000001",
+          "provider": "cloudflare",
+          "name": "Cloudflare Account",
+          "can_verify": true
+        }
+      ],
+      "domain": "creds.team.management"
+    },
+    {
+      "authenticated": true,
+      "has_credentials": false,
+      "credentials": [],
+      "domain": null
+    }
+  ],
+  "GET /api/v1/verify/request/{id}/assets/{assetIndex}/status 200": [
+    {
+      "asset_index": 0,
+      "type": "phone",
+      "identifier": null,
+      "status": "pending",
+      "request_status": "pending",
+      "progress": {
+        "completed": 0,
+        "completed_required": 0,
+        "required": 3,
+        "optional": 0,
+        "total": 3
+      }
+    },
+    {
+      "asset_index": 1,
+      "type": "phone",
+      "identifier": "+15550102222",
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "confidence": "high",
+      "request_status": "partial",
+      "progress": {
+        "completed": 1,
+        "completed_required": 1,
+        "required": 3,
+        "optional": 0,
+        "total": 3
+      }
+    },
+    {
+      "asset_index": 2,
+      "type": "phone",
+      "identifier": "+1••••••2222",
+      "status": "failed",
+      "request_status": "partial",
+      "progress": {
+        "completed": 1,
+        "completed_required": 1,
+        "required": 3,
+        "optional": 0,
+        "total": 3
+      }
+    }
+  ],
+  "GET /api/v1/verify/request/{id}/proofs 200": [
+    {
+      "request_id": "000000000000000000000001",
+      "user_logged_in": false,
+      "assets": [],
+      "reusable_count": 0,
+      "total_required": 3
+    },
+    {
+      "request_id": "000000000000000000000001",
+      "user_logged_in": true,
+      "assets": [
+        {
+          "asset_index": 0,
+          "type": "phone",
+          "identifier": "+15550107788",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "channel": "telegram",
+          "can_reuse": true
+        },
+        {
+          "asset_index": 1,
+          "type": "email",
+          "identifier": "reuse@team.management",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "channel": "email",
+          "can_reuse": false,
+          "reason": "Proof is older than validity requirement"
+        },
+        {
+          "asset_index": 2,
+          "type": "domain",
+          "identifier": "reuse.team.management",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "channel": "dns",
+          "can_reuse": false,
+          "reason": "Proof has no recorded verification time"
+        }
+      ],
+      "reusable_count": 1,
+      "total_required": 3
+    }
+  ],
+  "GET /api/v1/webhook-deliveries 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "url": "https://example.com/hook",
+          "event_type": "verification.completed",
+          "status": "pending",
+          "attempts": 0,
+          "max_attempts": 6,
+          "response_status": null,
+          "error_message": null,
+          "last_attempt_at": null,
+          "next_retry_at": null,
+          "delivered_at": null,
+          "verification_request_id": null,
+          "endpoint_id": null,
+          "profile_id": null,
+          "created_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000002",
+          "url": "https://example.com/hook",
+          "event_type": "verification.completed",
+          "status": "delivered",
+          "attempts": 1,
+          "max_attempts": 6,
+          "response_status": 200,
+          "error_message": null,
+          "last_attempt_at": "2026-01-01T00:00:00.000Z",
+          "next_retry_at": null,
+          "delivered_at": "2026-01-01T00:00:00.000Z",
+          "verification_request_id": null,
+          "endpoint_id": null,
+          "profile_id": null,
+          "created_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000003",
+          "url": "https://example.com/hook",
+          "event_type": "verification.completed",
+          "status": "failed",
+          "attempts": 6,
+          "max_attempts": 6,
+          "response_status": 500,
+          "error_message": "HTTP 500",
+          "last_attempt_at": "2026-01-01T00:00:00.000Z",
+          "next_retry_at": null,
+          "delivered_at": null,
+          "verification_request_id": null,
+          "endpoint_id": null,
+          "profile_id": null,
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "deliveries": [
+        {
+          "id": "000000000000000000000001",
+          "url": "https://example.com/hook",
+          "event_type": "verification.completed",
+          "status": "pending",
+          "attempts": 0,
+          "max_attempts": 6,
+          "response_status": null,
+          "error_message": null,
+          "last_attempt_at": null,
+          "next_retry_at": null,
+          "delivered_at": null,
+          "verification_request_id": null,
+          "endpoint_id": null,
+          "profile_id": null,
+          "created_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000002",
+          "url": "https://example.com/hook",
+          "event_type": "verification.completed",
+          "status": "delivered",
+          "attempts": 1,
+          "max_attempts": 6,
+          "response_status": 200,
+          "error_message": null,
+          "last_attempt_at": "2026-01-01T00:00:00.000Z",
+          "next_retry_at": null,
+          "delivered_at": "2026-01-01T00:00:00.000Z",
+          "verification_request_id": null,
+          "endpoint_id": null,
+          "profile_id": null,
+          "created_at": "2026-01-01T00:00:00.000Z"
+        },
+        {
+          "id": "000000000000000000000003",
+          "url": "https://example.com/hook",
+          "event_type": "verification.completed",
+          "status": "failed",
+          "attempts": 6,
+          "max_attempts": 6,
+          "response_status": 500,
+          "error_message": "HTTP 500",
+          "last_attempt_at": "2026-01-01T00:00:00.000Z",
+          "next_retry_at": null,
+          "delivered_at": null,
+          "verification_request_id": null,
+          "endpoint_id": null,
+          "profile_id": null,
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 3,
+        "total_pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/webhook-deliveries/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "url": "https://example.com/hook",
+      "event_type": "verification.completed",
+      "payload": {
+        "event": "verification.completed",
+        "data": {
+          "id": "v1"
+        }
+      },
+      "token_omitted_reason": null,
+      "status": "failed",
+      "attempts": 6,
+      "max_attempts": 6,
+      "response_status": 500,
+      "response_body": null,
+      "error_message": "HTTP 500",
+      "last_attempt_at": "2026-01-01T00:00:00.000Z",
+      "next_retry_at": null,
+      "delivered_at": null,
+      "verification_request_id": null,
+      "endpoint_id": null,
+      "profile_id": null,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/webhook-deliveries/stats 200": [
+    {
+      "total": 3,
+      "by_status": {
+        "pending": 1,
+        "delivered": 1,
+        "failed": 1
+      },
+      "delivery_rate": "33.3%",
+      "recent_failures_24h": 1
+    }
+  ],
+  "PATCH /api/v1/billing/auto-top-up 200": [
+    {
+      "billing_enabled": true,
+      "balance": {
+        "amount": 0,
+        "currency": "eur",
+        "mills": 0
+      },
+      "low_balance_threshold": 500,
+      "top_up_amounts": [
+        10,
+        50,
+        200
+      ],
+      "auto_top_up": {
+        "enabled": false,
+        "amount": 10,
+        "has_payment_method": false
+      }
+    }
+  ],
+  "PATCH /api/v1/hitl/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "user_id": "000000000000000000000002",
+      "name": "renamed",
+      "profile_id": null,
+      "circle_id": null,
+      "channels": [
+        {
+          "type": "telegram",
+          "config": {
+            "chat_id": "123456789"
+          }
+        }
+      ],
+      "timeout_seconds": 3600,
+      "status": "active",
+      "keypair": {
+        "kid": "kid-1",
+        "has_encrypted_private_key": true,
+        "has_wrapped_dek": false,
+        "has_backup_wrapper": false
+      },
+      "environment": "production",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "PATCH /api/v1/me/profiles/{profileId} 200": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_owner_me_second",
+      "is_primary": false,
+      "display_name": "team.management",
+      "bio": "Approvals for team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [
+        {
+          "asset_id": "000000000000000000000002",
+          "type": "domain",
+          "display_value": "team.management",
+          "channel": "dns",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "is_visible": true,
+          "display_order": 0,
+          "mask_level": "full",
+          "is_revoked": false
+        }
+      ],
+      "proof_order": "default",
+      "custom_links": [
+        {
+          "title": "Website",
+          "url": "https://team.management",
+          "is_visible": true,
+          "display_order": 0,
+          "_id": "000000000000000000000003"
+        }
+      ],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": null,
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "PATCH /api/v1/profiles/profiles/{profileId} 200": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_owner_legacy_second",
+      "is_primary": false,
+      "display_name": "team.management",
+      "bio": "Approvals for team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [
+        {
+          "asset_id": "000000000000000000000002",
+          "type": "domain",
+          "display_value": "team.management",
+          "channel": "dns",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "is_visible": true,
+          "display_order": 0,
+          "mask_level": "full",
+          "is_revoked": false
+        }
+      ],
+      "proof_order": "default",
+      "custom_links": [
+        {
+          "title": "Website",
+          "url": "https://team.management",
+          "is_visible": true,
+          "display_order": 0,
+          "_id": "000000000000000000000003"
+        }
+      ],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": null,
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/auth/refresh 200": [
+    {
+      "success": true,
+      "expiresAt": "2026-01-01T00:00:00.000Z",
+      "expiresIn": 900
+    }
+  ],
+  "POST /api/v1/authorizations 201": [
+    {
+      "id": "000000000000000000000001",
+      "hitl_id": "000000000000000000000002",
+      "recipient": "123456789",
+      "status": "pending",
+      "phone": null,
+      "channel": "telegram",
+      "scope": "confirmations",
+      "business_name": "proof.holdings",
+      "authorization_url": "http://localhost:3002/auth/000000000000000000000001",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/billing/checkout 200": [
+    {
+      "checkout_url": "https://checkout.stripe.com/c/pay/cs_test_plan"
+    }
+  ],
+  "POST /api/v1/billing/portal 200": [
+    {
+      "portal_url": "https://billing.stripe.com/p/session/test_portal"
+    }
+  ],
+  "POST /api/v1/billing/top-up 200": [
+    {
+      "checkout_url": "https://checkout.stripe.com/c/pay/cs_test_top_up"
+    }
+  ],
+  "POST /api/v1/confirmations/{id}/approval-link 200": [
+    {
+      "approval_url": "http://localhost:3002/approve/000000000000000000000001.1767225600.00000000000000000000000000000000.owner.0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "POST /api/v1/hitl 201": [
+    {
+      "id": "000000000000000000000001",
+      "user_id": "000000000000000000000002",
+      "name": "deploys",
+      "profile_id": null,
+      "circle_id": null,
+      "channels": [
+        {
+          "type": "telegram",
+          "config": {
+            "chat_id": "123456789"
+          }
+        }
+      ],
+      "timeout_seconds": 3600,
+      "status": "pending",
+      "keypair": null,
+      "environment": "production",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/hitl/{id}/authorize 200": [
+    {
+      "hitl_id": "000000000000000000000001",
+      "authorizations": [
+        {
+          "channel": "telegram",
+          "recipient": "123456789",
+          "authorization_id": "000000000000000000000002",
+          "status": "pending"
+        }
+      ],
+      "message": "Authorization consent sent to 1 channel(s)"
+    }
+  ],
+  "POST /api/v1/hitl/{id}/finalize 200": [
+    {
+      "id": "000000000000000000000001",
+      "user_id": "000000000000000000000002",
+      "name": "config-000000000000000000000003",
+      "profile_id": null,
+      "circle_id": null,
+      "channels": [
+        {
+          "type": "telegram",
+          "config": {
+            "chat_id": "123456789"
+          }
+        }
+      ],
+      "timeout_seconds": 3600,
+      "status": "active",
+      "keypair": {
+        "kid": "kid-1",
+        "has_encrypted_private_key": true,
+        "has_wrapped_dek": false,
+        "has_backup_wrapper": false
+      },
+      "environment": "production",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "authorizations": [
+        {
+          "channel": "telegram",
+          "recipient": "123456789",
+          "authorization_id": "000000000000000000000004",
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "POST /api/v1/hitl/chat-id-discovery 201": [
+    {
+      "token": "token-sample",
+      "deep_link": "https://t.me/proof_holdings_bot?start=chatid_00000000000000000000000000000000",
+      "qr_code": "data:image/png;base64,AAAA",
+      "qr_text": "qr_text-sample",
+      "expires_in": 600
+    }
+  ],
+  "POST /api/v1/identity-challenges 201": [
+    {
+      "id": "000000000000000000000001",
+      "status": "pending",
+      "confirm_channel": "telegram",
+      "single_channel_warning": false
+    }
+  ],
+  "POST /api/v1/lookalike-watch 201": [
+    {
+      "id": "000000000000000000000001",
+      "status": "active",
+      "brand_tokens": [
+        "brand_tokens-sample"
+      ],
+      "owned_namespaces": [],
+      "notify_email": "owner@team.management",
+      "activated_at": "2026-01-01T00:00:00.000Z",
+      "last_report_period": null,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/2fa/{sessionId}/verify 200": [
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "grant_expires_at": "2026-01-01T00:00:00.000Z",
+      "grant_single_use": false
+    }
+  ],
+  "POST /api/v1/me/2fa/magic/{token} 200": [
+    {
+      "status": "verified",
+      "already_verified": true,
+      "action_type": "settings_write"
+    },
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "grant_expires_at": "2026-01-01T00:00:00.000Z",
+      "grant_single_use": true,
+      "action_type": "admin_account_export"
+    }
+  ],
+  "POST /api/v1/me/2fa/start 200": [
+    {
+      "requires_email_selection": true,
+      "available_emails": [
+        {
+          "id": "000000000000000000000001",
+          "email": "first@team.management",
+          "is_primary": true
+        },
+        {
+          "id": "000000000000000000000002",
+          "email": "second@team.management",
+          "is_primary": false
+        }
+      ],
+      "message": "Please select which email to use for 2FA verification."
+    }
+  ],
+  "POST /api/v1/me/2fa/start 201": [
+    {
+      "session_id": "2fa_00000000000000000000000000000000",
+      "channel": "telegram",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "deep_link": "https://t.me/proof_holdings_bot?start=2fa_00000000000000000000000000000000",
+      "qr_code": "data:image/png;base64,AAAA",
+      "qr_text": "qr_text-sample",
+      "instructions": "Open Telegram and tap the link to verify"
+    },
+    {
+      "session_id": "2fa_00000000000000000000000000000000",
+      "channel": "whatsapp",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "deep_link": "https://wa.me/15557766633?text=Verify%20ACEFGH",
+      "qr_code": "data:image/png;base64,AAAA",
+      "qr_text": "qr_text-sample",
+      "instructions": "Open WhatsApp and send the verification message"
+    },
+    {
+      "session_id": "2fa_00000000000000000000000000000000",
+      "channel": "sms",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "sms_code": "ACEFGH",
+      "sms_message": "Verify Proof Holdings ACEFGH",
+      "sms_dids": {
+        "americas": {
+          "did": "+19295909022",
+          "label": "Americas",
+          "flag": "🇺🇸",
+          "qr_code": "data:image/png;base64,AAAA",
+          "qr_text": "qr_text-sample"
+        },
+        "europe": {
+          "did": "",
+          "label": "Europe",
+          "flag": "🇪🇺"
+        },
+        "israel": {
+          "did": "",
+          "label": "Israel",
+          "flag": "🇮🇱"
+        }
+      },
+      "instructions": "Send the code via SMS to verify"
+    },
+    {
+      "session_id": "2fa_00000000000000000000000000000000",
+      "channel": "telegram",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "second_method_recommended": true,
+      "deep_link": "https://t.me/proof_holdings_bot?start=2fa_00000000000000000000000000000000",
+      "qr_code": "data:image/png;base64,AAAA",
+      "qr_text": "qr_text-sample",
+      "instructions": "Open Telegram and tap the link to verify"
+    },
+    {
+      "session_id": "2fa_00000000000000000000000000000000",
+      "channel": "email",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "email": "st***@team.management",
+      "email_sent": true,
+      "instructions": "Enter the 6-character code sent to st***@team.management"
+    }
+  ],
+  "POST /api/v1/me/api-keys 201": [
+    {
+      "id": "000000000000000000000001",
+      "key": "pk_live_key-sample",
+      "name": "FIX.FIT",
+      "prefix": "pk_live_",
+      "environment": "production",
+      "scopes": [
+        "verifications:read"
+      ],
+      "profile_id": null,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "warning": "Copy this key now. You will not be able to see it again."
+    }
+  ],
+  "POST /api/v1/me/api-keys/{id}/regenerate 201": [
+    {
+      "id": "000000000000000000000001",
+      "key": "pk_live_key-sample",
+      "name": "FIX.FIT",
+      "prefix": "pk_live_",
+      "environment": "production",
+      "scopes": [
+        "verifications:read"
+      ],
+      "profile_id": null,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "warning": "Copy this key now. You will not be able to see it again."
+    }
+  ],
+  "POST /api/v1/me/dns-credentials 200": [
+    {
+      "id": "000000000000000000000001",
+      "provider": "cloudflare",
+      "name": "Cloudflare Account",
+      "is_valid": true,
+      "domains_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/domains 201": [
+    {
+      "id": "000000000000000000000001",
+      "domain": "added.team.management",
+      "status": "pending",
+      "detected_provider": "cloudflare",
+      "provider_name": "Cloudflare",
+      "supports_auto_dns": true,
+      "verification_method": "manual_dns",
+      "for_email_sending": false,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.added.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": false
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.added.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://added.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": false,
+      "godaddy_connected": false,
+      "supports_api_token": true,
+      "supports_api_key": false,
+      "verified_providers": [],
+      "check_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/add-provider/{provider} 200": [
+    {
+      "id": "000000000000000000000001",
+      "domain": "cf.team.management",
+      "status": "verified",
+      "detected_provider": "cloudflare",
+      "provider_name": "Cloudflare",
+      "supports_auto_dns": true,
+      "verification_method": "auto_dns",
+      "verification_subtype": "dns_record",
+      "for_email_sending": false,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.cf.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": true,
+          "verified_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.cf.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://cf.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": true,
+      "godaddy_connected": false,
+      "supports_api_token": true,
+      "supports_api_key": false,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "verified_providers": [
+        "cloudflare",
+        "route53"
+      ],
+      "check_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/connect/{provider} 200": [
+    {
+      "id": "000000000000000000000001",
+      "domain": "route53.team.management",
+      "status": "verified",
+      "detected_provider": "route53",
+      "provider_name": "AWS Route 53",
+      "supports_auto_dns": true,
+      "verification_method": "auto_dns",
+      "verification_subtype": "dns_record",
+      "for_email_sending": false,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.route53.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": true,
+          "verified_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.route53.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://route53.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": false,
+      "godaddy_connected": false,
+      "supports_api_token": false,
+      "supports_api_key": false,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "verified_providers": [
+        "route53",
+        "cloudflare",
+        "godaddy"
+      ],
+      "check_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/connect/cloudflare 200": [
+    {
+      "id": "000000000000000000000001",
+      "domain": "cf.team.management",
+      "status": "verified",
+      "detected_provider": "cloudflare",
+      "provider_name": "Cloudflare",
+      "supports_auto_dns": true,
+      "verification_method": "auto_dns",
+      "verification_subtype": "dns_record",
+      "for_email_sending": false,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.cf.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": true,
+          "verified_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.cf.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://cf.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": true,
+      "godaddy_connected": false,
+      "supports_api_token": true,
+      "supports_api_key": false,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "verified_providers": [
+        "cloudflare"
+      ],
+      "check_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/connect/godaddy 200": [
+    {
+      "id": "000000000000000000000001",
+      "domain": "gd.team.management",
+      "status": "verified",
+      "detected_provider": "godaddy",
+      "provider_name": "GoDaddy",
+      "supports_auto_dns": true,
+      "verification_method": "auto_dns",
+      "verification_subtype": "dns_record",
+      "for_email_sending": false,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.gd.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": true,
+          "verified_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.gd.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://gd.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": false,
+      "godaddy_connected": true,
+      "supports_api_token": false,
+      "supports_api_key": true,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "verified_providers": [
+        "godaddy",
+        "cloudflare"
+      ],
+      "check_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/email-setup 200": [
+    {
+      "id": "000000000000000000000001",
+      "domain": "send.team.management",
+      "status": "verified",
+      "detected_provider": "cloudflare",
+      "provider_name": "Cloudflare",
+      "supports_auto_dns": true,
+      "verification_method": "manual_dns",
+      "for_email_sending": true,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.send.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": false
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.send.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://send.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": false,
+      "godaddy_connected": false,
+      "supports_api_token": true,
+      "supports_api_key": false,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "verified_providers": [],
+      "check_count": 0,
+      "from_email": "hello@send.team.management",
+      "resend": {
+        "domain_id": "resend-domain-fresh",
+        "status": "pending",
+        "dkim_records": [
+          {
+            "type": "TXT",
+            "name": "resend._domainkey.send.team.management",
+            "value": "p=MIGf",
+            "purpose": "dkim",
+            "verified": false
+          },
+          {
+            "type": "MX",
+            "name": "send.send.team.management",
+            "value": "feedback-smtp.resend.com",
+            "purpose": "spf",
+            "priority": 10,
+            "verified": false
+          }
+        ],
+        "registered_at": "2026-01-01T00:00:00.000Z"
+      },
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "000000000000000000000001",
+      "domain": "send.team.management",
+      "status": "verified",
+      "detected_provider": "cloudflare",
+      "provider_name": "Cloudflare",
+      "supports_auto_dns": true,
+      "verification_method": "manual_dns",
+      "for_email_sending": true,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.send.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": false
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.send.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://send.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": false,
+      "godaddy_connected": false,
+      "supports_api_token": true,
+      "supports_api_key": false,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "verified_providers": [],
+      "check_count": 0,
+      "from_email": "hello@send.team.management",
+      "resend": {
+        "domain_id": "resend-domain-fresh",
+        "status": "pending",
+        "dkim_records": [
+          {
+            "type": "TXT",
+            "name": "resend._domainkey.send.team.management",
+            "value": "p=MIGf",
+            "purpose": "dkim",
+            "verified": false
+          },
+          {
+            "type": "MX",
+            "name": "send.send.team.management",
+            "value": "feedback-smtp.resend.com",
+            "purpose": "spf",
+            "priority": 10,
+            "verified": false
+          }
+        ],
+        "registered_at": "2026-01-01T00:00:00.000Z"
+      },
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/verify 200": [
+    {
+      "data": {
+        "id": "000000000000000000000001",
+        "domain": "added.team.management",
+        "status": "failed",
+        "detected_provider": "cloudflare",
+        "provider_name": "Cloudflare",
+        "supports_auto_dns": true,
+        "verification_method": "manual_dns",
+        "for_email_sending": false,
+        "for_verification": true,
+        "dns_records": [
+          {
+            "type": "TXT",
+            "name": "_proof.added.team.management",
+            "value": "proof-verification=00000000000000000000000000000000",
+            "purpose": "ownership",
+            "verified": false
+          }
+        ],
+        "has_dns_mismatch": false,
+        "txt_record_name": "_proof.added.team.management",
+        "txt_record_value": "proof-verification=00000000000000000000000000000000",
+        "http_file_path": "https://added.team.management/.well-known/proof-holdings-verification.txt",
+        "http_file_content": "proof-verification=00000000000000000000000000000000",
+        "oauth_connected": false,
+        "godaddy_connected": false,
+        "supports_api_token": true,
+        "supports_api_key": false,
+        "verified_providers": [],
+        "last_checked_at": "2026-01-01T00:00:00.000Z",
+        "check_count": 1,
+        "error_message": "Verification record not found",
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "proof_id": null,
+        "proof_status": null,
+        "proof_revoked_reason": null,
+        "proof_expires_at": null
+      },
+      "verified": false,
+      "message": "Verification record not found"
+    },
+    {
+      "data": {
+        "id": "000000000000000000000001",
+        "domain": "added.team.management",
+        "status": "verified",
+        "detected_provider": "cloudflare",
+        "provider_name": "Cloudflare",
+        "supports_auto_dns": true,
+        "verification_method": "manual_dns",
+        "for_email_sending": false,
+        "for_verification": true,
+        "dns_records": [
+          {
+            "type": "TXT",
+            "name": "_proof.added.team.management",
+            "value": "proof-verification=00000000000000000000000000000000",
+            "purpose": "ownership",
+            "verified": true,
+            "verified_at": "2026-01-01T00:00:00.000Z"
+          }
+        ],
+        "has_dns_mismatch": false,
+        "txt_record_name": "_proof.added.team.management",
+        "txt_record_value": "proof-verification=00000000000000000000000000000000",
+        "http_file_path": "https://added.team.management/.well-known/proof-holdings-verification.txt",
+        "http_file_content": "proof-verification=00000000000000000000000000000000",
+        "oauth_connected": false,
+        "godaddy_connected": false,
+        "supports_api_token": true,
+        "supports_api_key": false,
+        "verified_at": "2026-01-01T00:00:00.000Z",
+        "verified_providers": [
+          "cloudflare"
+        ],
+        "last_checked_at": "2026-01-01T00:00:00.000Z",
+        "check_count": 2,
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "proof_id": "ph_ctl_00000000000000000000000000000000",
+        "proof_status": "active",
+        "proof_revoked_reason": null,
+        "proof_expires_at": "2026-01-01T00:00:00.000Z"
+      },
+      "verified": true,
+      "message": "Domain verified successfully"
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/verify-email 200": [
+    {
+      "data": {
+        "id": "000000000000000000000001",
+        "domain": "code.team.management",
+        "status": "verifying",
+        "detected_provider": "cloudflare",
+        "provider_name": "Cloudflare",
+        "supports_auto_dns": true,
+        "verification_method": "email",
+        "for_email_sending": false,
+        "for_verification": true,
+        "dns_records": [
+          {
+            "type": "TXT",
+            "name": "_proof.code.team.management",
+            "value": "proof-verification=00000000000000000000000000000000",
+            "purpose": "ownership",
+            "verified": false
+          }
+        ],
+        "has_dns_mismatch": false,
+        "txt_record_name": "_proof.code.team.management",
+        "txt_record_value": "proof-verification=00000000000000000000000000000000",
+        "http_file_path": "https://code.team.management/.well-known/proof-holdings-verification.txt",
+        "http_file_content": "proof-verification=00000000000000000000000000000000",
+        "oauth_connected": false,
+        "godaddy_connected": false,
+        "supports_api_token": true,
+        "supports_api_key": false,
+        "verified_providers": [],
+        "check_count": 0,
+        "email_verification": {
+          "email_prefix": "admin",
+          "email_address": "admin@code.team.management",
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "attempts": 0,
+          "last_sent_at": "2026-01-01T00:00:00.000Z"
+        },
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "proof_id": null,
+        "proof_status": null,
+        "proof_revoked_reason": null,
+        "proof_expires_at": null
+      },
+      "message": "Verification code sent to admin@code.team.management",
+      "email_sent_to": "admin@code.team.management",
+      "expires_in_minutes": 30
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/verify-email/confirm 200": [
+    {
+      "data": {
+        "id": "000000000000000000000001",
+        "domain": "code.team.management",
+        "status": "verified",
+        "detected_provider": "cloudflare",
+        "provider_name": "Cloudflare",
+        "supports_auto_dns": true,
+        "verification_method": "email",
+        "for_email_sending": false,
+        "for_verification": true,
+        "dns_records": [
+          {
+            "type": "TXT",
+            "name": "_proof.code.team.management",
+            "value": "proof-verification=00000000000000000000000000000000",
+            "purpose": "ownership",
+            "verified": true,
+            "verified_at": "2026-01-01T00:00:00.000Z"
+          }
+        ],
+        "has_dns_mismatch": false,
+        "txt_record_name": "_proof.code.team.management",
+        "txt_record_value": "proof-verification=00000000000000000000000000000000",
+        "http_file_path": "https://code.team.management/.well-known/proof-holdings-verification.txt",
+        "http_file_content": "proof-verification=00000000000000000000000000000000",
+        "oauth_connected": false,
+        "godaddy_connected": false,
+        "supports_api_token": true,
+        "supports_api_key": false,
+        "verified_at": "2026-01-01T00:00:00.000Z",
+        "verified_providers": [
+          "email"
+        ],
+        "check_count": 0,
+        "email_verification": {
+          "email_prefix": "admin",
+          "email_address": "admin@code.team.management",
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "attempts": 1,
+          "last_sent_at": "2026-01-01T00:00:00.000Z",
+          "verified_at": "2026-01-01T00:00:00.000Z"
+        },
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "proof_id": "ph_ctl_00000000000000000000000000000000",
+        "proof_status": "active",
+        "proof_revoked_reason": null,
+        "proof_expires_at": "2026-01-01T00:00:00.000Z"
+      },
+      "verified": true,
+      "message": "Domain verified successfully"
+    },
+    {
+      "data": {
+        "id": "000000000000000000000001",
+        "domain": "done.team.management",
+        "status": "verified",
+        "detected_provider": "cloudflare",
+        "provider_name": "Cloudflare",
+        "supports_auto_dns": true,
+        "verification_method": "manual_dns",
+        "for_email_sending": false,
+        "for_verification": true,
+        "dns_records": [
+          {
+            "type": "TXT",
+            "name": "_proof.done.team.management",
+            "value": "proof-verification=00000000000000000000000000000000",
+            "purpose": "ownership",
+            "verified": false
+          }
+        ],
+        "has_dns_mismatch": false,
+        "txt_record_name": "_proof.done.team.management",
+        "txt_record_value": "proof-verification=00000000000000000000000000000000",
+        "http_file_path": "https://done.team.management/.well-known/proof-holdings-verification.txt",
+        "http_file_content": "proof-verification=00000000000000000000000000000000",
+        "oauth_connected": false,
+        "godaddy_connected": false,
+        "supports_api_token": true,
+        "supports_api_key": false,
+        "verified_at": "2026-01-01T00:00:00.000Z",
+        "verified_providers": [],
+        "check_count": 0,
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z"
+      },
+      "verified": true,
+      "message": "Domain already verified"
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/verify-email/resend 200": [
+    {
+      "data": {
+        "id": "000000000000000000000001",
+        "domain": "resend.team.management",
+        "status": "verifying",
+        "detected_provider": "cloudflare",
+        "provider_name": "Cloudflare",
+        "supports_auto_dns": true,
+        "verification_method": "email",
+        "for_email_sending": false,
+        "for_verification": true,
+        "dns_records": [
+          {
+            "type": "TXT",
+            "name": "_proof.resend.team.management",
+            "value": "proof-verification=00000000000000000000000000000000",
+            "purpose": "ownership",
+            "verified": false
+          }
+        ],
+        "has_dns_mismatch": false,
+        "txt_record_name": "_proof.resend.team.management",
+        "txt_record_value": "proof-verification=00000000000000000000000000000000",
+        "http_file_path": "https://resend.team.management/.well-known/proof-holdings-verification.txt",
+        "http_file_content": "proof-verification=00000000000000000000000000000000",
+        "oauth_connected": false,
+        "godaddy_connected": false,
+        "supports_api_token": true,
+        "supports_api_key": false,
+        "verified_providers": [],
+        "check_count": 0,
+        "email_verification": {
+          "email_prefix": "admin",
+          "email_address": "admin@resend.team.management",
+          "expires_at": "2026-01-01T00:00:00.000Z",
+          "attempts": 0,
+          "last_sent_at": "2026-01-01T00:00:00.000Z"
+        },
+        "created_at": "2026-01-01T00:00:00.000Z",
+        "updated_at": "2026-01-01T00:00:00.000Z",
+        "proof_id": null,
+        "proof_status": null,
+        "proof_revoked_reason": null,
+        "proof_expires_at": null
+      },
+      "message": "Verification code sent to admin@resend.team.management",
+      "email_sent_to": "admin@resend.team.management",
+      "expires_in_minutes": 30
+    }
+  ],
+  "POST /api/v1/me/domains/{id}/verify-with-credentials 200": [
+    {
+      "id": "000000000000000000000001",
+      "domain": "saved.team.management",
+      "status": "verified",
+      "detected_provider": "cloudflare",
+      "provider_name": "Cloudflare",
+      "supports_auto_dns": true,
+      "verification_method": "auto_dns",
+      "verification_subtype": "dns_record",
+      "for_email_sending": false,
+      "for_verification": true,
+      "dns_records": [
+        {
+          "type": "TXT",
+          "name": "_proof.saved.team.management",
+          "value": "proof-verification=00000000000000000000000000000000",
+          "purpose": "ownership",
+          "verified": true,
+          "verified_at": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "has_dns_mismatch": false,
+      "txt_record_name": "_proof.saved.team.management",
+      "txt_record_value": "proof-verification=00000000000000000000000000000000",
+      "http_file_path": "https://saved.team.management/.well-known/proof-holdings-verification.txt",
+      "http_file_content": "proof-verification=00000000000000000000000000000000",
+      "oauth_connected": true,
+      "godaddy_connected": false,
+      "supports_api_token": true,
+      "supports_api_key": false,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "verified_providers": [
+        "cloudflare"
+      ],
+      "check_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "proof_id": "ph_ctl_00000000000000000000000000000000",
+      "proof_status": "active",
+      "proof_revoked_reason": null,
+      "proof_expires_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/emails/add 201": [
+    {
+      "session_id": "addemail_00000000000000000000000000000000",
+      "email": "added@team.management",
+      "channel": "otp",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "instructions": "Enter the verification code sent to your email",
+      "email_sent": true
+    },
+    {
+      "session_id": "addemail_00000000000000000000000000000000",
+      "email": "unsent@team.management",
+      "channel": "otp",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "instructions": "Enter the verification code sent to your email",
+      "email_sent": false,
+      "email_error": "Provider refused the message"
+    }
+  ],
+  "POST /api/v1/me/emails/add/{sessionId}/resend 200": [
+    {
+      "success": true,
+      "message": "Verification email resent"
+    }
+  ],
+  "POST /api/v1/me/emails/add/{sessionId}/verify 200": [
+    {
+      "status": "verified",
+      "email": "added@team.management",
+      "verified_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/phones/add 201": [
+    {
+      "session_id": "addphone_00000000000000000000000000000000",
+      "channel": "telegram",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "deep_link": "https://t.me/proof_holdings_bot?start=addphone_00000000000000000000000000000000",
+      "qr_code": "data:image/png;base64,AAAA",
+      "qr_text": "qr_text-sample",
+      "instructions": "Open Telegram and tap the button to share your phone number"
+    },
+    {
+      "session_id": "addphone_00000000000000000000000000000000",
+      "channel": "whatsapp",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "deep_link": "https://wa.me/15557766633?text=AddPhone%20ACEFGH",
+      "qr_code": "data:image/png;base64,AAAA",
+      "qr_text": "qr_text-sample",
+      "instructions": "Open WhatsApp and send the verification message"
+    },
+    {
+      "session_id": "addphone_00000000000000000000000000000000",
+      "channel": "sms",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "sms_code": "ACEFGH",
+      "sms_message": "Add phone to Proof Holdings ACEFGH",
+      "sms_dids": {
+        "americas": {
+          "did": "+19295909022",
+          "label": "Americas",
+          "flag": "🇺🇸",
+          "qr_code": "data:image/png;base64,AAAA",
+          "qr_text": "qr_text-sample"
+        },
+        "europe": {
+          "did": "",
+          "label": "Europe",
+          "flag": "🇪🇺"
+        },
+        "israel": {
+          "did": "",
+          "label": "Israel",
+          "flag": "🇮🇱"
+        }
+      },
+      "instructions": "Send the code via SMS to verify your phone number"
+    }
+  ],
+  "POST /api/v1/me/profiles 201": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_owner_me_created",
+      "is_primary": true,
+      "display_name": "team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [],
+      "proof_order": "default",
+      "custom_links": [],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": null,
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/profiles/{profileId}/primary 200": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_primary_me_second",
+      "is_primary": true,
+      "display_name": "team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [
+        {
+          "asset_id": "000000000000000000000002",
+          "type": "domain",
+          "display_value": "team.management",
+          "channel": "dns",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "is_visible": true,
+          "display_order": 0,
+          "mask_level": "full",
+          "is_revoked": false
+        }
+      ],
+      "proof_order": "default",
+      "custom_links": [
+        {
+          "title": "Website",
+          "url": "https://team.management",
+          "is_visible": true,
+          "display_order": 0,
+          "_id": "000000000000000000000003"
+        }
+      ],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": "support@team.management",
+      "email_theme": "light",
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/me/verification-requests/{id}/extend 200": [
+    {
+      "success": true,
+      "message": "Verification request extended",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "status": "pending"
+    },
+    {
+      "success": true,
+      "message": "Verification request reactivated and extended",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "status": "pending"
+    }
+  ],
+  "POST /api/v1/me/verification-requests/{id}/share-email 200": [
+    {
+      "success": true,
+      "message": "Verification link sent to recipient@team.management",
+      "messageId": "test-share-link-msg-id"
+    },
+    {
+      "success": true,
+      "message": "Verification link sent to recipient@team.management"
+    }
+  ],
+  "POST /api/v1/me/verify/domain 201": [
+    {
+      "session_id": "domain_00000000000000000000000000000000",
+      "domain": "dns-check.team.management",
+      "channel": "dns",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "challenge": {
+        "record_type": "TXT",
+        "record_name": "_proof.dns-check.team.management",
+        "record_value": "proof-verify=K7M2QX",
+        "instruction": "Add a TXT record to your DNS:\n\nName: _proof.dns-check.team.management\nValue: proof-verify=K7M2QX"
+      }
+    },
+    {
+      "session_id": "domain_00000000000000000000000000000000",
+      "domain": "http-check.team.management",
+      "channel": "http",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "challenge": {
+        "file_path": "/.well-known/proof-holdings.txt",
+        "file_content": "proof-verify=K7M2QX",
+        "file_url": "https://http-check.team.management/.well-known/proof-holdings.txt",
+        "instruction": "Create a file at https://http-check.team.management/.well-known/proof-holdings.txt containing:\n\nproof-verify=K7M2QX"
+      }
+    }
+  ],
+  "POST /api/v1/me/verify/domain/{sessionId}/check 200": [
+    {
+      "status": "pending",
+      "message": "DNS record not found. It may take up to 48 hours for DNS changes to propagate."
+    },
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "asset": {
+        "id": "000000000000000000000001",
+        "type": "domain",
+        "identifier": "dns-check.team.management",
+        "proof_expires_at": "2026-01-01T00:00:00.000Z"
+      }
+    }
+  ],
+  "POST /api/v1/profiles/me/username 200": [
+    {
+      "username": "team_management_owner",
+      "username_claimed_at": "2026-01-01T00:00:00.000Z",
+      "profile_url": "/u/team_management_owner"
+    }
+  ],
+  "POST /api/v1/profiles/profiles 201": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_owner_legacy_created",
+      "is_primary": true,
+      "display_name": "team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [],
+      "proof_order": "default",
+      "custom_links": [],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": null,
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/profiles/profiles/{profileId}/primary 200": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_primary_profiles_second",
+      "is_primary": true,
+      "display_name": "team.management",
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [
+        {
+          "asset_id": "000000000000000000000002",
+          "type": "domain",
+          "display_value": "team.management",
+          "channel": "dns",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "is_visible": true,
+          "display_order": 0,
+          "mask_level": "full",
+          "is_revoked": false
+        }
+      ],
+      "proof_order": "default",
+      "custom_links": [
+        {
+          "title": "Website",
+          "url": "https://team.management",
+          "is_visible": true,
+          "display_order": 0,
+          "_id": "000000000000000000000003"
+        }
+      ],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": null,
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "POST /api/v1/proofs/validate 200": [
+    {
+      "valid": true,
+      "proof_id": "ph_ctl_00000000000000000000000000000000",
+      "verification": {
+        "id": "000000000000000000000001",
+        "type": "phone",
+        "channel": "whatsapp",
+        "identifier_hash": "identifier_hash-sample",
+        "verified_at": "2026-01-01T00:00:00.000Z",
+        "expires_at": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "valid": true,
+      "proof_id": "ph_ctl_00000000000000000000000000000000",
+      "verification": {
+        "id": "000000000000000000000001",
+        "type": "confirmation",
+        "channel": "browser",
+        "identifier_hash": "identifier_hash-sample",
+        "decision": "approve",
+        "verified_at": "2026-01-01T00:00:00.000Z",
+        "expires_at": "2026-01-01T00:00:00.000Z"
+      }
+    },
+    {
+      "valid": true,
+      "proof_id": "ph_ctl_00000000000000000000000000000000",
+      "verification": {
+        "id": "000000000000000000000001",
+        "type": "authorization",
+        "channel": "telegram",
+        "identifier_hash": "identifier_hash-sample",
+        "decision": "approve",
+        "verified_at": "2026-01-01T00:00:00.000Z",
+        "expires_at": "2026-01-01T00:00:00.000Z"
+      }
+    }
+  ],
+  "POST /api/v1/verifications/{id}/submit 200": [
+    {
+      "id": "000000000000000000000001",
+      "status": "pending",
+      "attempts": 1,
+      "max_attempts": 3,
+      "message": "Invalid code. Please try again.",
+      "attempts_remaining": 2
+    },
+    {
+      "id": "000000000000000000000001",
+      "status": "verified",
+      "attempts": 2,
+      "max_attempts": 3,
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "proof": {
+        "token": "token-sample",
+        "expires_at": "2026-01-01T00:00:00.000Z"
+      }
+    }
+  ],
+  "POST /api/v1/verifications/{id}/test-verify 200": [
+    {
+      "id": "000000000000000000000001",
+      "type": "phone",
+      "channel": "whatsapp",
+      "status": "verified",
+      "identifier": "+37069199199",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "proof_token": "proof_token-sample",
+      "proof_expires_at": "2026-01-01T00:00:00.000Z",
+      "test_mode": true
+    }
+  ],
+  "POST /api/v1/verify/request/{id}/assets/{assetIndex}/auto-verify 200": [
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "method": "reused_proof",
+      "original_verified_at": "2026-01-01T00:00:00.000Z",
+      "request_status": "partial",
+      "progress": {
+        "completed": 1,
+        "completed_required": 1,
+        "required": 4,
+        "optional": 0,
+        "total": 4
+      }
+    },
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "method": "reused_proof",
+      "original_verified_at": null,
+      "request_status": "partial",
+      "progress": {
+        "completed": 2,
+        "completed_required": 2,
+        "required": 4,
+        "optional": 0,
+        "total": 4
+      }
+    },
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "method": "ownership",
+      "provider": "cloudflare",
+      "request_status": "partial",
+      "progress": {
+        "completed": 3,
+        "completed_required": 3,
+        "required": 4,
+        "optional": 0,
+        "total": 4
+      }
+    },
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "method": "auto_dns",
+      "provider": "cloudflare",
+      "request_status": "completed",
+      "progress": {
+        "completed": 4,
+        "completed_required": 4,
+        "required": 4,
+        "optional": 0,
+        "total": 4
+      }
+    }
+  ],
+  "POST /api/v1/verify/request/{id}/assets/{assetIndex}/check 200": [
+    {
+      "status": "pending",
+      "message": "Verification record not found. Please ensure DNS record or HTTP file is correctly configured.",
+      "attempts_remaining": 2
+    },
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "request_status": "completed",
+      "progress": {
+        "completed": 2,
+        "completed_required": 2,
+        "required": 2,
+        "optional": 0,
+        "total": 2
+      }
+    }
+  ],
+  "POST /api/v1/verify/request/{id}/assets/{assetIndex}/start 201": [
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "phone",
+      "channel": "telegram",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "deep_link": "https://t.me/proof_holdings_bot?start=vreq_000000000000000000000001",
+      "qr_code": "data:image/png;base64,AAAA",
+      "qr_text": "qr_text-sample",
+      "instructions": "Open Telegram and tap the button to share your phone number",
+      "message": "/start vreq_000000000000000000000001",
+      "phone_number": "@proof_holdings_bot"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "phone",
+      "channel": "whatsapp",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "deep_link": "https://wa.me/15557766633?text=Verify%20K7M2QX",
+      "qr_code": "data:image/png;base64,AAAA",
+      "qr_text": "qr_text-sample",
+      "phone_number": "+15557766633",
+      "message": "Verify K7M2QX",
+      "instructions": "Send \"Verify K7M2QX\" to +15557766633 on WhatsApp"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "phone",
+      "channel": "sms",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "sms_code": "ACEFGH",
+      "sms_message": "Verify ACEFGH",
+      "sms_dids": {
+        "americas": {
+          "did": "+19295909022",
+          "label": "Americas",
+          "flag": "🇺🇸",
+          "qr_code": "data:image/png;base64,AAAA",
+          "qr_text": "qr_text-sample"
+        },
+        "europe": {
+          "did": "",
+          "label": "Europe",
+          "flag": "🇪🇺"
+        },
+        "israel": {
+          "did": "",
+          "label": "Israel",
+          "flag": "🇮🇱"
+        }
+      },
+      "suggested_region": "americas",
+      "instructions": "Send \"Verify ACEFGH\" via SMS to verify"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "email",
+      "channel": "email",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "email_sent": true,
+      "instructions": "Check your email for a verification code or click the magic link"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "email",
+      "channel": "email",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "email_sent": false,
+      "email_error": "Provider refused the message",
+      "instructions": "Check your email for a verification code or click the magic link"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "email",
+      "channel": "email",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "domain",
+      "channel": "dns",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "record_type": "TXT",
+      "record_name": "_proof.start.team.management",
+      "record_value": "proof-verify=K7M2QX",
+      "instructions": "Add a TXT record: _proof.start.team.management = proof-verify=K7M2QX"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "domain",
+      "channel": "http",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "file_path": "/.well-known/proof-holdings.txt",
+      "file_content": "proof-verify=K7M2QX",
+      "file_url": "https://start.team.management/.well-known/proof-holdings.txt",
+      "instructions": "Create file at https://start.team.management/.well-known/proof-holdings.txt with content: proof-verify=K7M2QX"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "domain",
+      "channel": "email",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "email_sent_to": "admin@start.team.management",
+      "otp_code_length": 6,
+      "instructions": "Check admin@start.team.management for a verification code"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "domain",
+      "channel": "email",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "email_error": "Mailbox does not exist",
+      "email_sent_to": "admin@start.team.management",
+      "otp_code_length": 6,
+      "instructions": "Check admin@start.team.management for a verification code"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "domain",
+      "channel": "email",
+      "status": "pending",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "email_error": "Email service not available"
+    },
+    {
+      "verification_id": "000000000000000000000001",
+      "asset_index": 0,
+      "type": "telegram_bot",
+      "channel": "telegram_bot_token",
+      "status": "verified",
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "verified_data": {
+        "bot_id": 7000000001,
+        "bot_username": "proof_sample_bot",
+        "bot_name": "Proof Sample",
+        "can_join_groups": true,
+        "supports_inline": false
+      },
+      "proof_token": "proof_token-sample"
+    }
+  ],
+  "POST /api/v1/verify/request/{id}/assets/{assetIndex}/submit 200": [
+    {
+      "status": "verified",
+      "verified_at": "2026-01-01T00:00:00.000Z",
+      "request_status": "partial",
+      "progress": {
+        "completed": 1,
+        "completed_required": 1,
+        "required": 2,
+        "optional": 0,
+        "total": 2
+      }
+    }
+  ],
+  "POST /api/v1/webhook-deliveries/{id}/retry 200": [
+    {
+      "success": true,
+      "message": "Webhook delivery queued for retry",
+      "delivery_id": "000000000000000000000001",
+      "next_retry_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "PUT /api/v1/hitl/{id}/keys 200": [
+    {
+      "kid": "0000000000000000000000000000000000000000000000000000000000000000",
+      "message": "Encryption keypair saved"
+    }
+  ],
+  "PUT /api/v1/me/emails/{id}/primary 200": [
+    {
+      "success": true
+    }
+  ],
+  "PUT /api/v1/me/phones/{id}/primary 200": [
+    {
+      "success": true
+    }
+  ],
+  "PUT /api/v1/profiles/me 200": [
+    {
+      "id": "000000000000000000000001",
+      "profile_id": "pp_owner_primary_me",
+      "is_primary": true,
+      "verification_level": "basic",
+      "is_business": false,
+      "public_proofs": [],
+      "proof_order": "default",
+      "custom_links": [],
+      "theme": {
+        "background_type": "solid",
+        "font_style": "default"
+      },
+      "is_public": false,
+      "show_verification_dates": true,
+      "show_proof_channels": false,
+      "show_delegations": true,
+      "support_email": null,
+      "email_theme": "light",
+      "view_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "PUT /api/v1/profiles/me/proofs 200": [
+    {
+      "public_proofs": [
+        {
+          "asset_id": "000000000000000000000001",
+          "type": "phone",
+          "display_value": "+1••••••••21",
+          "label": "Work",
+          "channel": "whatsapp",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "is_visible": true,
+          "display_order": 0,
+          "mask_level": "partial",
+          "is_revoked": false
+        }
+      ],
+      "proof_order": "owner"
+    }
+  ],
+  "PUT /api/v1/profiles/profiles/{profileId}/proofs 200": [
+    {
+      "public_proofs": [
+        {
+          "asset_id": "000000000000000000000001",
+          "type": "email",
+          "display_value": "p•••@team.management",
+          "channel": "otp",
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "is_visible": true,
+          "display_order": 0,
+          "mask_level": "partial",
+          "is_revoked": false
+        }
+      ],
+      "proof_order": "default"
+    }
+  ]
+}
