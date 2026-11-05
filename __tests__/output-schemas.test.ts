@@ -66,6 +66,7 @@ const PATTERN_CANDIDATES = [
   'US.abcdefghijklmnop',
   'sample_user',
   '2026-01',
+  '2026-01-01T00:00:00Z',
   '1d',
   '#112233',
   'https://example.com/sample',
@@ -215,10 +216,10 @@ afterAll(() => {
 });
 
 describe('jsonResult (SC-3)', () => {
-  it('keeps the text exactly as before and adds an object body as structuredContent', () => {
+  it('keeps the compact text and adds an object body as structuredContent', () => {
     const body = { id: 'x', nested: { list: [1, 2] } };
     expect(jsonResult(body)).toEqual({
-      content: [{ type: 'text', text: JSON.stringify(body, null, 2) }],
+      content: [{ type: 'text', text: JSON.stringify(body) }],
       structuredContent: body,
     });
   });
@@ -228,7 +229,7 @@ describe('jsonResult (SC-3)', () => {
     ['null', null],
     ['a string', 'plain'],
   ])('answers %s as text only — structuredContent must be an object', (_label, body) => {
-    expect(jsonResult(body)).toEqual({ content: [{ type: 'text', text: JSON.stringify(body, null, 2) }] });
+    expect(jsonResult(body)).toEqual({ content: [{ type: 'text', text: JSON.stringify(body) }] });
   });
 });
 
@@ -396,7 +397,8 @@ describe('a keyed-only client: a refusal stays a refusal', () => {
     const broken: string[] = [];
     for (const tool of keyed.tools) {
       const result = await call(keyed.client, tool);
-      if (result.text.includes('Output validation error')) broken.push(tool.name);
+      // The wrapper answers a failed output check as internal_error, so the SDK's own text is gone.
+      if (result.text.includes('Output validation error') || result.text.includes('"error":"internal_error"')) broken.push(tool.name);
       else if (result.isError && result.text.includes('user_session_required')) refused.push(tool.name);
     }
     expect(broken).toEqual([]);

@@ -5,6 +5,7 @@ import { HttpClient } from './http.js';
 import { accessNoticeFor, serverInstructions, type AccessContext } from './authBoundary.js';
 import { annotationsFor } from './toolAnnotations.js';
 import { outputSchemaFor } from './output-schema.js';
+import { installToolCallWrapper } from './toolCallWrapper.js';
 
 import { registerTools as registerVerifications } from './tools/verifications.js';
 import { registerTools as registerVerificationRequests } from './tools/verification-requests.js';
@@ -93,7 +94,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
       // `src/__tests__/drift/delegation-publication.test.ts` (h-npm-registry-release). If this is
       // ever replaced by a real read, delete the pin in the same change: a pin over a derived
       // value guards nothing.
-      version: '1.7.2',
+      version: '1.8.0',
     },
     { instructions: serverInstructions(access) },
   );
@@ -105,7 +106,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
    * `(name, description, inputShape, handler)`, or `(name, description, handler)` for a tool with no
    * input — and it registers through `server.registerTool`, the only SDK call that accepts an
    * `outputSchema` (`m-mcp-tool-output-schemas`). Three things are added in this ONE place rather
-   * than in 174 registrations:
+   * than in each registration:
    *
    * - the access notice (`h-fix-mcp-agent-facing-text`, SC-1). Editing every description by hand
    *   would have put the same sentence in every one, drifting one tool at a time, and each copy
@@ -171,6 +172,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
   registerAuthFlows(tool, http);
   registerAccounts(tool, http);
   registerRenderAuthLink(tool);
+  installToolCallWrapper(server);
 
   return { server, http, toolNames };
 }

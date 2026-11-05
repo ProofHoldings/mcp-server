@@ -578,6 +578,7 @@ describe('HttpClient public mode (no API key)', () => {
     ['GET', '/api/v1/auth/sessions/auth_abc'],
     ['POST', '/api/v1/accounts'],
     ['GET', '/api/v1/accounts/auth_abc'],
+    ['GET', '/api/v1/proofs/delegation-token/ph_dlg_0123456789abcdef0123456789abcdef'],
   ])('reaches the network without a key on the public pair %s %s', async (method, path) => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ ok: true }));
 
@@ -620,6 +621,8 @@ describe('HttpClient public mode (no API key)', () => {
   it.each([
     ['GET', '/api/v1/auth/sessions'],
     ['DELETE', '/api/v1/auth/sessions/sess_abc'],
+    ['GET', '/api/v1/proofs/ph_ctl_0123456789abcdef0123456789abcdef/token'],
+    ['GET', '/api/v1/proofs'],
   ])('does NOT treat %s %s as public despite the shared path prefix', async (method, path) => {
     // Negative control for the pair-matching rule: both of these start with the public
     // `/api/v1/auth/sessions` prefix but are `jwt+api_key` routes. A prefix-only list would

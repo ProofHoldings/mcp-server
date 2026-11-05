@@ -1,6 +1,6 @@
 # @proof-holdings/mcp-server
 
-MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 176 tools for AI agents to create verifications, validate proofs, manage assets, and more.
+MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 179 tools for AI agents to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect
 
@@ -15,7 +15,8 @@ Authentication happens in the browser the first time a tool needs an account. As
 
 ⚠️ **Versions before `1.1.0` predate the delegation tools and the keyless public mode** and expose
 an older, smaller surface than this README describes. If a client is pinned to `1.0.0`, upgrade it
-or use the hosted server above. `GET /api/v1/mcp/connect` always serves the current instructions.
+or use the hosted server above. The current instructions are always at
+<https://proof.holdings/md/docs/mcp.md>.
 
 **Local — this package.** Installs and runs as a stdio server:
 
@@ -104,7 +105,7 @@ Config file location by client:
 Keep the scoped `npx -y @proof-holdings/mcp-server` command even after a global install. A bare command
 name is looked up on `PATH`, or by `npx` in the npm registry, where it can belong to someone else's package.
 
-## Tools (176 tools)
+## Tools (179 tools)
 
 Group totals are exact. The tables name the tools you are most likely to reach for rather than all
 of them — your MCP client's own `tools/list` is the complete, current list, and it is the one this
@@ -196,7 +197,7 @@ the ones you select. A signing secret is returned only on create and on rotate �
 | `rotate_webhook_endpoint_secret` | Replace an endpoint's signing secret |
 | `rotate_callback_secret` | Replace a sub-account's callback signing secret |
 
-### Delegations & proofs (10 tools)
+### Delegations & proofs (13 tools)
 
 | Tool | Description |
 |---|---|
@@ -206,6 +207,9 @@ the ones you select. A signing secret is returned only on create and on rotate �
 | `validate_proof` | Verify a signed proof token (no key needed) |
 | `get_proof_status` | Read a proof's status by its public handle |
 | `list_revoked_proofs` | Read the revocation list (no key needed) |
+| `get_proof_token` | Fetch the current (re-signed) token of a proof you own (not one of your own verified assets: that is read in the dashboard) |
+| `list_reissued_proofs` | List your proofs re-signed since an instant, except those of your own verified assets |
+| `get_delegation_token` | Fetch an active delegation's current token by handle (no key needed) |
 
 ### Sign-in & sessions (9 tools)
 
@@ -269,15 +273,17 @@ namespaced `_meta` key `holdings.proof/delegation`:
 ```
 
 The token is an ES256 JWT minted by [proof.holdings](https://proof.holdings) attesting exactly
-one thing: **the controller of the `principal` domain authorized the `delegate` artifact for the
-listed scopes.** It is not a statement that the server is safe, audited, or endorsed. A verifier
-checks the signature against the issuer JWKS, then compares `principal` and `delegate` to facts
-it resolved itself — a token copied into another package fails that comparison, because its
-`delegate` names the genuine artifact. Details: [Delegations — API reference](https://proof.holdings/docs/api#delegations).
+one thing: **the controller of the `principal` domain authorized the `delegate` artifact.** It is
+not a statement that the server is safe, audited, or endorsed. A verifier checks the signature
+against the issuer JWKS, then compares `principal` and `delegate` to facts it resolved itself —
+a token copied into another package fails that comparison, because its `delegate` names the
+genuine artifact. Details: [Delegations — API reference](https://proof.holdings/docs/api#delegations).
 
-When the card is published through the official MCP registry, the same entry is nested under
-`_meta["io.modelcontextprotocol.registry/publisher-provided"]` — readers should check both
-locations.
+A card published through the official MCP registry must carry the entry under
+`_meta["io.modelcontextprotocol.registry/publisher-provided"]` (the registry drops every other
+`_meta` key), so readers check both locations. This package's own card carries only the top-level
+key, so its registry entry carries no delegation; the website card
+`https://proof.holdings/.well-known/mcp/server-card.json` does.
 
 Maintainers: the entry is written by the fail-closed publish tool, never by hand — from the
 repository root, after the delegation is minted for `pkg:npm/@proof-holdings/mcp-server`:
@@ -285,8 +291,7 @@ repository root, after the delegation is minted for `pkg:npm/@proof-holdings/mcp
 ```bash
 npm run delegation:publish -- --target mcp --token <jwt>
 # or mint + publish in one step (needs PROOF_API_KEY):
-npm run delegation:publish -- --target mcp --mint \
-  --control-proof ph_ctl_<32hex> --scope proof-verification
+npm run delegation:publish -- --target mcp --mint --control-proof ph_ctl_<32hex>
 ```
 
 The tool refuses any token whose claims do not name this exact package with
@@ -340,7 +345,7 @@ not scale — `verify_delegations` batch-checks up to 50 in a single call, also 
 ```
 
 Each item takes exactly the shape `verify_delegation` requires (`card` XOR `token`, `delegate`,
-`expected_principal`, optional `required_scopes`) and is verified **independently** — no
+`expected_principal`) and is verified **independently** — no
 cross-item state, nothing persisted, and one item failing never affects another item's result.
 Revocation is always checked (there is no `check_status: false` on this tool — the entire point
 of a batch re-check is to see what changed).
@@ -360,7 +365,7 @@ Each result in `results[]` carries an `outcome`, one of four buckets:
 | Outcome | Meaning |
 | --- | --- |
 | `confirmed_valid` | The delegation verified — same meaning as `verify_delegation`'s `verified: true`. |
-| `confirmed_invalid` | A genuine negative verdict: revoked, suspended, expired, a mismatched principal or delegate, an ungranted scope, or a malformed/untrusted/badly-signed token. |
+| `confirmed_invalid` | A genuine negative verdict: revoked, suspended, expired, a mismatched principal or delegate, a token of schema 1.x (`unsupported_version`), or a malformed/untrusted/badly-signed token. |
 | `no_claim_found` | The artifact publishes no delegation at all. An absence, never an accusation. |
 | `unconfirmed` | We could not reach the issuer or otherwise get a confident answer right now (e.g. its JWKS or status endpoint is unreachable). **Never treat this as a bad verdict** — it means "ask again later", not "revoked". |
 

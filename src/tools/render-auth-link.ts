@@ -29,8 +29,8 @@ export function registerTools(tool: ToolRegistrar) {
         return {
           content: [{ type: 'text' as const, text: parts.join('\n') }],
         };
-      } catch (e) {
-        return errorResult(`Failed to render QR code: ${e instanceof Error ? e.message : String(e)}`);
+      } catch {
+        return errorResult('internal_error: Could not render the QR code for this link.');
       }
     },
   );

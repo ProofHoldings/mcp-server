@@ -81,11 +81,10 @@ async function signDelegation(key: TestKey, overrides: Record<string, unknown> =
     iat: now - 60,
     exp: now + 3600,
     token_type: 'delegation',
-    delegation_schema_version: '1.0',
+    delegation_schema_version: '2.0',
     user_id: 'user-1',
     principal: 'postmarkapp.com',
     delegate: 'pkg:npm/postmark-mcp',
-    scope: ['send-email'],
     control_proof: 'ph_ctl_00000000000000000000000000000002',
     proof_id: 'ph_dlg_00000000000000000000000000000001',
     jti: 'ph_jti_00000000000000000000000000000003',
@@ -173,7 +172,8 @@ describe('verify_delegation registration', () => {
     // verdict without this pin would mean "some domain claims this".
     const schema = verifyTool().schema as Record<string, { isOptional?: () => boolean }>;
     expect(schema.expected_principal.isOptional?.()).toBe(false);
-    expect(schema.required_scopes.isOptional?.()).toBe(true);
+    // Delegation schema 2.0 carries no scope, so there is nothing to require.
+    expect(schema).not.toHaveProperty('required_scopes');
   });
 });
 
@@ -196,8 +196,27 @@ describe('verify_delegation behaviour', () => {
     expect(body.verified).toBe(true);
     expect(body.status_checked).toBe(true);
     expect(body.principal_checked).toBe(true);
-    expect(body.attests).toBe('postmarkapp.com authorized pkg:npm/postmark-mcp for: send-email');
+    expect(body.attests).toBe('postmarkapp.com authorized pkg:npm/postmark-mcp');
+    expect(body.delegation).not.toHaveProperty('scope');
     expect(body.disclaimer).toMatch(/not a statement that the artifact is safe/i);
+  });
+
+  it('reports a schema-1.x token as unsupported_version, a confirmed negative', async () => {
+    const token = await signDelegation(key, { delegation_schema_version: '1.0', scope: ['send-email'] });
+    const net = routedFetch({ [JWKS_URI]: { keys: [key.publicJwk] } });
+    vi.stubGlobal('fetch', net.impl);
+
+    const result = await verifyTool().handler({
+      token,
+      delegate: { type: 'purl', value: 'pkg:npm/postmark-mcp' },
+      expected_principal: 'postmarkapp.com',
+    });
+
+    const body = parse(result);
+    expect(body.verified).toBe(false);
+    expect(body.reason).toBe('unsupported_version');
+    expect(body.outcome).toBe('invalid');
+    expect(net.calls).toEqual([]);
   });
 
   it('verifies a raw token without a card', async () => {
@@ -316,6 +335,30 @@ describe('verify_delegation behaviour', () => {
 
     expect(parse(result).reason).toBe('untrusted_issuer');
     expect(net.calls).toEqual([]);
+  });
+
+  it('answers an unexpected failure with its own sentence, not the exception text', async () => {
+    const card = {};
+    Object.defineProperty(card, '_meta', {
+      enumerable: true,
+      get() {
+        throw new Error('MARKER_socket hang up 10.0.0.5:443');
+      },
+    });
+
+    const result = await verifyTool().handler({
+      card,
+      delegate: { type: 'purl', value: 'pkg:npm/x' },
+      expected_principal: 'example.com',
+    });
+
+    expect(result.isError).toBe(true);
+    expect(parse(result)).toEqual({
+      error: 'verification_failed',
+      message: 'The delegation could not be checked because of an unexpected error.',
+      retryable: false,
+    });
+    expect(JSON.stringify(result)).not.toContain('MARKER');
   });
 
   it('rejects a call that supplies neither card nor token', async () => {

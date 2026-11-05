@@ -36,9 +36,11 @@ export const KEYLESS_TOOLS: ReadonlySet<string> = new Set([
   'wait_for_account_creation',
   'start_login',
   'wait_for_login',
-  // Public verification surface: checking somebody else's proof is not an account operation.
+  // Public verification surface: checking somebody else's proof is not an account operation, and
+  // neither is pulling a delegation token that is already published with the delegation.
   'validate_proof',
   'list_revoked_proofs',
+  'get_delegation_token',
   'verify_delegation',
   'verify_delegations',
   // Local computation, no HTTP at all.
@@ -211,8 +213,8 @@ export function serverInstructions(context: AccessContext): string {
   // DERIVED from the set rather than retyped beside it: the keyless surface has widened three times
   // in this epic, and a prose list would go on claiming an account is needed for a tool that needs
   // none, with every gate green. Nothing hand-written describes the set either — a sentence
-  // categorising what these tools "cover" is true of today's ten and silently false of the
-  // eleventh, which is the same drift one clause later.
+  // categorising what these tools "cover" is true of today's set and silently false of the
+  // next tool added to it, which is the same drift one clause later.
   const keyless = [...KEYLESS_TOOLS].sort().join(', ');
 
   // The 401 paragraph is REMOTE-ONLY. On stdio there is no HTTP layer to answer 401: the refusal is
@@ -267,13 +269,19 @@ export function authorizationChallenge(baseUrl: string): string {
   return `Bearer realm="proof", resource_metadata="${resourceMetadataUrl(baseUrl)}"`;
 }
 
+/**
+ * The public MCP docs page (`web/public/md/docs/mcp.md`). Fixed rather than built from the server's
+ * base URL: that is the API host, which serves no `/md/` page.
+ */
+export const CONNECT_INSTRUCTIONS_URL = 'https://proof.holdings/md/docs/mcp.md';
+
 export interface AuthorizationRequiredBody {
   error: 'authorization_required';
   error_description: string;
   /**
-   * `GET /api/v1/mcp/connect` — the machine-readable connection document, for the CLIENT. It was
-   * called `login_url` until a human opened it in a browser expecting a sign-in page and got raw
-   * JSON. There is no page that connects an MCP client: connecting happens inside the client.
+   * `CONNECT_INSTRUCTIONS_URL` — how to connect a client, as plain text. It was called `login_url`
+   * until a human opened it in a browser expecting a sign-in page. There is no page that connects an
+   * MCP client: connecting happens inside the client.
    */
   connect_instructions_url: string;
   /**
@@ -315,13 +323,12 @@ export function malformedToolCallBody(): { error: 'invalid_request'; error_descr
  * the entire instruction, which is why it names the action twice over rather than reporting a
  * state.
  *
- * `connect_instructions_url` is the existing public `GET /api/v1/mcp/connect` (`h-mcp-showcase`) rather than a new
- * address. Nothing here makes a network call: `start_login` would be the more direct link, but it
- * CREATES a login session, so calling it from a 401 handler would hand any anonymous caller a
- * generator of Redis entries. It is named in the text instead, for clients that cannot speak OAuth
- * at all.
+ * `connect_instructions_url` is the public MCP docs page. Nothing here makes a network call:
+ * `start_login` would be the more direct link, but it CREATES a login session, so calling it from a
+ * 401 handler would hand any anonymous caller a generator of Redis entries. It is named in the text
+ * instead, for clients that cannot speak OAuth at all.
  */
-export function authorizationRequiredBody(baseUrl: string, tool: string): AuthorizationRequiredBody {
+export function authorizationRequiredBody(_baseUrl: string, tool: string): AuthorizationRequiredBody {
   const sessionReaches = SESSION_TOOLS.has(tool);
   return {
     error: 'authorization_required',
@@ -331,7 +338,7 @@ export function authorizationRequiredBody(baseUrl: string, tool: string): Author
       'no web page for it. In Claude Code: /mcp → this server → Authenticate, or `claude mcp login ' +
       '<server>` in a separate terminal window (it needs an interactive terminal). Then repeat the ' +
       'call yourself.',
-    connect_instructions_url: `${baseUrl.replace(/\/+$/, '')}/api/v1/mcp/connect`,
+    connect_instructions_url: CONNECT_INSTRUCTIONS_URL,
     keyless_alternative: sessionReaches
       ? 'No OAuth support in your client? Call start_login — it returns a sign-in link, and ' +
         'render_auth_link turns that link into a QR code — then wait_for_login. This tool works over ' +

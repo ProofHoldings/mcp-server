@@ -457,13 +457,16 @@ describe('proofs tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 4 proof tools', () => {
+  it('registers all 7 proof tools', () => {
     const names = tools.map(t => t.name);
     expect(names).toContain('validate_proof');
     expect(names).toContain('get_proof_status');
     expect(names).toContain('revoke_proof');
     expect(names).toContain('list_revoked_proofs');
-    expect(tools).toHaveLength(4);
+    expect(names).toContain('get_proof_token');
+    expect(names).toContain('list_reissued_proofs');
+    expect(names).toContain('get_delegation_token');
+    expect(tools).toHaveLength(7);
   });
 
   it('validate_proof calls POST with token', async () => {
@@ -506,6 +509,69 @@ describe('proofs tools', () => {
     await tool.handler({});
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/proofs/revoked');
+  });
+
+  it('get_proof_token calls GET on the encoded handle and returns the token', async () => {
+    const pulled = { proof_id: 'ph_ctl_x', token: 'eyJ.re-signed', status: 'active', reissued_at: null, expires_at: '2027-01-01T00:00:00.000Z' };
+    http.get.mockResolvedValueOnce(pulled);
+    const tool = findTool(tools, 'get_proof_token');
+    const result = await tool.handler({ id: 'ph_ctl/x&y' }) as { content: { text: string }[] };
+
+    expect(http.get).toHaveBeenCalledWith('/api/v1/proofs/ph_ctl%2Fx%26y/token');
+    expect(JSON.parse(result.content[0].text)).toEqual(pulled);
+  });
+
+  it('get_proof_token surfaces proof_not_live as a tool error', async () => {
+    http.get.mockRejectedValueOnce(new ApiError('Proof is revoked', 'proof_not_live', 410));
+    const tool = findTool(tools, 'get_proof_token');
+    const result = await tool.handler({ id: 'ph_ctl_x' }) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('proof_not_live');
+  });
+
+  it('list_reissued_proofs sends reissued_since and only the paging it was given', async () => {
+    http.get.mockResolvedValue({ data: [], pagination: { page: 1, limit: 20, total: 0, total_pages: 0 } });
+    const tool = findTool(tools, 'list_reissued_proofs');
+
+    await tool.handler({ since: '2026-10-01T00:00:00Z' });
+    expect(http.get).toHaveBeenLastCalledWith('/api/v1/proofs', { reissued_since: '2026-10-01T00:00:00Z' });
+
+    await tool.handler({ since: '2026-10-01T03:00:00+03:00', page: 2, limit: 50 });
+    expect(http.get).toHaveBeenLastCalledWith('/api/v1/proofs', {
+      reissued_since: '2026-10-01T03:00:00+03:00',
+      page: 2,
+      limit: 50,
+    });
+  });
+
+  it('list_reissued_proofs refuses an instant without an offset in its input schema', () => {
+    const tool = findTool(tools, 'list_reissued_proofs');
+    const since = tool.schema.since as unknown as { safeParse: (v: unknown) => { success: boolean } };
+
+    expect(since.safeParse('2026-10-01T00:00:00Z').success).toBe(true);
+    expect(since.safeParse('2026-10-01T03:00:00+03:00').success).toBe(true);
+    expect(since.safeParse('2026-10-01T00:00:00').success).toBe(false);
+  });
+
+  it('get_delegation_token calls GET on the encoded public pull', async () => {
+    http.get.mockResolvedValueOnce({ token: 'eyJ.delegation' });
+    const tool = findTool(tools, 'get_delegation_token');
+    const result = await tool.handler({ handle: 'ph_dlg/x&y' }) as { content: { text: string }[] };
+
+    expect(http.get).toHaveBeenCalledWith('/api/v1/proofs/delegation-token/ph_dlg%2Fx%26y');
+    expect(JSON.parse(result.content[0].text)).toEqual({ token: 'eyJ.delegation' });
+  });
+
+  it('get_delegation_token refuses a handle a URL parser would collapse out of the path', () => {
+    const tool = findTool(tools, 'get_delegation_token');
+    const handle = tool.schema.handle as unknown as { safeParse: (v: unknown) => { success: boolean } };
+
+    expect(handle.safeParse('ph_dlg_0123456789abcdef0123456789abcdef').success).toBe(true);
+    expect(handle.safeParse('...').success).toBe(true);
+    expect(handle.safeParse('').success).toBe(false);
+    expect(handle.safeParse('.').success).toBe(false);
+    expect(handle.safeParse('..').success).toBe(false);
   });
 });
 
@@ -1891,7 +1957,7 @@ describe('user requests tools', () => {
       isError?: boolean; content: Array<{ text: string }>;
     };
     expect(result.isError).toBe(true);
-    expect(result.content[0].text).toMatch(/^missing_action_context: /);
+    expect(JSON.parse(result.content[0].text)).toMatchObject({ error: 'missing_action_context', retryable: false });
     expect(http.post).not.toHaveBeenCalled();
   });
 
@@ -2444,6 +2510,25 @@ describe('render-auth-link tools', () => {
     const tool = findTool(tools, 'render_auth_link');
     const result = await tool.handler({ url: 'https://example.com' }) as { isError?: boolean };
     expect(result.isError).toBeUndefined();
+  });
+
+  it('answers a QR failure with its own sentence, not the exception text', async () => {
+    const QRCode = (await import('qrcode')).default;
+    const spy = vi.spyOn(QRCode, 'toString').mockRejectedValueOnce(new Error('MARKER_ENOMEM /tmp/qr') as never);
+    try {
+      const tool = findTool(tools, 'render_auth_link');
+      const result = await tool.handler({ url: 'https://example.com' }) as { isError?: boolean; content: { text: string }[] };
+
+      expect(result.isError).toBe(true);
+      expect(JSON.parse(result.content[0].text)).toEqual({
+        error: 'internal_error',
+        message: 'Could not render the QR code for this link.',
+        retryable: false,
+      });
+      expect(JSON.stringify(result)).not.toContain('MARKER');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('description documents agent usage and render_auth_link purpose', () => {
@@ -3087,7 +3172,6 @@ describe('delegations tools', () => {
     const args = {
       control_proof: PH_CTL,
       delegate: { type: 'purl', value: 'pkg:npm/@postmark/mcp' },
-      scope: ['email:send'],
     };
     await tool.handler(args);
 
@@ -3096,7 +3180,7 @@ describe('delegations tools', () => {
 
   it('create_delegation schema pins the control proof and delegate shapes', () => {
     const tool = findTool(tools, 'create_delegation');
-    expect(Object.keys(tool.schema)).toEqual(['control_proof', 'delegate', 'scope', 'expires_in']);
+    expect(Object.keys(tool.schema)).toEqual(['control_proof', 'delegate', 'expires_in']);
   });
 
   it('list_delegations calls GET /api/v1/delegations with a filtered query', async () => {
@@ -3169,6 +3253,57 @@ describe('public mode tool behaviour (real keyless HttpClient)', () => {
       isError?: boolean;
       content: { text: string }[];
     };
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('api_key_required');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('get_delegation_token reaches the public pull with no key and no Authorization header', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ token: 'eyJ.delegation' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const mod = await import('../src/tools/proofs.js');
+    const tools = captureTools(mod.registerTools, keylessHttp());
+
+    const result = await findTool(tools, 'get_delegation_token').handler({
+      handle: 'ph_dlg_0123456789abcdef0123456789abcdef',
+    }) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBeUndefined();
+    expect(JSON.parse(result.content[0].text)).toEqual({ token: 'eyJ.delegation' });
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, options] = fetchMock.mock.calls[0];
+    expect(String(url)).toBe(
+      'https://api.proof.holdings/api/v1/proofs/delegation-token/ph_dlg_0123456789abcdef0123456789abcdef',
+    );
+    expect('Authorization' in options.headers).toBe(false);
+  });
+
+  it('get_proof_token still needs a key in public mode', async () => {
+    const mod = await import('../src/tools/proofs.js');
+    const tools = captureTools(mod.registerTools, keylessHttp());
+
+    const result = await findTool(tools, 'get_proof_token').handler({
+      id: 'ph_ctl_0123456789abcdef0123456789abcdef',
+    }) as { isError?: boolean; content: { text: string }[] };
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain('api_key_required');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('list_reissued_proofs still needs a key in public mode', async () => {
+    const mod = await import('../src/tools/proofs.js');
+    const tools = captureTools(mod.registerTools, keylessHttp());
+
+    const result = await findTool(tools, 'list_reissued_proofs').handler({
+      since: '2026-10-01T00:00:00Z',
+    }) as { isError?: boolean; content: { text: string }[] };
 
     expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('api_key_required');

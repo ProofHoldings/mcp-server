@@ -562,6 +562,14 @@
       "id": "path"
     }
   },
+  "get_delegation_token": {
+    "operations": [
+      "GET /api/v1/proofs/delegation-token/{handle}"
+    ],
+    "inputs": {
+      "handle": "path"
+    }
+  },
   "get_dns_providers": {
     "operations": [
       "GET /api/v1/me/dns-providers"
@@ -642,6 +650,14 @@
   "get_proof_status": {
     "operations": [
       "GET /api/v1/proofs/{id}/status"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_proof_token": {
+    "operations": [
+      "GET /api/v1/proofs/{id}/token"
     ],
     "inputs": {
       "id": "path"
@@ -922,6 +938,16 @@
       "GET /api/v1/me/profiles"
     ],
     "inputs": {}
+  },
+  "list_reissued_proofs": {
+    "operations": [
+      "GET /api/v1/proofs"
+    ],
+    "inputs": {
+      "limit": "query",
+      "page": "query",
+      "reissued_since": "query"
+    }
   },
   "list_revoked_proofs": {
     "operations": [

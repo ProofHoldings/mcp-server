@@ -2843,7 +2843,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "delegate": {
           "description": "Typed delegate identifier"
         },
-        "scope": {},
+        "scope": {
+          "description": "Deprecated. Delegation schema 2.0 carries no scope; this array stays for the SDKs released before it: the scope a delegation issued before schema 2.0 was stored with, otherwise empty. Removed in the next major version."
+        },
         "control_proof": {
           "description": "The control proof handle this delegation points down to"
         },
@@ -6010,7 +6012,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "delegate": {
           "description": "Typed delegate identifier"
         },
-        "scope": {},
+        "scope": {
+          "description": "Deprecated. Delegation schema 2.0 carries no scope; this array stays for the SDKs released before it: the scope a delegation issued before schema 2.0 was stored with, otherwise empty. Removed in the next major version."
+        },
         "control_proof": {
           "description": "The control proof handle this delegation points down to"
         },
@@ -6035,6 +6039,25 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "True only when `effective_status` is `active`. It is a restatement of that field, not a second opinion: expiry is decided once, inside the derivation above"
         }
       }
+    }
+  },
+  "get_delegation_token": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/proofs/delegation-token/{handle} 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "The delegation token as stored now — the one to publish in place of an older copy"
+        }
+      },
+      "required": [
+        "token"
+      ],
+      "description": "The current token of an active delegation"
     }
   },
   "get_dns_providers": {
@@ -7360,6 +7383,47 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
+  "get_proof_token": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/proofs/{id}/token 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "proof_id": {
+          "type": "string",
+          "description": "Public proof handle (`ph_ctl_<32 hex>`)"
+        },
+        "token": {
+          "type": "string",
+          "description": "The proof token as stored now. After a key rotation it is the re-signed token under a newer `kid`: every claim is kept except `iat`, which is the re-signing time, and a token issued before schema 1.2 also gains the `jti` and `proof_id` its registry row records."
+        },
+        "status": {
+          "type": "string",
+          "description": "Live statuses only — a revoked or expired proof answers 410 `proof_not_live` instead"
+        },
+        "reissued_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the token was last re-signed under a newer key; null if it never was"
+        },
+        "expires_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "proof_id",
+        "token",
+        "status",
+        "reissued_at",
+        "expires_at"
+      ],
+      "description": "The current token of a proof you own. Served with `Cache-Control: no-store`; each read is audited."
+    }
+  },
   "get_request_by_reference": {
     "precision": "described",
     "operations": [
@@ -8259,7 +8323,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "event_type": {
           "type": "string",
-          "description": "Type of webhook event. `proof.suspended`/`proof.unsuspended` fire for a delegation (`ph_dlg_*`) lifecycle act on the account's own configured webhook_url — not a channel to a separately-addressed delegate (h-fix-delegation-suspend-governance)."
+          "description": "Type of webhook event. `proof.suspended`/`proof.unsuspended` fire for a delegation (`ph_dlg_*`) lifecycle act on the account's own configured webhook_url — not a channel to a separately-addressed delegate (h-fix-delegation-suspend-governance). `proof.reissued`/`delegation.reissued` say a stored token was re-signed under a new key: a reference only (`proof_id` or `handle`, `kid`, `reissued_at`, `token_url`, and the `profile_id` every body carries), never the token; `proof.*` does not cover `delegation.reissued`."
         },
         "url": {
           "type": "string"
@@ -10627,6 +10691,62 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "The account's sub-accounts, as their owner sees them"
     }
   },
+  "list_reissued_proofs": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/proofs 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "proof_id": {
+                "type": "string"
+              },
+              "reissued_at": {
+                "type": "string"
+              },
+              "token_url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "proof_id",
+              "reissued_at",
+              "token_url"
+            ]
+          }
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer"
+            },
+            "limit": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            },
+            "total_pages": {
+              "type": "integer"
+            }
+          },
+          "description": "Pagination info in list responses"
+        }
+      },
+      "required": [
+        "data",
+        "pagination"
+      ],
+      "description": "Your proofs re-issued at or after `reissued_since`, oldest first"
+    }
+  },
   "list_revoked_proofs": {
     "precision": "proven",
     "operations": [
@@ -12101,7 +12221,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "delegate": {
           "description": "Typed delegate identifier"
         },
-        "scope": {},
+        "scope": {
+          "description": "Deprecated. Delegation schema 2.0 carries no scope; this array stays for the SDKs released before it: the scope a delegation issued before schema 2.0 was stored with, otherwise empty. Removed in the next major version."
+        },
         "control_proof": {
           "description": "The control proof handle this delegation points down to"
         },
@@ -14669,7 +14791,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "reason": {
           "type": "string",
-          "description": "Failure reason: expired, revoked, suspended (a reversible pause — the owner can lift it), invalid, identifier_mismatch (the supplied identifier is not what this proof is about), or identifier_unverifiable (the proof's hash is derived from ciphertext, so no identifier can be bound to it)"
+          "description": "Failure reason: expired, revoked, suspended (a reversible pause — the owner can lift it), invalid (for a token signed by a current registry key this includes a token the issuer has no record of issuing), superseded (the proof was verified again and this token was replaced by a newer one for the same proof — use the newer token; offline verification does not see this), key_revoked (the token names a signing key the issuer has revoked; decided from its `kid` before the signature is checked, so it does not vouch for the token — a genuine holder fetches a re-signed one), identifier_mismatch (the supplied identifier is not what this proof is about), or identifier_unverifiable (the proof's hash is derived from ciphertext, so no identifier can be bound to it)"
         },
         "suspended_at": {
           "type": "string",
@@ -14734,7 +14856,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "required": [
         "valid"
       ],
-      "description": "Proof validation result. Returns verification details when valid, or reason/message when invalid. A DELEGATION token answers with `token_type: \"delegation\"` and the `delegation` block instead of `verification`; its status resolves the cascade down to the domain control proof, which neither the status list (it packs each row's own bit) nor an offline signature check can show. Delegation-specific reasons: `unknown_delegation` (no registry record — delegations are minted fail-closed, so this is invalid, not merely unresolvable), `status_unavailable`, and `identifier_unverifiable` when an `identifier` binding is requested for a delegation."
+      "description": "Proof validation result. Returns verification details when valid, or reason/message when invalid. A DELEGATION token answers with `token_type: \"delegation\"` and the `delegation` block instead of `verification`; its status resolves the cascade down to the domain control proof, which neither the status list (it packs each row's own bit) nor an offline signature check can show. Delegation-specific reasons: `unknown_delegation` (no registry record — delegations are minted fail-closed, so this is invalid, not merely unresolvable), `unsupported_version` (a delegation token of a schema major the issuer no longer accepts — 1.x after 2.0; its owner re-issues it), `status_unavailable`, and `identifier_unverifiable` when an `identifier` binding is requested for a delegation."
     }
   },
   "verify_2fa": {

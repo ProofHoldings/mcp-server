@@ -16,14 +16,13 @@ const revokeReasonEnum = z.enum(['user_request', 'fraud', 'key_compromise', 'oth
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'create_delegation',
-    'Create a delegation (Proof of Delegation): a control-proven domain authorizes a typed url/purl artifact for a set of capability scopes and receives a publishable signed token. The attestation is that the domain\'s controller authorized this artifact — nothing more; it says nothing about the artifact or the business behind it. Each mint is a billable proof. A requested lifetime longer than the control proof\'s remainder is rejected, never truncated. The result carries the publishable token AND the DERIVED effective_status/is_valid — the same pair the list and get tools return, so the shape does not depend on which verb produced it.',
+    'Create a delegation (Proof of Delegation): a control-proven domain authorizes a typed url/purl artifact and receives a publishable signed token. The attestation is that the domain\'s controller authorized this artifact — nothing more; it says nothing about the artifact or the business behind it. Each mint is a billable proof. A requested lifetime longer than the control proof\'s remainder is rejected, never truncated. The result carries the publishable token AND the DERIVED effective_status/is_valid — the same pair the list and get tools return, so the shape does not depend on which verb produced it.',
     {
       control_proof: z.string().regex(CONTROL_PROOF_REGEX).describe('Public handle (ph_ctl_<32 hex>) of YOUR active domain control proof'),
       delegate: z.object({
         type: delegateTypeEnum.describe('Identifier type: https URL or package URL (purl)'),
         value: z.string().min(1).max(2048).describe('The artifact identifier (canonicalized server-side)'),
       }).describe('The typed artifact being authorized'),
-      scope: z.array(z.string().min(1).max(64)).min(1).max(32).describe('1-32 capability scopes: lowercase kebab-case tokens, at most 64 characters each (e.g. send-email). NOT API scopes — an API-style resource:action such as payments:read is rejected with invalid_scope.'),
       expires_in: z.number().int().positive().max(10 * 365 * 24 * 3600).optional().describe('Lifetime in seconds (must not exceed the control proof\'s remainder)'),
     },
     async (args) => {

@@ -4,8 +4,8 @@
  * `Record<FailureReason, FailureOutcome>` already makes an unmapped reason a COMPILE error, but
  * `FailureReason` is a type — erased at runtime — so nothing here can iterate it directly. This
  * reads `packages/delegation-verifier/src/types.ts` as TEXT (the same technique
- * `drift/delegation-scope-grammar.test.ts` and `drift/delegation-pointer-format.test.ts` already
- * use for a cross-package fact `mcp/` cannot import) and requires every literal in the union to
+ * `drift/delegation-pointer-format.test.ts` already uses for a cross-package fact `mcp/` cannot
+ * import) and requires every literal in the union to
  * be a mapped key, so a reason added to the shared package later and left unmapped here fails
  * this test — not silently, and not only at compile time for whoever next touches this file.
  */

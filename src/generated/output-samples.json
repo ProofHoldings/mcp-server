@@ -1855,6 +1855,45 @@
       "delegations": []
     }
   ],
+  "GET /api/v1/proofs 200": [
+    {
+      "data": [
+        {
+          "proof_id": "ph_ctl_00000000000000000000000000000000",
+          "reissued_at": "2026-01-01T00:00:00.000Z",
+          "token_url": "token_url-sample"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total": 1,
+        "total_pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/proofs/{id}/token 200": [
+    {
+      "proof_id": "ph_ctl_00000000000000000000000000000000",
+      "token": "token-sample",
+      "status": "active",
+      "reissued_at": "2026-01-01T00:00:00.000Z",
+      "expires_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/proofs/{id}/token 403": [
+    {
+      "error": {
+        "code": "owner_session_required",
+        "message": "The token of a proof for one of your own verified assets is read by the signed-in owner, not with an API key."
+      }
+    }
+  ],
+  "GET /api/v1/proofs/delegation-token/{handle} 200": [
+    {
+      "token": "token-sample"
+    }
+  ],
   "GET /api/v1/proofs/revoked 200": [
     {
       "revoked": [
@@ -1871,7 +1910,7 @@
       "has_more": false,
       "status_list_uri": "http://localhost:3001/api/v1/proofs/status-list",
       "signature": "signature-sample",
-      "kid": "proof-holdings-2026-01"
+      "kid": "sts-ephemeral-00000000"
     }
   ],
   "GET /api/v1/templates 200": [

@@ -61,9 +61,31 @@ export function parseJsonResult(result: ToolResult): unknown {
   return JSON.parse(result.content[0].text);
 }
 
-export function parseErrorResult(result: ToolResult): string {
+export interface ErrorEnvelope {
+  error: string;
+  message: string;
+  retryable: boolean;
+}
+
+export function parseErrorResult(result: ToolResult): ErrorEnvelope {
   expect(result.isError).toBe(true);
   expect(result.content).toHaveLength(1);
   expect(result.content[0].type).toBe('text');
-  return result.content[0].text;
+  const text = result.content[0].text;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    parsed = undefined;
+  }
+  const envelope = parsed as Partial<ErrorEnvelope> | null | undefined;
+  if (
+    !envelope ||
+    typeof envelope.error !== 'string' ||
+    typeof envelope.message !== 'string' ||
+    typeof envelope.retryable !== 'boolean'
+  ) {
+    throw new Error(`Expected an error envelope, got: ${text}`);
+  }
+  return envelope as ErrorEnvelope;
 }

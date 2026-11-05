@@ -29,9 +29,10 @@ if (resolved.source === 'file') {
 }
 const API_KEY = resolved.apiKey;
 
-// PUBLIC MODE: no key is required to START. The bootstrap surface (create_account, start_login and
-// their polls) and the public verification surface (validate_proof, list_revoked_proofs,
-// verify_delegation*) work with no credential; every other tool answers `api_key_required` from
+// PUBLIC MODE: no key is required to START. The bootstrap surface (create_account,
+// send_account_email, start_login and their polls), the public verification surface
+// (validate_proof, list_revoked_proofs, get_delegation_token, verify_delegation*) and the local
+// render_auth_link work with no credential; every other tool answers `api_key_required` from
 // HttpClient. Exiting here instead would make trying Proof impossible without an account already
 // in hand, which is the precondition both the publisher showcase and the remote server need.
 if (!API_KEY) {

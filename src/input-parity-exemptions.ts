@@ -48,11 +48,23 @@ export const INPUT_PARITY_EXEMPTIONS: readonly InputParityExemption[] = [
     reason: 'The dashboard page a browser sign-in returns to; an agent signs in without a browser.',
   },
   {
+    tool: 'create_delegation',
+    key: 'scope',
+    side: 'spec_only',
+    reason: 'Deprecated since delegation schema 2.0: the API accepts it from the released 1.x SDKs and ignores it, so a tool offering it would invite a value that does nothing.',
+  },
+  {
     tool: 'update_settings',
     key: 'branding',
     side: 'spec_only',
     reason: 'Retired: the API answers 400 branding_moved, and branding is set on each sub-account with update_profile.',
   },
+  ...(['spec_only', 'tool_only'] as const).map((side) => ({
+    tool: 'list_reissued_proofs',
+    key: side === 'spec_only' ? 'reissued_since' : 'since',
+    side,
+    reason: 'The tool names it `since`, as each SDK\'s list-reissued method does, and sends it as the operation\'s `reissued_since`.',
+  })),
 ];
 
 /** A path segment a tool fills from an input of another name. */

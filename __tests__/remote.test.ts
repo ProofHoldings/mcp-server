@@ -405,12 +405,10 @@ describe('remote server — SC-2: the refusal names the action and carries a wor
     expect(body.error_description).toContain('get_platform_summary');
     expect(body.error_description).toContain('CALL THE TOOL AGAIN');
     expect(body.error_description).toContain('claude mcp login');
-    // Built from this server's base URL rather than hardcoded, and pointing at an endpoint that
-    // exists: `GET /api/v1/mcp/connect` is public and keyless (`h-mcp-showcase`). Named for what it
-    // IS — a JSON document for the client — after a human opened the old `login_url` in a browser
-    // expecting a sign-in page and got the raw document (h-fix-mcp-refusal-roads).
+    // The public MCP docs page. Named for what it IS — connection instructions — after a human
+    // opened the old `login_url` in a browser expecting a sign-in page (h-fix-mcp-refusal-roads).
     expect('login_url' in body).toBe(false);
-    expect(body.connect_instructions_url).toBe('https://api.proof.holdings/api/v1/mcp/connect');
+    expect(body.connect_instructions_url).toBe('https://proof.holdings/md/docs/mcp.md');
     expect(body.error_description).toContain('inside the client');
     // get_platform_summary is NOT on the session surface, so the keyless road must say it will
     // not open this tool rather than send the caller down it.

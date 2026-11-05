@@ -140,8 +140,8 @@ describe('authBoundary — SC-2: the refusal names the action and carries a link
     expect(body.error_description).toContain('inside the client');
     expect(body.error_description).toContain('terminal');
     expect('login_url' in body).toBe(false);
-    // Still built from the base URL rather than hardcoded to production.
-    expect(body.connect_instructions_url).toBe('https://api.proof.holdings/api/v1/mcp/connect');
+    // The public MCP docs page, fixed: the base URL is the API host, which serves no `/md/` page.
+    expect(body.connect_instructions_url).toBe('https://proof.holdings/md/docs/mcp.md');
   });
 
   it('offers start_login only to the tools a signed-in session actually reaches', () => {

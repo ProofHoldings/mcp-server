@@ -79,4 +79,69 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       }
     },
   );
+
+  tool(
+    'get_proof_token',
+    'Get the current token of a proof you own, by its public ph_ctl_* handle. After a signing-key rotation this is the re-signed token, which replaces any older copy you hold. Each read is audited. A revoked or expired proof answers proof_not_live; a suspended one is still served. The proof of one of the account\'s own verified assets (a domain, phone or email verified on the account itself) answers owner_session_required here whatever its status (with a live key; a test key gets not_found): this tool sends the API key, and such a token is read by the signed-in owner in the dashboard. A key bound to a sub-account reads only that sub-account\'s proofs; another\'s answers not_found. For a delegation (ph_dlg_*) use get_delegation_token or get_delegation instead.',
+    {
+      id: z.string().describe('Public proof handle (ph_ctl_<32 hex>)'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await http.get(`/api/v1/proofs/${encodeURIComponent(id)}/token`);
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'list_reissued_proofs',
+    'List your proofs whose token was re-signed at or after an instant, oldest first — what to re-fetch after a signing-key rotation, for example when a webhook was missed. Items are references {proof_id, reissued_at, token_url}, never tokens: pull a ph_ctl_* item with get_proof_token and a ph_dlg_* item with get_delegation_token. Proofs of the account\'s own verified assets are not listed here (the API key cannot read their tokens); the dashboard shows them. A key bound to a sub-account lists only that sub-account\'s proofs and the account\'s delegations.',
+    {
+      since: z
+        .string()
+        .datetime({ offset: true })
+        .describe('ISO-8601 instant with an offset, e.g. 2026-10-01T00:00:00Z'),
+      page: z.number().int().positive().optional().describe('Page number'),
+      limit: z.number().int().min(1).max(100).optional().describe('Items per page'),
+    },
+    async (args) => {
+      try {
+        const query: Record<string, string | number | boolean | undefined> = {
+          reissued_since: args.since,
+        };
+        if (args.page !== undefined) query.page = args.page;
+        if (args.limit !== undefined) query.limit = args.limit;
+        const result = await http.get('/api/v1/proofs', query);
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'get_delegation_token',
+    'Get the current token of an active delegation by its public ph_dlg_* handle — after a signing-key rotation, the re-signed token to publish in place of the old one. Public endpoint — no API key required, since the token is already published with the delegation. Any handle that is not an active delegation (revoked, suspended, expired or unknown) answers the same not_found.',
+    {
+      handle: z
+        .string()
+        .min(1)
+        .refine((value) => value !== '.' && value !== '..', 'must not be a dot segment')
+        .describe('Public delegation handle (ph_dlg_<32 hex>)'),
+    },
+    async ({ handle }) => {
+      try {
+        const result = await http.get(`/api/v1/proofs/delegation-token/${encodeURIComponent(handle)}`);
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        throw e;
+      }
+    },
+  );
 }

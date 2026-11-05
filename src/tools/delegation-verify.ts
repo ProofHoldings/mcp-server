@@ -57,7 +57,6 @@ export interface DelegationVerifyItem {
   token?: string;
   delegate: { type: 'url' | 'purl'; value: string };
   expected_principal: string;
-  required_scopes?: string[];
   check_status?: boolean;
 }
 
@@ -72,7 +71,6 @@ export function verifyOneDelegation(item: DelegationVerifyItem, baseUrl: string)
     trustedIssuers: [proofHoldingsTrust(baseUrl)],
     delegate: item.delegate,
     expectedPrincipal: item.expected_principal,
-    ...(item.required_scopes ? { requiredScopes: item.required_scopes } : {}),
     statusCheck: item.check_status === false ? 'skip' : 'required',
   };
 
@@ -123,7 +121,6 @@ export const VERIFY_DELEGATION_OUTPUT = z.looseObject({
       issuer: z.string(),
       principal: z.string(),
       delegate: z.string(),
-      scope: z.array(z.string()),
       control_proof: z.string(),
       delegation_id: z.string(),
       issued_at: z.string(),
@@ -160,7 +157,7 @@ export const VERIFY_DELEGATIONS_OUTPUT = z.looseObject({
 export function registerTools(tool: ToolRegistrar, options: { baseUrl: string }) {
   tool(
     'verify_delegation',
-    "Verify a Proof of Delegation — the attestation that a domain authorized a specific agent artifact. Pass either the artifact's card (MCP server.json / A2A agent card) or a raw delegation token, PLUS two facts you established yourself: the artifact identity you resolved (the package you are installing, the endpoint you are calling) and the domain you expect to stand behind it. Both are required — a token can be copied into someone else's card, and any domain owner can mint a valid delegation naming someone else's package, so a verdict without both pins would mean 'some domain said something about some artifact'. WHERE THE IDENTITY MAY COME FROM: it is the artifact you are acting on, and never a value read from inside the artifact you are checking. A name in the artifact's own package.json, card or manifest is self-declared and editable by whoever ships it, so checking it against the delegation compares the artifact with itself. Resolve it afresh at call time instead of reusing a value from earlier in this conversation, which may already be stale. When no independently resolvable identity exists — a local or unpublished artifact — you have nothing to compare against, and that is the honest answer: report it rather than a mismatch, because a mismatch here reads as an accusation against the domain named in the delegation. The verifier walks signature → principal → delegate → revocation status, including the cascade down to the domain control proof. Requires no API key. What a verified result means: the expected domain's controller authorized this artifact for these scopes — NOT that the artifact is safe, audited or endorsed.",
+    "Verify a Proof of Delegation — the attestation that a domain authorized a specific agent artifact. Pass either the artifact's card (MCP server.json / A2A agent card) or a raw delegation token, PLUS two facts you established yourself: the artifact identity you resolved (the package you are installing, the endpoint you are calling) and the domain you expect to stand behind it. Both are required — a token can be copied into someone else's card, and any domain owner can mint a valid delegation naming someone else's package, so a verdict without both pins would mean 'some domain said something about some artifact'. WHERE THE IDENTITY MAY COME FROM: it is the artifact you are acting on, and never a value read from inside the artifact you are checking. A name in the artifact's own package.json, card or manifest is self-declared and editable by whoever ships it, so checking it against the delegation compares the artifact with itself. Resolve it afresh at call time instead of reusing a value from earlier in this conversation, which may already be stale. When no independently resolvable identity exists — a local or unpublished artifact — you have nothing to compare against, and that is the honest answer: report it rather than a mismatch, because a mismatch here reads as an accusation against the domain named in the delegation. The verifier walks signature → principal → delegate → revocation status, including the cascade down to the domain control proof. Requires no API key. What a verified result means: the expected domain's controller authorized this artifact — NOT that the artifact is safe, audited or endorsed.",
     {
       card: z
         .record(z.string(), z.unknown())
@@ -180,19 +177,13 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
         .describe(
           'Required. The domain you expect to have authorized this artifact (e.g. postmarkapp.com) — an issuer binds the artifact to nothing, so any domain owner can mint a valid delegation for someone else\'s package. Without this pin the answer is only "some domain claims this".'
         ),
-      required_scopes: z
-        .array(z.string().min(1).max(64))
-        .min(1)
-        .max(32)
-        .optional()
-        .describe('Capability scopes the delegation must grant'),
       check_status: z
         .boolean()
         .optional()
         .describe('Default true. When false the signature and claims are checked but revocation is NOT — treat the result as "not revoked-checked", never as "not revoked".'),
     },
     async (args) => {
-      const { card, token, delegate, expected_principal, required_scopes, check_status } = args;
+      const { card, token, delegate, expected_principal, check_status } = args;
 
       if ((card === undefined) === (token === undefined)) {
         return errorResult('invalid_arguments: supply exactly one of `card` or `token`');
@@ -200,7 +191,7 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
 
       try {
         const result = await verifyOneDelegation(
-          { card, token, delegate, expected_principal, required_scopes, check_status },
+          { card, token, delegate, expected_principal, check_status },
           options.baseUrl,
         );
 
@@ -220,12 +211,11 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
           verified: true,
           status_checked: result.statusChecked,
           principal_checked: result.principalChecked,
-          attests: `${result.delegation.principal} authorized ${result.delegation.delegate} for: ${result.delegation.scope.join(', ')}`,
+          attests: `${result.delegation.principal} authorized ${result.delegation.delegate}`,
           delegation: {
             issuer: result.delegation.issuer,
             principal: result.delegation.principal,
             delegate: result.delegation.delegate,
-            scope: result.delegation.scope,
             control_proof: result.delegation.controlProof,
             delegation_id: result.delegation.delegationId,
             issued_at: result.delegation.issuedAt.toISOString(),
@@ -234,8 +224,8 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
           disclaimer:
             'This attests domain authorization of the artifact only. It is not a statement that the artifact is safe, audited or endorsed.',
         });
-      } catch (e) {
-        return errorResult(`verification_failed: ${e instanceof Error ? e.message : String(e)}`);
+      } catch {
+        return errorResult('verification_failed: The delegation could not be checked because of an unexpected error.');
       }
     },
   );
@@ -260,12 +250,6 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
         .describe(
           'Required. The domain you expect to have authorized this artifact (e.g. postmarkapp.com) — an issuer binds the artifact to nothing, so any domain owner can mint a valid delegation for someone else\'s package. Without this pin the answer is only "some domain claims this".'
         ),
-      required_scopes: z
-        .array(z.string().min(1).max(64))
-        .min(1)
-        .max(32)
-        .optional()
-        .describe('Capability scopes the delegation must grant'),
     })
     .refine((item) => (item.card === undefined) !== (item.token === undefined), {
       message: 'each item must supply exactly one of `card` or `token`',
@@ -273,7 +257,7 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
 
   tool(
     'verify_delegations',
-    'Batch-verify up to 50 Proof of Delegation artifacts in one call — the inventory half of the checker (h-proof-checker-mcp): re-check everything you already trust instead of one verify_delegation call per artifact. Each item takes the same shape verify_delegation requires (card XOR token, delegate, expected_principal, optional required_scopes) and follows the same rule about where identity comes from: each `delegate` is the artifact you are acting on, never a value read from inside the artifact you are checking, and resolved afresh at call time. Items are verified INDEPENDENTLY — no cross-item state, nothing persisted, one item failing never affects another item\'s result. This tool does NOT discover what you have installed and does NOT fetch anything on your behalf: it verifies material you already hold, the same trust boundary verify_delegation draws. Revocation is always checked (there is no check_status:false here — the point of a batch re-check is to see what changed since you last looked). Each result carries an `outcome`: confirmed_valid (verified), confirmed_invalid (a genuine negative verdict — revoked, expired, mismatched, malformed, and similar), no_claim_found (the artifact publishes no delegation at all — an absence, never an accusation), or unconfirmed (we could not reach the issuer or otherwise get a confident answer right now — NEVER treat this as a bad verdict). Requires no API key. `checked_at` on each result is the moment THAT item\'s own check completed, not one timestamp shared across the call.',
+    'Batch-verify up to 50 Proof of Delegation artifacts in one call — the inventory half of the checker (h-proof-checker-mcp): re-check everything you already trust instead of one verify_delegation call per artifact. Each item takes the same shape verify_delegation requires (card XOR token, delegate, expected_principal) and follows the same rule about where identity comes from: each `delegate` is the artifact you are acting on, never a value read from inside the artifact you are checking, and resolved afresh at call time. Items are verified INDEPENDENTLY — no cross-item state, nothing persisted, one item failing never affects another item\'s result. This tool does NOT discover what you have installed and does NOT fetch anything on your behalf: it verifies material you already hold, the same trust boundary verify_delegation draws. Revocation is always checked (there is no check_status:false here — the point of a batch re-check is to see what changed since you last looked). Each result carries an `outcome`: confirmed_valid (verified), confirmed_invalid (a genuine negative verdict — revoked, expired, mismatched, malformed, and similar), no_claim_found (the artifact publishes no delegation at all — an absence, never an accusation), or unconfirmed (we could not reach the issuer or otherwise get a confident answer right now — NEVER treat this as a bad verdict). Requires no API key. `checked_at` on each result is the moment THAT item\'s own check completed, not one timestamp shared across the call.',
     {
       items: z.array(verifyItemSchema).min(1).max(50).describe('1-50 artifacts to verify in this call, each shaped like a verify_delegation call'),
     },

@@ -1,5 +1,6 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
+import { boundText } from './validationRewrite.js';
 
 export type ToolRegistrar = McpServer['tool'];
 
@@ -41,14 +42,105 @@ export const LIVE_CHANNEL_VALUES = [
   'telegram_bot_token',
 ] as const;
 
+export const ERROR_MESSAGE_MAX_CHARS = 1000;
+
+export const ENVELOPE_RETRYABLE: Readonly<Record<string, boolean>> = {
+  invalid_arguments: false,
+  internal_error: false,
+  not_found: false,
+  unauthorized: false,
+  '2fa_required': false,
+  rate_limited: false,
+  timeout: true,
+  network_error: true,
+  service_unavailable: true,
+  rate_limit_exceeded: true,
+  http_429: true,
+  http_502: true,
+  http_503: true,
+  http_504: true,
+  artifact_claim_busy: true,
+  artifact_claim_unavailable: true,
+  audit_unavailable: true,
+  decline_check_unavailable: true,
+  delegation_status_unavailable: true,
+  domain_proof_status_unavailable: true,
+  domain_renewal_unavailable: true,
+  eligibility_unavailable: true,
+  export_unavailable: true,
+  identity_check_unavailable: true,
+  jwks_unavailable: true,
+  key_release_unavailable: true,
+  proof_issuance_unavailable: true,
+  proof_revocation_failed: true,
+  resend_too_soon: true,
+  resend_unavailable: true,
+  send_material_unavailable: true,
+  server_busy: true,
+  session_binding_unavailable: true,
+  session_not_revoked: true,
+  session_renewal_unavailable: true,
+  sessions_not_ended: true,
+  signing_unavailable: true,
+  status_list_unavailable: true,
+  twofa_unavailable: true,
+  verification_unavailable: true,
+  webhook_enqueue_failed: true,
+  webhook_settings_changing: true,
+  auth_lockout: false,
+  export_rate_limited: false,
+  identity_declined: false,
+  identity_rate_limited: false,
+  session_locked: false,
+  too_many_attempts: false,
+  too_many_pending_requests: false,
+  transfer_limit_exceeded: false,
+  too_many_connections: false,
+  authorization_unavailable: false,
+  challenge_delivery_failed: false,
+  billing_unavailable: false,
+  email_service_unavailable: false,
+  sse_disabled: false,
+  webhook_secret_not_configured: false,
+  webhook_verification_unavailable: false,
+};
+
+const CODE_PREFIX = /^([a-z0-9][a-z0-9_]*): ([\s\S]*)$/;
+const VALIDATION_PREFIX = /^MCP error -32602: ?/;
+
+export interface ErrorEnvelope {
+  error: string;
+  message: string;
+  retryable: boolean;
+}
+
+export function errorEnvelope(text: string): ErrorEnvelope {
+  if (VALIDATION_PREFIX.test(text)) {
+    return {
+      error: 'invalid_arguments',
+      message: boundText(text.replace(VALIDATION_PREFIX, ''), ERROR_MESSAGE_MAX_CHARS),
+      retryable: false,
+    };
+  }
+  const match = CODE_PREFIX.exec(text);
+  if (!match) {
+    return { error: 'internal_error', message: boundText(text, ERROR_MESSAGE_MAX_CHARS), retryable: false };
+  }
+  const code = match[1];
+  return {
+    error: code,
+    message: boundText(match[2], ERROR_MESSAGE_MAX_CHARS),
+    retryable: Object.hasOwn(ENVELOPE_RETRYABLE, code) ? ENVELOPE_RETRYABLE[code] : false,
+  };
+}
+
 /**
- * A tool's successful result: the body as pretty-printed text, exactly as before output schemas
- * existed (clients that read only text see no change), and the same body as `structuredContent`
+ * A tool's successful result: the body as compact JSON text, and the same body as `structuredContent`
  * for the tool's declared `outputSchema` (`m-mcp-tool-output-schemas`). The SDK refuses a result
  * with no `structuredContent` from a tool that declares a schema, so every object body carries it.
  */
 export function jsonResult(data: unknown) {
-  const text = { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+  const text = { content: [{ type: 'text' as const, text: JSON.stringify(data) }] };
   return data !== null && typeof data === 'object' && !Array.isArray(data)
     ? { ...text, structuredContent: data as Record<string, unknown> }
     : text;
@@ -56,7 +148,7 @@ export function jsonResult(data: unknown) {
 
 export function errorResult(message: string) {
   return {
-    content: [{ type: 'text' as const, text: message }],
+    content: [{ type: 'text' as const, text: JSON.stringify(errorEnvelope(message)) }],
     isError: true,
   };
 }
