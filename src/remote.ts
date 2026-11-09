@@ -56,6 +56,12 @@ export interface RemoteServerOptions {
   sessionTtlMs?: number;
   sweepIntervalMs?: number;
   /**
+   * The hosted server's own Proof of Delegation token (`PROOF_DELEGATION_TOKEN`; the delegation of
+   * `https://api.proof.holdings/mcp`). Every connection's server is gated on it; one engine serves
+   * them all (`@proof-holdings/delegation-self-refusal` keys engines per process).
+   */
+  delegationToken?: string;
+  /**
    * Which replica this process is. It is PREFIXED to every session id it mints, and the proxy
    * routes on that prefix.
    *
@@ -853,7 +859,7 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // cheapest request an attacker can send.
       if (presented && !(await resolvePresentedToken(presented, options.baseUrl, res, resolveBudget))) return;
 
-      const { server, http, toolNames } = createProofServer({ baseUrl: options.baseUrl, apiKey: presented, remote: true });
+      const { server, http, toolNames } = createProofServer({ baseUrl: options.baseUrl, apiKey: presented, remote: true, delegationToken: options.delegationToken });
 
       const transport = new StreamableHTTPServerTransport({
         // `<replica>.<uuid>` — the prefix is what the proxy routes on. See `replicaId` above.
@@ -921,6 +927,8 @@ if (isEntrypoint()) {
     replicaId: process.env.MCP_REPLICA_ID,
     maxSessions: positiveIntEnv('MCP_MAX_SESSIONS'),
     sessionTtlMs: positiveIntEnv('MCP_SESSION_TTL_MS'),
+    // Public, not a secret: the same token is on proof.holdings's domain card.
+    delegationToken: process.env.PROOF_DELEGATION_TOKEN || undefined,
   });
 
   remote.httpServer.listen(port, () => {

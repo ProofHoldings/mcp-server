@@ -3191,6 +3191,14 @@ describe('delegations tools', () => {
     expect(http.get).toHaveBeenCalledWith('/api/v1/delegations', { status: 'active', limit: 20 });
   });
 
+  it('list_delegations passes the search text as ?q=', async () => {
+    http.get.mockResolvedValueOnce({ data: [], pagination: {} });
+    const tool = findTool(tools, 'list_delegations');
+    await tool.handler({ q: 'team.management' });
+
+    expect(http.get).toHaveBeenCalledWith('/api/v1/delegations', { q: 'team.management' });
+  });
+
   it('get_delegation calls GET /api/v1/delegations/:id with the handle', async () => {
     http.get.mockResolvedValueOnce({ id: OBJECT_ID, token: 'eyJ.token.sig', is_valid: true });
     const tool = findTool(tools, 'get_delegation');

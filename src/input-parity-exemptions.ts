@@ -47,6 +47,13 @@ export const INPUT_PARITY_EXEMPTIONS: readonly InputParityExemption[] = [
     side: 'spec_only',
     reason: 'The dashboard page a browser sign-in returns to; an agent signs in without a browser.',
   },
+  ...['outcome', 'outcome_timeout_seconds'].map((key) => ({
+    tool: 'create_verification_request',
+    key,
+    side: 'spec_only' as const,
+    reason:
+      'A request that waits for the relying party\'s outcome needs that outcome reported (POST /verification-requests/{id}/assets/{assetIndex}/outcome), which has no MCP tool; an agent that opted in could not answer, and every person\'s chat would wait out the window.',
+  })),
   {
     tool: 'create_delegation',
     key: 'scope',

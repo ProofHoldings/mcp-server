@@ -45,6 +45,13 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         .describe(
           "Filter by the delegation's OWN stored status (active|revoked). Does NOT filter the derived effective_status — status=active still returns delegations whose control proof died, and ones that simply ran out."
         ),
+      q: z
+        .string()
+        .trim()
+        .min(1)
+        .max(200)
+        .optional()
+        .describe('Search: literal, case-insensitive text matched in the artifact, the issuing domain or the ph_dlg_ handle'),
       page: z.number().int().positive().optional().describe('Page number'),
       limit: z.number().int().min(1).max(100).optional().describe('Items per page'),
     },
@@ -52,6 +59,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       try {
         const query: Record<string, string | number | boolean | undefined> = {};
         if (args.status !== undefined) query.status = args.status;
+        if (args.q !== undefined) query.q = args.q;
         if (args.page !== undefined) query.page = args.page;
         if (args.limit !== undefined) query.limit = args.limit;
         const result = await http.get('/api/v1/delegations', query);

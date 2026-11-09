@@ -13,7 +13,12 @@ const FIXTURES = path.join(HERE, '../../sdks/shared/fixtures/mcp_delegation_gate
 const IN_MONOREPO = fs.existsSync(path.join(HERE, '../../packages/delegation-verifier/package.json'));
 const BASE = 'https://api.proof.holdings';
 
-const GATE_ONLY_CASES = new Set(['text_message_bounded', 'text_token_redacted']);
+const GATE_ONLY_CASES = new Set([
+  'text_message_bounded',
+  'text_token_redacted',
+  'text_sdk_output_validation_error',
+  'text_sdk_output_validation_error_bounded',
+]);
 
 interface Fixture {
   cases: Array<{ id: string; kind: string; text: string; expect: unknown }>;

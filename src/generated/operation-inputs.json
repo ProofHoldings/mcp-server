@@ -337,6 +337,8 @@
       "assets": "body",
       "callback_url": "body",
       "expires_in": "body",
+      "outcome": "body",
+      "outcome_timeout_seconds": "body",
       "partial_ok": "body",
       "proof_expiry_days": "body",
       "public_profile_id": "body",
@@ -879,6 +881,7 @@
     "inputs": {
       "limit": "query",
       "page": "query",
+      "q": "query",
       "status": "query"
     }
   },

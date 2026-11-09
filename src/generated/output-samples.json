@@ -189,7 +189,8 @@
         "enabled": false,
         "amount": null,
         "has_payment_method": false
-      }
+      },
+      "top_up_charges": null
     }
   ],
   "GET /api/v1/billing/balance/ledger 200": [
@@ -1940,6 +1941,7 @@
         "verification_request",
         "verification_success",
         "verification_expired",
+        "verification_refused",
         "login_request",
         "login_success",
         "2fa_request",
@@ -2002,6 +2004,10 @@
         {
           "name": "entity",
           "description": "Entity/counterparty for approval-type actions"
+        },
+        {
+          "name": "reason",
+          "description": "The business's reason for not accepting a verified number (Verification Refused)"
         }
       ],
       "sendable": [
@@ -2132,6 +2138,34 @@
           ]
         },
         {
+          "channel": "telegram",
+          "message_type": "verification_refused",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "currency",
+            "entity",
+            "reason"
+          ]
+        },
+        {
+          "channel": "whatsapp",
+          "message_type": "verification_refused",
+          "variables": [
+            "business_name",
+            "support_email",
+            "action_label",
+            "action_title",
+            "action_description",
+            "currency",
+            "entity",
+            "reason"
+          ]
+        },
+        {
           "channel": "email",
           "message_type": "verification_request",
           "variables": [
@@ -2240,6 +2274,14 @@
             "body": "✅ Successfully logged in to *{{business_name}}*!",
             "button_text": "Open Dashboard"
           }
+        },
+        "verification_refused": {
+          "telegram": {
+            "body": "Your number was verified, but *{{business_name}}* has not accepted it.\n\n{{reason}}"
+          },
+          "whatsapp": {
+            "body": "Your number was verified, but *{{business_name}}* has not accepted it.\n\n{{reason}}"
+          }
         }
       }
     }
@@ -2303,7 +2345,8 @@
           "allowed_channels": null,
           "required": true,
           "status": "pending",
-          "has_proof": false
+          "has_proof": false,
+          "outcome": null
         }
       ],
       "progress": {
@@ -2315,6 +2358,8 @@
       },
       "partial_ok": false,
       "validity_requirement": null,
+      "outcome": null,
+      "outcome_timeout_seconds": null,
       "verification_url": "http://localhost:3002/verify/000000000000000000000001",
       "expires_at": "2026-01-01T00:00:00.000Z",
       "created_at": "2026-01-01T00:00:00.000Z",
@@ -2344,7 +2389,8 @@
           "allowed_channels": null,
           "required": true,
           "status": "pending",
-          "has_proof": false
+          "has_proof": false,
+          "outcome": null
         }
       ],
       "progress": {
@@ -2356,6 +2402,8 @@
       },
       "partial_ok": false,
       "validity_requirement": null,
+      "outcome": null,
+      "outcome_timeout_seconds": null,
       "verification_url": "http://localhost:3002/verify/000000000000000000000001",
       "expires_at": "2026-01-01T00:00:00.000Z",
       "created_at": "2026-01-01T00:00:00.000Z",
@@ -2773,7 +2821,8 @@
         "enabled": false,
         "amount": 10,
         "has_payment_method": false
-      }
+      },
+      "top_up_charges": null
     }
   ],
   "PATCH /api/v1/hitl/{id} 200": [

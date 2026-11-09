@@ -6,6 +6,7 @@ import { accessNoticeFor, serverInstructions, type AccessContext } from './authB
 import { annotationsFor } from './toolAnnotations.js';
 import { outputSchemaFor } from './output-schema.js';
 import { installToolCallWrapper } from './toolCallWrapper.js';
+import { installDelegationGate } from './delegationGate.js';
 
 import { registerTools as registerVerifications } from './tools/verifications.js';
 import { registerTools as registerVerificationRequests } from './tools/verification-requests.js';
@@ -50,6 +51,14 @@ export interface ProofServerOptions {
    * impossible on a server run by somebody else.
    */
   remote?: boolean;
+  /**
+   * OUR OWN Proof of Delegation token for this server (m-delegation-publish-registries B.7). Given,
+   * the server refuses every tool call once that delegation is revoked, suspended or expired, and
+   * gains the read-only `proof_holdings_status` tool (`src/delegationGate.ts`). The stdio entrypoint
+   * passes the token its own `package.json` carries; the remote one `PROOF_DELEGATION_TOKEN`.
+   * Absent (the tests, a development build without `_meta`), nothing is gated.
+   */
+  delegationToken?: string;
 }
 
 export interface ProofServerInstance {
@@ -94,7 +103,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
       // `src/__tests__/drift/delegation-publication.test.ts` (h-npm-registry-release). If this is
       // ever replaced by a real read, delete the pin in the same change: a pin over a derived
       // value guards nothing.
-      version: '1.8.0',
+      version: '1.8.1',
     },
     { instructions: serverInstructions(access) },
   );
@@ -173,6 +182,9 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
   registerAccounts(tool, http);
   registerRenderAuthLink(tool);
   installToolCallWrapper(server);
+  // After our own wrapper, so the gate is OUTERMOST: a refusal is answered before anything of ours
+  // runs, and the status tool it registers stays outside `toolNames` (it is not an API tool).
+  installDelegationGate(server, options.delegationToken);
 
   return { server, http, toolNames };
 }

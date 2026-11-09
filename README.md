@@ -1,6 +1,6 @@
 # @proof-holdings/mcp-server
 
-MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 179 tools for AI agents to create verifications, validate proofs, manage assets, and more.
+MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 180 tools for AI agents — 179 for the API plus one delegation status tool — to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect
 
@@ -105,7 +105,7 @@ Config file location by client:
 Keep the scoped `npx -y @proof-holdings/mcp-server` command even after a global install. A bare command
 name is looked up on `PATH`, or by `npx` in the npm registry, where it can belong to someone else's package.
 
-## Tools (179 tools)
+## Tools (180 tools)
 
 Group totals are exact. The tables name the tools you are most likely to reach for rather than all
 of them — your MCP client's own `tools/list` is the complete, current list, and it is the one this
@@ -219,6 +219,14 @@ the ones you select. A signing secret is returned only on create and on rotate �
 | `wait_for_login` | Poll until sign-in completes |
 | `get_current_user` | Who the current session belongs to |
 | `render_auth_link` | Render a sign-in link for the user to open |
+
+### Delegation status (1 tool)
+
+The server's own delegation check: this package is delegated by proof.holdings, and its Proof gate refuses every tool call once that delegation is revoked, suspended or expired. Registered by the gate, outside the API tools.
+
+| Tool | Description |
+|---|---|
+| `proof_holdings_status` | Who delegated this server, and whether that delegation is in force (no account needed) |
 
 ## Test Mode
 

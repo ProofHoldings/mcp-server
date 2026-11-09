@@ -4,6 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 
 import { LOGIN_COMMAND, defaultCredentialsPath, resolveApiKey } from './credentials.js';
 import { createProofServer } from './factory.js';
+import { readOwnDelegationToken } from './delegationGate.js';
 
 const BASE_URL = process.env.PROOF_BASE_URL ?? 'https://api.proof.holdings';
 
@@ -42,8 +43,9 @@ if (!API_KEY) {
 }
 
 // One server + one HTTP client, built by the SAME factory the remote server calls per connection.
-// stdio serves a single user, so one instance for the whole process is correct here.
-const { server } = createProofServer({ apiKey: API_KEY, baseUrl: BASE_URL });
+// stdio serves a single user, so one instance for the whole process is correct here. Gated on the
+// delegation token this package's own `package.json` carries (`src/delegationGate.ts`).
+const { server } = createProofServer({ apiKey: API_KEY, baseUrl: BASE_URL, delegationToken: readOwnDelegationToken() });
 
 // Catch unhandled errors to avoid silent crashes
 process.on('uncaughtException', (err) => {

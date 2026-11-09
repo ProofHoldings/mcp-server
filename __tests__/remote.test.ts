@@ -1,5 +1,6 @@
 import { createServer as createHttpServer, type Server } from 'node:http';
 import net from 'node:net';
+import { readFileSync } from 'node:fs';
 
 import { describe, it, expect, afterEach } from 'vitest';
 
@@ -1651,5 +1652,46 @@ describe('remote server — operational surface', () => {
 
     const response = await fetch(`${url}/.well-known/oauth-authorization-server`);
     expect(response.status).toBe(404);
+  });
+});
+
+/**
+ * The hosted server gates itself on its own delegation (m-delegation-publish-registries B.7): the
+ * token reaches `createProofServer` from `createRemoteServer`, and the pod's entrypoint reads it from
+ * `PROOF_DELEGATION_TOKEN` (the StatefulSet's value is pinned by the deployment drift suite).
+ * `proof_holdings_status` is the gate's own tool, so its presence over HTTP is what says the session
+ * was gated; listing tools sends no request to the issuer.
+ */
+describe('remote server — gated by its own delegation', () => {
+  async function listedToolNames(options?: Partial<Parameters<typeof createRemoteServer>[0]>): Promise<string[]> {
+    const { url } = await start(options);
+    const sessionId = await openSession(url);
+    const listed = await fetch(`${url}/mcp`, {
+      method: 'POST',
+      headers: { ...MCP_HEADERS, 'mcp-session-id': sessionId },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }),
+    });
+    const tools = eventStreamPayloads(await listed.text())
+      .map((message) => (message as { result?: { tools?: Array<{ name: string }> } }).result?.tools)
+      .find((found) => found !== undefined);
+    if (!tools) throw new Error('no tools/list result');
+    return tools.map((tool) => tool.name);
+  }
+
+  it('a session of a server given the token is gated, and one without it is not', async () => {
+    const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+      _meta: Record<string, { token: string }>;
+    };
+    const token = manifest._meta['holdings.proof/delegation'].token;
+    expect(await listedToolNames({ delegationToken: token })).toContain('proof_holdings_status');
+    await running?.close();
+    running = undefined;
+    expect(await listedToolNames()).not.toContain('proof_holdings_status');
+  });
+
+  it('the entrypoint hands PROOF_DELEGATION_TOKEN to the server', () => {
+    const source = readFileSync(new URL('../src/remote.ts', import.meta.url), 'utf8');
+    const entry = source.slice(source.indexOf('if (isEntrypoint())'));
+    expect(entry).toMatch(/createRemoteServer\(\{[\s\S]*?delegationToken: process\.env\.PROOF_DELEGATION_TOKEN \|\| undefined,[\s\S]*?\}\);/);
   });
 });

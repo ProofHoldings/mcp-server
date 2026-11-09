@@ -3484,6 +3484,12 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "The action the person is asked to authorize; null when the request carries none"
         },
         "partial_ok": {},
+        "outcome": {
+          "description": "`relying_party` when the request was created to wait for your outcome; null otherwise. Absent from an API that predates the field."
+        },
+        "outcome_timeout_seconds": {
+          "description": "The window set on the request, in seconds; null when it does not wait for an outcome. Absent from an API that predates the field."
+        },
         "validity_requirement": {
           "description": "Required proof freshness as set on the request (e.g. \"7d\"); null when none was set"
         },
@@ -3566,6 +3572,12 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "The action the person is asked to authorize; null when the request carries none"
         },
         "partial_ok": {},
+        "outcome": {
+          "description": "`relying_party` when the request was created to wait for your outcome; null otherwise. Absent from an API that predates the field."
+        },
+        "outcome_timeout_seconds": {
+          "description": "The window set on the request, in seconds; null when it does not wait for an outcome. Absent from an API that predates the field."
+        },
         "validity_requirement": {
           "description": "Required proof freshness as set on the request (e.g. \"7d\"); null when none was set"
         },
@@ -4577,6 +4589,32 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "amount",
             "has_payment_method"
           ]
+        },
+        "top_up_charges": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "amount_eur": {
+                "type": "integer"
+              },
+              "vat": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "amount_eur",
+              "vat",
+              "total"
+            ]
+          },
+          "description": "What each amount in `top_up_amounts` charges this account, VAT included, as Stripe Tax works it out from the account's company details: an automatic top-up charges the saved card this total. Null when it cannot be worked out (billing off, no payment made yet, or Stripe not answering); absent from an API that predates it."
         }
       },
       "required": [
@@ -5133,6 +5171,91 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               }
             },
             "verification_expired": {
+              "type": "object",
+              "properties": {
+                "telegram": {
+                  "type": "object",
+                  "properties": {
+                    "subject": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "button_text": {
+                      "type": "string"
+                    },
+                    "button_url_template": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "body"
+                  ]
+                },
+                "whatsapp": {
+                  "type": "object",
+                  "properties": {
+                    "subject": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "button_text": {
+                      "type": "string"
+                    },
+                    "button_url_template": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "body"
+                  ]
+                },
+                "sms": {
+                  "type": "object",
+                  "properties": {
+                    "subject": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "button_text": {
+                      "type": "string"
+                    },
+                    "button_url_template": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "body"
+                  ]
+                },
+                "email": {
+                  "type": "object",
+                  "properties": {
+                    "subject": {
+                      "type": "string"
+                    },
+                    "body": {
+                      "type": "string"
+                    },
+                    "button_text": {
+                      "type": "string"
+                    },
+                    "button_url_template": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "body"
+                  ]
+                }
+              }
+            },
+            "verification_refused": {
               "type": "object",
               "properties": {
                 "telegram": {
@@ -7450,6 +7573,12 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "The action the person is asked to authorize; null when the request carries none"
         },
         "partial_ok": {},
+        "outcome": {
+          "description": "`relying_party` when the request was created to wait for your outcome; null otherwise. Absent from an API that predates the field."
+        },
+        "outcome_timeout_seconds": {
+          "description": "The window set on the request, in seconds; null when it does not wait for an outcome. Absent from an API that predates the field."
+        },
         "validity_requirement": {
           "description": "Required proof freshness as set on the request (e.g. \"7d\"); null when none was set"
         },
@@ -7786,7 +7915,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "top_up_amounts",
             "auto_top_up"
           ],
-          "description": "The prepaid balance as `GET /me/billing/balance` reports it, without `billing_enabled` (the usage read carries that itself)"
+          "description": "The prepaid balance as `GET /me/billing/balance` reports it, without `billing_enabled` (the usage read carries that itself) or `top_up_charges`"
         },
         "current_period": {
           "type": "string",
@@ -8142,6 +8271,42 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               },
               "has_proof": {
                 "type": "boolean"
+              },
+              "outcome": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "status": {
+                        "type": "string"
+                      },
+                      "reason": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "deadline_at": {
+                        "type": "string"
+                      },
+                      "decided_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "status",
+                      "reason",
+                      "deadline_at",
+                      "decided_at"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               }
             },
             "required": [
@@ -8185,6 +8350,20 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "partial_ok": {
           "type": "boolean"
+        },
+        "outcome": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "`relying_party` when the request was created to wait for your outcome; null otherwise. Absent from an API that predates the field."
+        },
+        "outcome_timeout_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "The window set on the request, in seconds; null when it does not wait for an outcome. Absent from an API that predates the field."
         },
         "validity_requirement": {
           "type": [
@@ -15763,6 +15942,12 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "The action the person is asked to authorize; null when the request carries none"
         },
         "partial_ok": {},
+        "outcome": {
+          "description": "`relying_party` when the request was created to wait for your outcome; null otherwise. Absent from an API that predates the field."
+        },
+        "outcome_timeout_seconds": {
+          "description": "The window set on the request, in seconds; null when it does not wait for an outcome. Absent from an API that predates the field."
+        },
         "validity_requirement": {
           "description": "Required proof freshness as set on the request (e.g. \"7d\"); null when none was set"
         },
