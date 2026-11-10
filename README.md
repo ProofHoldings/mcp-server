@@ -1,5 +1,7 @@
 # @proof-holdings/mcp-server
 
+[![Proof of Delegation](https://proof.holdings/badge/npm/@proof-holdings/mcp-server)](https://proof.holdings/npm/@proof-holdings/mcp-server)
+
 MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 180 tools for AI agents — 179 for the API plus one delegation status tool — to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect

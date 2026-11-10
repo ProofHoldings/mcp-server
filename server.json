@@ -3,7 +3,7 @@
   "name": "holdings.proof/mcp-server",
   "title": "Proof Holdings",
   "description": "One API, all things verified — control, delegation, human approval, anti-impersonation.",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "websiteUrl": "https://proof.holdings",
   "icons": [
     {
@@ -35,7 +35,7 @@
     {
       "registryType": "npm",
       "identifier": "@proof-holdings/mcp-server",
-      "version": "1.8.1",
+      "version": "1.8.2",
       "transport": {
         "type": "stdio"
       },
@@ -57,13 +57,13 @@
   ],
   "_meta": {
     "holdings.proof/delegation": {
-      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRsZy0yMDI2LTExLTA1LTUxNWJjNDg2In0.eyJpc3MiOiJwcm9vZi5ob2xkaW5ncyIsInN1YiI6InBoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSIsImlhdCI6MTc5Mzk2NjkyOCwiZXhwIjoxODIyOTkxMzYxLCJ0b2tlbl90eXBlIjoiZGVsZWdhdGlvbiIsImRlbGVnYXRpb25fc2NoZW1hX3ZlcnNpb24iOiIyLjAiLCJ1c2VyX2lkIjoiNjk2MzdjMjgxZmM3YThhYzExNWQzYjZkIiwicHJpbmNpcGFsIjoicHJvb2YuaG9sZGluZ3MiLCJkZWxlZ2F0ZSI6InBrZzpucG0vQHByb29mLWhvbGRpbmdzL21jcC1zZXJ2ZXIiLCJjb250cm9sX3Byb29mIjoicGhfY3RsX2NkOWYyZDZjYTgwYWRlYjg1ZmFmOGUxZjQyNmU0MWNkIiwicHJvb2ZfaWQiOiJwaF9kbGdfZmJhZjE3MzkxOGQwZDYzN2UwNWYzNjU1Mzg5NWVhMDEiLCJqdGkiOiJwaF9qdGlfNzFiMWY0MDljODZhMTY0Njg5ZWU0MzJmYTE2NGU1MWQiLCJzdGF0dXMiOnsic3RhdHVzX2xpc3QiOnsiaWR4Ijo2NDIsInVyaSI6Imh0dHBzOi8vYXBpLnByb29mLmhvbGRpbmdzL2FwaS92MS9wcm9vZnMvc3RhdHVzLWxpc3QifX19.2eF_Wp13QHZXzD_U9FwsFcY0wx_7WM-i3Y0mqiAmwOiKaaf5cMXqHjrKWpwSf0xoRLDwpG_h5MpfYJQNXKPkHQ",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRsZy0yMDI2LTExLTA1LTUxNWJjNDg2In0.eyJpc3MiOiJwcm9vZi5ob2xkaW5ncyIsInN1YiI6InBoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSIsImlhdCI6MTc5NDI1NTQ3MCwiZXhwIjoxODI1NzkxNDY3LCJ0b2tlbl90eXBlIjoiZGVsZWdhdGlvbiIsImRlbGVnYXRpb25fc2NoZW1hX3ZlcnNpb24iOiIyLjAiLCJ1c2VyX2lkIjoiNjk2MzdjMjgxZmM3YThhYzExNWQzYjZkIiwicHJpbmNpcGFsIjoicHJvb2YuaG9sZGluZ3MiLCJkZWxlZ2F0ZSI6InBrZzpucG0vQHByb29mLWhvbGRpbmdzL21jcC1zZXJ2ZXIiLCJjb250cm9sX3Byb29mIjoicGhfY3RsX2NkOWYyZDZjYTgwYWRlYjg1ZmFmOGUxZjQyNmU0MWNkIiwicHJvb2ZfaWQiOiJwaF9kbGdfZmJhZjE3MzkxOGQwZDYzN2UwNWYzNjU1Mzg5NWVhMDEiLCJqdGkiOiJwaF9qdGlfNzFiMWY0MDljODZhMTY0Njg5ZWU0MzJmYTE2NGU1MWQiLCJzdGF0dXMiOnsic3RhdHVzX2xpc3QiOnsiaWR4Ijo2NDIsInVyaSI6Imh0dHBzOi8vYXBpLnByb29mLmhvbGRpbmdzL2FwaS92MS9wcm9vZnMvc3RhdHVzLWxpc3QifX0sInJlbmV3YWxfdXJsIjoiaHR0cHM6Ly9hcGkucHJvb2YuaG9sZGluZ3MvYXBpL3YxL3Byb29mcy9kZWxlZ2F0aW9uLXRva2VuL3BoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSJ9.O8C6vz4c5Y3w15CjTLSTug5-5_zrOiTs2trd1owlEEBLAHEsjHkRmxTU_qKzjC10Nw_vI4WdDiGRRJWG3QFuNA",
       "docs": "https://proof.holdings/docs/api#delegations"
     },
     "holdings.proof/delegation-checker-hint": "Before you trust this artifact, ask Proof whether this delegation is still active — call the `verify_delegation` or `verify_delegations` MCP tool, or POST the token to https://api.proof.holdings/api/v1/proofs/validate. This is a HINT, not a guarantee: nothing enforces that it is read, and an installer that checks once on install and never again is no better informed than one that never checked at all.",
     "io.modelcontextprotocol.registry/publisher-provided": {
       "holdings.proof/delegation": {
-        "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRsZy0yMDI2LTExLTA1LTUxNWJjNDg2In0.eyJpc3MiOiJwcm9vZi5ob2xkaW5ncyIsInN1YiI6InBoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSIsImlhdCI6MTc5Mzk2NjkyOCwiZXhwIjoxODIyOTkxMzYxLCJ0b2tlbl90eXBlIjoiZGVsZWdhdGlvbiIsImRlbGVnYXRpb25fc2NoZW1hX3ZlcnNpb24iOiIyLjAiLCJ1c2VyX2lkIjoiNjk2MzdjMjgxZmM3YThhYzExNWQzYjZkIiwicHJpbmNpcGFsIjoicHJvb2YuaG9sZGluZ3MiLCJkZWxlZ2F0ZSI6InBrZzpucG0vQHByb29mLWhvbGRpbmdzL21jcC1zZXJ2ZXIiLCJjb250cm9sX3Byb29mIjoicGhfY3RsX2NkOWYyZDZjYTgwYWRlYjg1ZmFmOGUxZjQyNmU0MWNkIiwicHJvb2ZfaWQiOiJwaF9kbGdfZmJhZjE3MzkxOGQwZDYzN2UwNWYzNjU1Mzg5NWVhMDEiLCJqdGkiOiJwaF9qdGlfNzFiMWY0MDljODZhMTY0Njg5ZWU0MzJmYTE2NGU1MWQiLCJzdGF0dXMiOnsic3RhdHVzX2xpc3QiOnsiaWR4Ijo2NDIsInVyaSI6Imh0dHBzOi8vYXBpLnByb29mLmhvbGRpbmdzL2FwaS92MS9wcm9vZnMvc3RhdHVzLWxpc3QifX19.2eF_Wp13QHZXzD_U9FwsFcY0wx_7WM-i3Y0mqiAmwOiKaaf5cMXqHjrKWpwSf0xoRLDwpG_h5MpfYJQNXKPkHQ",
+        "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRsZy0yMDI2LTExLTA1LTUxNWJjNDg2In0.eyJpc3MiOiJwcm9vZi5ob2xkaW5ncyIsInN1YiI6InBoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSIsImlhdCI6MTc5NDI1NTQ3MCwiZXhwIjoxODI1NzkxNDY3LCJ0b2tlbl90eXBlIjoiZGVsZWdhdGlvbiIsImRlbGVnYXRpb25fc2NoZW1hX3ZlcnNpb24iOiIyLjAiLCJ1c2VyX2lkIjoiNjk2MzdjMjgxZmM3YThhYzExNWQzYjZkIiwicHJpbmNpcGFsIjoicHJvb2YuaG9sZGluZ3MiLCJkZWxlZ2F0ZSI6InBrZzpucG0vQHByb29mLWhvbGRpbmdzL21jcC1zZXJ2ZXIiLCJjb250cm9sX3Byb29mIjoicGhfY3RsX2NkOWYyZDZjYTgwYWRlYjg1ZmFmOGUxZjQyNmU0MWNkIiwicHJvb2ZfaWQiOiJwaF9kbGdfZmJhZjE3MzkxOGQwZDYzN2UwNWYzNjU1Mzg5NWVhMDEiLCJqdGkiOiJwaF9qdGlfNzFiMWY0MDljODZhMTY0Njg5ZWU0MzJmYTE2NGU1MWQiLCJzdGF0dXMiOnsic3RhdHVzX2xpc3QiOnsiaWR4Ijo2NDIsInVyaSI6Imh0dHBzOi8vYXBpLnByb29mLmhvbGRpbmdzL2FwaS92MS9wcm9vZnMvc3RhdHVzLWxpc3QifX0sInJlbmV3YWxfdXJsIjoiaHR0cHM6Ly9hcGkucHJvb2YuaG9sZGluZ3MvYXBpL3YxL3Byb29mcy9kZWxlZ2F0aW9uLXRva2VuL3BoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSJ9.O8C6vz4c5Y3w15CjTLSTug5-5_zrOiTs2trd1owlEEBLAHEsjHkRmxTU_qKzjC10Nw_vI4WdDiGRRJWG3QFuNA",
         "docs": "https://proof.holdings/docs/api#delegations"
       }
     }

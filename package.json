@@ -1,6 +1,6 @@
 {
   "name": "@proof-holdings/mcp-server",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "mcpName": "holdings.proof/mcp-server",
   "description": "MCP server for the proof.holdings API — 180 tools for identity verification, proofs, and asset management",
   "type": "module",
@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "@proof-holdings/delegation-self-refusal": "^0.5.0",
+    "@proof-holdings/delegation-self-refusal": "^0.5.1",
     "@proof-holdings/delegation-verifier": "^0.2.0",
     "qrcode": "^1.5.4",
     "zod": "^4.6.7"
@@ -63,7 +63,7 @@
   },
   "_meta": {
     "holdings.proof/delegation": {
-      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRsZy0yMDI2LTExLTA1LTUxNWJjNDg2In0.eyJpc3MiOiJwcm9vZi5ob2xkaW5ncyIsInN1YiI6InBoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSIsImlhdCI6MTc5Mzk2NjkyOCwiZXhwIjoxODIyOTkxMzYxLCJ0b2tlbl90eXBlIjoiZGVsZWdhdGlvbiIsImRlbGVnYXRpb25fc2NoZW1hX3ZlcnNpb24iOiIyLjAiLCJ1c2VyX2lkIjoiNjk2MzdjMjgxZmM3YThhYzExNWQzYjZkIiwicHJpbmNpcGFsIjoicHJvb2YuaG9sZGluZ3MiLCJkZWxlZ2F0ZSI6InBrZzpucG0vQHByb29mLWhvbGRpbmdzL21jcC1zZXJ2ZXIiLCJjb250cm9sX3Byb29mIjoicGhfY3RsX2NkOWYyZDZjYTgwYWRlYjg1ZmFmOGUxZjQyNmU0MWNkIiwicHJvb2ZfaWQiOiJwaF9kbGdfZmJhZjE3MzkxOGQwZDYzN2UwNWYzNjU1Mzg5NWVhMDEiLCJqdGkiOiJwaF9qdGlfNzFiMWY0MDljODZhMTY0Njg5ZWU0MzJmYTE2NGU1MWQiLCJzdGF0dXMiOnsic3RhdHVzX2xpc3QiOnsiaWR4Ijo2NDIsInVyaSI6Imh0dHBzOi8vYXBpLnByb29mLmhvbGRpbmdzL2FwaS92MS9wcm9vZnMvc3RhdHVzLWxpc3QifX19.2eF_Wp13QHZXzD_U9FwsFcY0wx_7WM-i3Y0mqiAmwOiKaaf5cMXqHjrKWpwSf0xoRLDwpG_h5MpfYJQNXKPkHQ",
+      "token": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRsZy0yMDI2LTExLTA1LTUxNWJjNDg2In0.eyJpc3MiOiJwcm9vZi5ob2xkaW5ncyIsInN1YiI6InBoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSIsImlhdCI6MTc5NDI1NTQ3MCwiZXhwIjoxODI1NzkxNDY3LCJ0b2tlbl90eXBlIjoiZGVsZWdhdGlvbiIsImRlbGVnYXRpb25fc2NoZW1hX3ZlcnNpb24iOiIyLjAiLCJ1c2VyX2lkIjoiNjk2MzdjMjgxZmM3YThhYzExNWQzYjZkIiwicHJpbmNpcGFsIjoicHJvb2YuaG9sZGluZ3MiLCJkZWxlZ2F0ZSI6InBrZzpucG0vQHByb29mLWhvbGRpbmdzL21jcC1zZXJ2ZXIiLCJjb250cm9sX3Byb29mIjoicGhfY3RsX2NkOWYyZDZjYTgwYWRlYjg1ZmFmOGUxZjQyNmU0MWNkIiwicHJvb2ZfaWQiOiJwaF9kbGdfZmJhZjE3MzkxOGQwZDYzN2UwNWYzNjU1Mzg5NWVhMDEiLCJqdGkiOiJwaF9qdGlfNzFiMWY0MDljODZhMTY0Njg5ZWU0MzJmYTE2NGU1MWQiLCJzdGF0dXMiOnsic3RhdHVzX2xpc3QiOnsiaWR4Ijo2NDIsInVyaSI6Imh0dHBzOi8vYXBpLnByb29mLmhvbGRpbmdzL2FwaS92MS9wcm9vZnMvc3RhdHVzLWxpc3QifX0sInJlbmV3YWxfdXJsIjoiaHR0cHM6Ly9hcGkucHJvb2YuaG9sZGluZ3MvYXBpL3YxL3Byb29mcy9kZWxlZ2F0aW9uLXRva2VuL3BoX2RsZ19mYmFmMTczOTE4ZDBkNjM3ZTA1ZjM2NTUzODk1ZWEwMSJ9.O8C6vz4c5Y3w15CjTLSTug5-5_zrOiTs2trd1owlEEBLAHEsjHkRmxTU_qKzjC10Nw_vI4WdDiGRRJWG3QFuNA",
       "docs": "https://proof.holdings/docs/api#delegations"
     }
   }
