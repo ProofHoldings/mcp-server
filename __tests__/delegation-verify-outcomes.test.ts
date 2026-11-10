@@ -12,7 +12,8 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
-import { FAILURE_REASON_OUTCOME, type FailureOutcome } from '../src/tools/delegation-verify-outcomes.js';
+import type { FailureReason } from '@proof-holdings/delegation-verifier';
+import { FAILURE_REASON_OUTCOME, failureOutcome, type FailureOutcome } from '../src/tools/delegation-verify-outcomes.js';
 
 const TYPES_PATH = new URL('../../packages/delegation-verifier/src/types.ts', import.meta.url);
 
@@ -72,5 +73,34 @@ describe('FAILURE_REASON_OUTCOME exhaustiveness', () => {
     for (const reason of ['wrong_key_purpose', 'outside_key_window', 'token_lifetime_exceeded'] as const) {
       expect(FAILURE_REASON_OUTCOME[reason]).toBe('confirmed_invalid');
     }
+  });
+
+  it('a delegation the issuer reports issued in test mode is confirmed_invalid, not unconfirmed', () => {
+    expect(FAILURE_REASON_OUTCOME.test_environment).toBe('confirmed_invalid');
+  });
+});
+
+describe('failureOutcome — a reason this server does not map yet', () => {
+  // A published server resolves the newest verifier its range allows, so a reason added to the
+  // package later reaches a map that does not name it; the bucket then comes from the verdict's own
+  // `outcome`, never `undefined` (which `verify_delegations`' outputSchema refuses for the whole batch).
+  const unmapped = 'a_reason_added_later' as FailureReason;
+
+  it('takes unconfirmed from the verifier when the verifier could not check', () => {
+    expect(failureOutcome({ reason: unmapped, outcome: 'unconfirmed' })).toBe('unconfirmed');
+  });
+
+  it('takes confirmed_invalid from the verifier when the check completed with a negative verdict', () => {
+    expect(failureOutcome({ reason: unmapped, outcome: 'invalid' })).toBe('confirmed_invalid');
+  });
+
+  it('reads only the map\'s own entries — a reason named like an Object.prototype member is unmapped', () => {
+    expect(failureOutcome({ reason: 'constructor' as FailureReason, outcome: 'invalid' })).toBe('confirmed_invalid');
+    expect(failureOutcome({ reason: 'toString' as FailureReason, outcome: 'unconfirmed' })).toBe('unconfirmed');
+  });
+
+  it('keeps the local bucket for a mapped reason even where the verifier says otherwise', () => {
+    expect(failureOutcome({ reason: 'no_publication', outcome: 'invalid' })).toBe('no_claim_found');
+    expect(failureOutcome({ reason: 'multiple_publications', outcome: 'invalid' })).toBe('unconfirmed');
   });
 });

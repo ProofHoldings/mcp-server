@@ -273,6 +273,26 @@ describe('verify_delegation behaviour', () => {
     expect(body.outcome).toBe('invalid');
   });
 
+  it('reports a delegation the issuer says was issued in test mode as test_environment, outcome invalid', async () => {
+    const token = await signDelegation(key);
+    const net = routedFetch({
+      [JWKS_URI]: { keys: [key.publicJwk] },
+      [STATUS_ENDPOINT]: { valid: false, token_type: 'delegation', reason: 'test_environment' },
+    });
+    vi.stubGlobal('fetch', net.impl);
+
+    const result = await verifyTool().handler({
+      token,
+      delegate: { type: 'purl', value: 'pkg:npm/postmark-mcp' },
+      expected_principal: 'postmarkapp.com',
+    });
+
+    const body = parse(result);
+    expect(body.verified).toBe(false);
+    expect(body.reason).toBe('test_environment');
+    expect(body.outcome).toBe('invalid');
+  });
+
   it('reports status_unavailable with outcome unconfirmed — structurally different from a revoked result (h-delegation-verifier-status-fallthrough-gate SC-4)', async () => {
     const token = await signDelegation(key);
     // STATUS_ENDPOINT deliberately absent from the route table — routedFetch throws
@@ -502,6 +522,31 @@ describe('verify_delegations behaviour — the SC-7 outcome buckets, including t
     expect((parse(result) as unknown as BatchResult).results[0]).toMatchObject({
       outcome: 'confirmed_invalid',
       reason: 'revoked',
+      verified: false,
+    });
+  });
+
+  it('confirmed_invalid: a delegation the issuer says was issued in test mode', async () => {
+    const token = await signDelegation(key);
+    const net = routedFetch({
+      [JWKS_URI]: { keys: [key.publicJwk] },
+      [STATUS_ENDPOINT]: { valid: false, token_type: 'delegation', reason: 'test_environment' },
+    });
+    vi.stubGlobal('fetch', net.impl);
+
+    const result = await verifyDelegationsTool().handler({
+      items: [
+        {
+          token,
+          delegate: { type: 'purl', value: 'pkg:npm/postmark-mcp' },
+          expected_principal: 'postmarkapp.com',
+        },
+      ],
+    });
+
+    expect((parse(result) as unknown as BatchResult).results[0]).toMatchObject({
+      outcome: 'confirmed_invalid',
+      reason: 'test_environment',
       verified: false,
     });
   });

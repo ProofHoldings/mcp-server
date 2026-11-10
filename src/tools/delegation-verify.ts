@@ -8,7 +8,7 @@ import type {
 } from '@proof-holdings/delegation-verifier';
 import type { ToolRegistrar } from '../types.js';
 import { jsonResult, errorResult } from '../types.js';
-import { FAILURE_REASON_OUTCOME } from './delegation-verify-outcomes.js';
+import { failureOutcome } from './delegation-verify-outcomes.js';
 
 /**
  * The FIRST CONSUMER of the issuer-agnostic reference verifier (m-delegation-verifier-ref).
@@ -278,7 +278,7 @@ export function registerTools(tool: ToolRegistrar, options: { baseUrl: string })
             }
 
             return {
-              outcome: FAILURE_REASON_OUTCOME[result.reason],
+              outcome: failureOutcome(result),
               reason: result.reason,
               message: result.message,
               ...rotationHints(result),

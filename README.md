@@ -375,7 +375,7 @@ Each result in `results[]` carries an `outcome`, one of four buckets:
 | Outcome | Meaning |
 | --- | --- |
 | `confirmed_valid` | The delegation verified — same meaning as `verify_delegation`'s `verified: true`. |
-| `confirmed_invalid` | A genuine negative verdict: revoked, suspended, expired, a mismatched principal or delegate, a token of schema 1.x (`unsupported_version`), or a malformed/untrusted/badly-signed token. |
+| `confirmed_invalid` | A genuine negative verdict: revoked, suspended, expired, a mismatched principal or delegate, a token of schema 1.x (`unsupported_version`), a delegation the issuer reports issued in test mode (`test_environment`), or a malformed/untrusted/badly-signed token. |
 | `no_claim_found` | The artifact publishes no delegation at all. An absence, never an accusation. |
 | `unconfirmed` | We could not reach the issuer or otherwise get a confident answer right now (e.g. its JWKS or status endpoint is unreachable). **Never treat this as a bad verdict** — it means "ask again later", not "revoked". |
 

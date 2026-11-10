@@ -50,6 +50,7 @@ const ALL_FAILURE_REASONS: FailureReason[] = [
   'revoked',
   'suspended',
   'unknown_delegation',
+  'test_environment',
   'no_publication',
   'multiple_publications',
 ];
@@ -78,3 +79,13 @@ export const FAILURE_REASON_OUTCOME: Record<FailureReason, FailureOutcome> = Obj
     LOCAL_OVERRIDE[reason] ?? (classifyFailureReason(reason) === 'unconfirmed' ? 'unconfirmed' : 'confirmed_invalid'),
   ])
 ) as Record<FailureReason, FailureOutcome>;
+
+/**
+ * The bucket for one failed verification. A published server resolves the newest verifier its
+ * dependency range allows, so a reason added to the package after this release is not in the map;
+ * its bucket then comes from the verdict's own `outcome`, never `undefined`.
+ */
+export function failureOutcome(failure: { reason: FailureReason; outcome: 'invalid' | 'unconfirmed' }): FailureOutcome {
+  if (Object.hasOwn(FAILURE_REASON_OUTCOME, failure.reason)) return FAILURE_REASON_OUTCOME[failure.reason];
+  return failure.outcome === 'unconfirmed' ? 'unconfirmed' : 'confirmed_invalid';
+}
