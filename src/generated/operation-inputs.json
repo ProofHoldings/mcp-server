@@ -94,6 +94,7 @@
       "POST /api/v1/profiles/me/username"
     ],
     "inputs": {
+      "profile_id": "body",
       "username": "body"
     }
   },

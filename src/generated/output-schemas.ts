@@ -3218,6 +3218,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           ],
           "description": "Absent until a username is claimed"
         },
+        "username_is_default": {
+          "type": "boolean",
+          "description": "The username was given automatically (from the domain the profile shows, else its short id); the owner may replace it once with a name of their choice."
+        },
         "is_primary": {
           "type": "boolean"
         },
@@ -3371,6 +3375,79 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_delegations": {
           "type": "boolean"
         },
+        "channels_complete": {
+          "type": "boolean",
+          "description": "The owner's statement that the channels listed are all of theirs."
+        },
+        "name_review": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "brand": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "unlocks_with": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason",
+            "brand",
+            "field",
+            "unlocks_with"
+          ],
+          "description": "Why a typed name is left out of the public reads: it reads as a protected brand's own, until a domain of that brand is checked. Null when nothing is held."
+        },
+        "name_headline": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "tier": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "brand": {
+              "type": "string"
+            },
+            "match_kind": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "tier",
+            "brand",
+            "match_kind",
+            "field"
+          ],
+          "description": "Why a published name may not lead the page (it carries a protected brand word); it leads only when an OV/EV certificate names it. Null when not demoted."
+        },
         "support_email": {
           "type": [
             "string",
@@ -3409,6 +3486,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_verification_dates",
         "show_proof_channels",
         "show_delegations",
+        "channels_complete",
+        "name_review",
+        "name_headline",
         "support_email",
         "email_theme",
         "view_count",
@@ -6976,6 +7056,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           ],
           "description": "Absent until a username is claimed"
         },
+        "username_is_default": {
+          "type": "boolean",
+          "description": "The username was given automatically (from the domain the profile shows, else its short id); the owner may replace it once with a name of their choice."
+        },
         "is_primary": {
           "type": "boolean"
         },
@@ -7129,6 +7213,79 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_delegations": {
           "type": "boolean"
         },
+        "channels_complete": {
+          "type": "boolean",
+          "description": "The owner's statement that the channels listed are all of theirs."
+        },
+        "name_review": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "brand": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "unlocks_with": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason",
+            "brand",
+            "field",
+            "unlocks_with"
+          ],
+          "description": "Why a typed name is left out of the public reads: it reads as a protected brand's own, until a domain of that brand is checked. Null when nothing is held."
+        },
+        "name_headline": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "tier": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "brand": {
+              "type": "string"
+            },
+            "match_kind": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "tier",
+            "brand",
+            "match_kind",
+            "field"
+          ],
+          "description": "Why a published name may not lead the page (it carries a protected brand word); it leads only when an OV/EV certificate names it. Null when not demoted."
+        },
         "support_email": {
           "type": [
             "string",
@@ -7167,6 +7324,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_verification_dates",
         "show_proof_channels",
         "show_delegations",
+        "channels_complete",
+        "name_review",
+        "name_headline",
         "support_email",
         "email_theme",
         "view_count",
@@ -7227,6 +7387,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           ],
           "description": "Absent until a username is claimed"
         },
+        "username_is_default": {
+          "type": "boolean",
+          "description": "The username was given automatically (from the domain the profile shows, else its short id); the owner may replace it once with a name of their choice."
+        },
         "is_primary": {
           "type": "boolean"
         },
@@ -7380,6 +7544,79 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_delegations": {
           "type": "boolean"
         },
+        "channels_complete": {
+          "type": "boolean",
+          "description": "The owner's statement that the channels listed are all of theirs."
+        },
+        "name_review": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "brand": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "unlocks_with": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason",
+            "brand",
+            "field",
+            "unlocks_with"
+          ],
+          "description": "Why a typed name is left out of the public reads: it reads as a protected brand's own, until a domain of that brand is checked. Null when nothing is held."
+        },
+        "name_headline": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "tier": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "brand": {
+              "type": "string"
+            },
+            "match_kind": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "tier",
+            "brand",
+            "match_kind",
+            "field"
+          ],
+          "description": "Why a published name may not lead the page (it carries a protected brand word); it leads only when an OV/EV certificate names it. Null when not demoted."
+        },
         "support_email": {
           "type": [
             "string",
@@ -7418,6 +7655,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_verification_dates",
         "show_proof_channels",
         "show_delegations",
+        "channels_complete",
+        "name_review",
+        "name_headline",
         "support_email",
         "email_theme",
         "view_count",
@@ -10661,6 +10901,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
                   "null"
                 ]
               },
+              "username_is_default": {
+                "type": "boolean"
+              },
               "is_primary": {
                 "type": "boolean"
               },
@@ -10809,6 +11052,76 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               "show_delegations": {
                 "type": "boolean"
               },
+              "channels_complete": {
+                "type": "boolean"
+              },
+              "name_review": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "brand": {
+                    "type": "string"
+                  },
+                  "field": {
+                    "type": "string"
+                  },
+                  "unlocks_with": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "state",
+                  "reason",
+                  "brand",
+                  "field",
+                  "unlocks_with"
+                ]
+              },
+              "name_headline": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "state": {
+                    "type": "string"
+                  },
+                  "tier": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "number"
+                      }
+                    ]
+                  },
+                  "brand": {
+                    "type": "string"
+                  },
+                  "match_kind": {
+                    "type": "string"
+                  },
+                  "field": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "state",
+                  "tier",
+                  "brand",
+                  "match_kind",
+                  "field"
+                ]
+              },
               "support_email": {
                 "type": [
                   "string",
@@ -10845,6 +11158,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               "show_verification_dates",
               "show_proof_channels",
               "show_delegations",
+              "channels_complete",
+              "name_review",
+              "name_headline",
               "support_email",
               "email_theme",
               "view_count",
@@ -12608,6 +12924,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           ],
           "description": "Absent until a username is claimed"
         },
+        "username_is_default": {
+          "type": "boolean",
+          "description": "The username was given automatically (from the domain the profile shows, else its short id); the owner may replace it once with a name of their choice."
+        },
         "is_primary": {
           "type": "boolean"
         },
@@ -12761,6 +13081,79 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_delegations": {
           "type": "boolean"
         },
+        "channels_complete": {
+          "type": "boolean",
+          "description": "The owner's statement that the channels listed are all of theirs."
+        },
+        "name_review": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "brand": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "unlocks_with": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason",
+            "brand",
+            "field",
+            "unlocks_with"
+          ],
+          "description": "Why a typed name is left out of the public reads: it reads as a protected brand's own, until a domain of that brand is checked. Null when nothing is held."
+        },
+        "name_headline": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "tier": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "brand": {
+              "type": "string"
+            },
+            "match_kind": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "tier",
+            "brand",
+            "match_kind",
+            "field"
+          ],
+          "description": "Why a published name may not lead the page (it carries a protected brand word); it leads only when an OV/EV certificate names it. Null when not demoted."
+        },
         "support_email": {
           "type": [
             "string",
@@ -12799,6 +13192,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_verification_dates",
         "show_proof_channels",
         "show_delegations",
+        "channels_complete",
+        "name_review",
+        "name_headline",
         "support_email",
         "email_theme",
         "view_count",
@@ -14252,6 +14648,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           ],
           "description": "Absent until a username is claimed"
         },
+        "username_is_default": {
+          "type": "boolean",
+          "description": "The username was given automatically (from the domain the profile shows, else its short id); the owner may replace it once with a name of their choice."
+        },
         "is_primary": {
           "type": "boolean"
         },
@@ -14405,6 +14805,79 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_delegations": {
           "type": "boolean"
         },
+        "channels_complete": {
+          "type": "boolean",
+          "description": "The owner's statement that the channels listed are all of theirs."
+        },
+        "name_review": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "brand": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "unlocks_with": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason",
+            "brand",
+            "field",
+            "unlocks_with"
+          ],
+          "description": "Why a typed name is left out of the public reads: it reads as a protected brand's own, until a domain of that brand is checked. Null when nothing is held."
+        },
+        "name_headline": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "tier": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "brand": {
+              "type": "string"
+            },
+            "match_kind": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "tier",
+            "brand",
+            "match_kind",
+            "field"
+          ],
+          "description": "Why a published name may not lead the page (it carries a protected brand word); it leads only when an OV/EV certificate names it. Null when not demoted."
+        },
         "support_email": {
           "type": [
             "string",
@@ -14443,6 +14916,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_verification_dates",
         "show_proof_channels",
         "show_delegations",
+        "channels_complete",
+        "name_review",
+        "name_headline",
         "support_email",
         "email_theme",
         "view_count",
@@ -14475,6 +14951,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           ],
           "description": "Absent until a username is claimed"
         },
+        "username_is_default": {
+          "type": "boolean",
+          "description": "The username was given automatically (from the domain the profile shows, else its short id); the owner may replace it once with a name of their choice."
+        },
         "is_primary": {
           "type": "boolean"
         },
@@ -14628,6 +15108,79 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_delegations": {
           "type": "boolean"
         },
+        "channels_complete": {
+          "type": "boolean",
+          "description": "The owner's statement that the channels listed are all of theirs."
+        },
+        "name_review": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "brand": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "unlocks_with": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason",
+            "brand",
+            "field",
+            "unlocks_with"
+          ],
+          "description": "Why a typed name is left out of the public reads: it reads as a protected brand's own, until a domain of that brand is checked. Null when nothing is held."
+        },
+        "name_headline": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "tier": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "brand": {
+              "type": "string"
+            },
+            "match_kind": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "tier",
+            "brand",
+            "match_kind",
+            "field"
+          ],
+          "description": "Why a published name may not lead the page (it carries a protected brand word); it leads only when an OV/EV certificate names it. Null when not demoted."
+        },
         "support_email": {
           "type": [
             "string",
@@ -14666,6 +15219,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "show_verification_dates",
         "show_proof_channels",
         "show_delegations",
+        "channels_complete",
+        "name_review",
+        "name_headline",
         "support_email",
         "email_theme",
         "view_count",

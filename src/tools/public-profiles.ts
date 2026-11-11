@@ -10,6 +10,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'Claim a unique username for the authenticated user\'s public profile. Usernames must be 3-30 characters, alphanumeric and underscores only.',
     {
       username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_]+$/).describe('Username to claim (3-30 chars, alphanumeric and underscores)'),
+      profile_id: z.string().max(64).optional().describe('The profile the username is for (its `id` from list_profiles). Omitted: the primary profile.'),
     },
     async (args) => {
       try {

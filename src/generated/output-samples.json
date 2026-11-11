@@ -1222,6 +1222,7 @@
         {
           "id": "000000000000000000000001",
           "profile_id": "pp_owner_me_first",
+          "username_is_default": false,
           "is_primary": true,
           "verification_level": "basic",
           "is_business": false,
@@ -1236,15 +1237,19 @@
           "show_verification_dates": true,
           "show_proof_channels": false,
           "show_delegations": true,
+          "channels_complete": false,
           "support_email": null,
           "email_theme": null,
           "view_count": 0,
           "created_at": "2026-01-01T00:00:00.000Z",
-          "updated_at": "2026-01-01T00:00:00.000Z"
+          "updated_at": "2026-01-01T00:00:00.000Z",
+          "name_review": null,
+          "name_headline": null
         },
         {
           "id": "000000000000000000000002",
           "profile_id": "pp_owner_me_second",
+          "username_is_default": false,
           "is_primary": false,
           "display_name": "team.management",
           "verification_level": "basic",
@@ -1280,11 +1285,20 @@
           "show_verification_dates": true,
           "show_proof_channels": false,
           "show_delegations": true,
+          "channels_complete": false,
           "support_email": null,
           "email_theme": null,
           "view_count": 0,
           "created_at": "2026-01-01T00:00:00.000Z",
-          "updated_at": "2026-01-01T00:00:00.000Z"
+          "updated_at": "2026-01-01T00:00:00.000Z",
+          "name_review": null,
+          "name_headline": {
+            "state": "demoted",
+            "tier": 1,
+            "brand": "Steam",
+            "match_kind": "edit_distance",
+            "field": "display_name"
+          }
         }
       ],
       "count": 2,
@@ -1295,6 +1309,7 @@
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_owner_me_second",
+      "username_is_default": false,
       "is_primary": false,
       "display_name": "team.management",
       "verification_level": "basic",
@@ -1330,11 +1345,20 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": null,
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": {
+        "state": "demoted",
+        "tier": 1,
+        "brand": "Steam",
+        "match_kind": "edit_distance",
+        "field": "display_name"
+      }
     }
   ],
   "GET /api/v1/me/usage 200": [
@@ -1636,6 +1660,7 @@
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_owner_primary_me",
+      "username_is_default": false,
       "is_primary": true,
       "verification_level": "basic",
       "is_business": false,
@@ -1650,11 +1675,14 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": null,
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": null
     }
   ],
   "GET /api/v1/profiles/me/assets 200": [
@@ -1684,12 +1712,15 @@
   "GET /api/v1/profiles/p/{profileId} 200": [
     {
       "profile_id": "pp_public_view_hidden",
+      "name_may_lead": false,
+      "name_backed_by": null,
       "verification_level": "basic",
       "is_business": false,
       "proofs": [
         {
           "type": "email",
-          "display_value": "hidden@team.management"
+          "display_value": "hidden@team.management",
+          "proof_token": null
         }
       ],
       "leading_proof": null,
@@ -1698,6 +1729,7 @@
         "background_type": "solid",
         "font_style": "default"
       },
+      "channels_complete": false,
       "delegations": null
     }
   ],
@@ -1707,6 +1739,7 @@
         {
           "id": "000000000000000000000001",
           "profile_id": "pp_owner_legacy_first",
+          "username_is_default": false,
           "is_primary": true,
           "verification_level": "basic",
           "is_business": false,
@@ -1721,15 +1754,19 @@
           "show_verification_dates": true,
           "show_proof_channels": false,
           "show_delegations": true,
+          "channels_complete": false,
           "support_email": null,
           "email_theme": null,
           "view_count": 0,
           "created_at": "2026-01-01T00:00:00.000Z",
-          "updated_at": "2026-01-01T00:00:00.000Z"
+          "updated_at": "2026-01-01T00:00:00.000Z",
+          "name_review": null,
+          "name_headline": null
         },
         {
           "id": "000000000000000000000002",
           "profile_id": "pp_owner_legacy_second",
+          "username_is_default": false,
           "is_primary": false,
           "display_name": "team.management",
           "verification_level": "basic",
@@ -1765,11 +1802,20 @@
           "show_verification_dates": true,
           "show_proof_channels": false,
           "show_delegations": true,
+          "channels_complete": false,
           "support_email": null,
           "email_theme": null,
           "view_count": 0,
           "created_at": "2026-01-01T00:00:00.000Z",
-          "updated_at": "2026-01-01T00:00:00.000Z"
+          "updated_at": "2026-01-01T00:00:00.000Z",
+          "name_review": null,
+          "name_headline": {
+            "state": "demoted",
+            "tier": 1,
+            "brand": "Steam",
+            "match_kind": "edit_distance",
+            "field": "display_name"
+          }
         }
       ],
       "count": 2,
@@ -1780,6 +1826,7 @@
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_owner_legacy_second",
+      "username_is_default": false,
       "is_primary": false,
       "display_name": "team.management",
       "verification_level": "basic",
@@ -1815,11 +1862,20 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": null,
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": {
+        "state": "demoted",
+        "tier": 1,
+        "brand": "Steam",
+        "match_kind": "edit_distance",
+        "field": "display_name"
+      }
     }
   ],
   "GET /api/v1/profiles/u/{username} 200": [
@@ -1827,19 +1883,22 @@
       "profile_id": "pp_public_view_shown",
       "username": "team_management_public",
       "display_name": "team.management",
+      "name_may_lead": false,
+      "name_backed_by": null,
       "verification_level": "basic",
       "is_business": false,
       "proofs": [
         {
           "type": "email",
-          "display_value": "public@team.management",
+          "display_value": "pu•••@team.management",
           "label": "Support",
+          "proof_token": null,
           "verified_at": "2026-01-01T00:00:00.000Z"
         }
       ],
       "leading_proof": {
         "type": "email",
-        "display_value": "public@team.management",
+        "display_value": "pu•••@team.management",
         "label": "Support"
       },
       "links": [
@@ -1853,6 +1912,7 @@
         "background_type": "solid",
         "font_style": "default"
       },
+      "channels_complete": false,
       "delegations": []
     }
   ],
@@ -2857,6 +2917,7 @@
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_owner_me_second",
+      "username_is_default": false,
       "is_primary": false,
       "display_name": "team.management",
       "bio": "Approvals for team.management",
@@ -2893,17 +2954,27 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": null,
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": {
+        "state": "demoted",
+        "tier": 1,
+        "brand": "Steam",
+        "match_kind": "edit_distance",
+        "field": "display_name"
+      }
     }
   ],
   "PATCH /api/v1/profiles/profiles/{profileId} 200": [
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_owner_legacy_second",
+      "username_is_default": false,
       "is_primary": false,
       "display_name": "team.management",
       "bio": "Approvals for team.management",
@@ -2940,11 +3011,20 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": null,
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": {
+        "state": "demoted",
+        "tier": 1,
+        "brand": "Steam",
+        "match_kind": "edit_distance",
+        "field": "display_name"
+      }
     }
   ],
   "POST /api/v1/auth/refresh 200": [
@@ -3978,6 +4058,7 @@
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_owner_me_created",
+      "username_is_default": false,
       "is_primary": true,
       "display_name": "team.management",
       "verification_level": "basic",
@@ -3993,17 +4074,27 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": null,
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": {
+        "state": "demoted",
+        "tier": 1,
+        "brand": "Steam",
+        "match_kind": "edit_distance",
+        "field": "display_name"
+      }
     }
   ],
   "POST /api/v1/me/profiles/{profileId}/primary 200": [
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_primary_me_second",
+      "username_is_default": false,
       "is_primary": true,
       "display_name": "team.management",
       "verification_level": "basic",
@@ -4039,11 +4130,20 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": "support@team.management",
       "email_theme": "light",
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": {
+        "state": "demoted",
+        "tier": 1,
+        "brand": "Steam",
+        "match_kind": "edit_distance",
+        "field": "display_name"
+      }
     }
   ],
   "POST /api/v1/me/verification-requests/{id}/extend 200": [
@@ -4126,6 +4226,7 @@
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_owner_legacy_created",
+      "username_is_default": false,
       "is_primary": true,
       "display_name": "team.management",
       "verification_level": "basic",
@@ -4141,17 +4242,27 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": null,
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": {
+        "state": "demoted",
+        "tier": 1,
+        "brand": "Steam",
+        "match_kind": "edit_distance",
+        "field": "display_name"
+      }
     }
   ],
   "POST /api/v1/profiles/profiles/{profileId}/primary 200": [
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_primary_profiles_second",
+      "username_is_default": false,
       "is_primary": true,
       "display_name": "team.management",
       "verification_level": "basic",
@@ -4187,11 +4298,20 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": null,
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": {
+        "state": "demoted",
+        "tier": 1,
+        "brand": "Steam",
+        "match_kind": "edit_distance",
+        "field": "display_name"
+      }
     }
   ],
   "POST /api/v1/proofs/validate 200": [
@@ -4549,6 +4669,7 @@
     {
       "id": "000000000000000000000001",
       "profile_id": "pp_owner_primary_me",
+      "username_is_default": false,
       "is_primary": true,
       "verification_level": "basic",
       "is_business": false,
@@ -4563,11 +4684,14 @@
       "show_verification_dates": true,
       "show_proof_channels": false,
       "show_delegations": true,
+      "channels_complete": false,
       "support_email": null,
       "email_theme": "light",
       "view_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
-      "updated_at": "2026-01-01T00:00:00.000Z"
+      "updated_at": "2026-01-01T00:00:00.000Z",
+      "name_review": null,
+      "name_headline": null
     }
   ],
   "PUT /api/v1/profiles/me/proofs 200": [
