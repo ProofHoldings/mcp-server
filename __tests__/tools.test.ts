@@ -91,6 +91,7 @@ describe('verifications tools', () => {
       'email_prefix',
       'external_user_id',
       'identifier',
+      'own_domain',
       'profile_id',
       'proof_expiry_days',
       'type',

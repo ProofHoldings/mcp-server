@@ -133,6 +133,7 @@
     "inputs": {
       "api_key": "body",
       "api_secret": "body",
+      "api_token": "body",
       "id": "path"
     }
   },
@@ -323,6 +324,7 @@
       "email_prefix": "body",
       "external_user_id": "body",
       "identifier": "body",
+      "own_domain": "body",
       "profile_id": "body",
       "proof_expiry_days": "body",
       "type": "body"
@@ -764,6 +766,7 @@
       "GET /api/v1/webhook-deliveries/{id}"
     ],
     "inputs": {
+      "environment": "query",
       "id": "path"
     }
   },
@@ -779,7 +782,9 @@
     "operations": [
       "GET /api/v1/webhook-deliveries/stats"
     ],
-    "inputs": {}
+    "inputs": {
+      "environment": "query"
+    }
   },
   "invite_circle_member": {
     "operations": [
@@ -1005,6 +1010,7 @@
     ],
     "inputs": {
       "endpoint_id": "query",
+      "environment": "query",
       "event_type": "query",
       "limit": "query",
       "page": "query",
@@ -1133,6 +1139,7 @@
       "POST /api/v1/webhook-deliveries/{id}/retry"
     ],
     "inputs": {
+      "environment": "query",
       "id": "path"
     }
   },

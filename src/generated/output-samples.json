@@ -927,6 +927,7 @@
           "supports_api_token": true,
           "supports_api_key": false,
           "verified_at": "2026-01-01T00:00:00.000Z",
+          "api_verification": null,
           "verified_providers": [
             "email"
           ],
@@ -991,6 +992,7 @@
           "godaddy_connected": false,
           "supports_api_token": true,
           "supports_api_key": false,
+          "api_verification": null,
           "verified_providers": [],
           "check_count": 0,
           "created_at": "2026-01-01T00:00:00.000Z",
@@ -1033,6 +1035,7 @@
         "godaddy_connected": false,
         "supports_api_token": true,
         "supports_api_key": false,
+        "api_verification": null,
         "verified_providers": [],
         "check_count": 0,
         "created_at": "2026-01-01T00:00:00.000Z",
@@ -1090,7 +1093,7 @@
       "detected_provider": "godaddy",
       "has_registrar_credentials": true,
       "registrar_provider": "godaddy",
-      "can_try_ownership_verification": true
+      "can_try_ownership_verification": false
     },
     {
       "has_credentials": true,
@@ -1145,6 +1148,7 @@
       "supports_api_token": true,
       "supports_api_key": false,
       "verified_at": "2026-01-01T00:00:00.000Z",
+      "api_verification": null,
       "verified_providers": [],
       "check_count": 0,
       "from_email": "hello@send.team.management",
@@ -3354,6 +3358,7 @@
       "godaddy_connected": false,
       "supports_api_token": true,
       "supports_api_key": false,
+      "api_verification": null,
       "verified_providers": [],
       "check_count": 0,
       "created_at": "2026-01-01T00:00:00.000Z",
@@ -3392,6 +3397,7 @@
       "supports_api_token": true,
       "supports_api_key": false,
       "verified_at": "2026-01-01T00:00:00.000Z",
+      "api_verification": null,
       "verified_providers": [
         "cloudflare",
         "route53"
@@ -3433,6 +3439,7 @@
       "supports_api_token": false,
       "supports_api_key": false,
       "verified_at": "2026-01-01T00:00:00.000Z",
+      "api_verification": null,
       "verified_providers": [
         "route53",
         "cloudflare",
@@ -3475,6 +3482,7 @@
       "supports_api_token": true,
       "supports_api_key": false,
       "verified_at": "2026-01-01T00:00:00.000Z",
+      "api_verification": null,
       "verified_providers": [
         "cloudflare"
       ],
@@ -3515,6 +3523,7 @@
       "supports_api_token": false,
       "supports_api_key": true,
       "verified_at": "2026-01-01T00:00:00.000Z",
+      "api_verification": null,
       "verified_providers": [
         "godaddy",
         "cloudflare"
@@ -3554,6 +3563,7 @@
       "supports_api_token": true,
       "supports_api_key": false,
       "verified_at": "2026-01-01T00:00:00.000Z",
+      "api_verification": null,
       "verified_providers": [],
       "check_count": 0,
       "from_email": "hello@send.team.management",
@@ -3611,6 +3621,7 @@
       "supports_api_token": true,
       "supports_api_key": false,
       "verified_at": "2026-01-01T00:00:00.000Z",
+      "api_verification": null,
       "verified_providers": [],
       "check_count": 0,
       "from_email": "hello@send.team.management",
@@ -3670,10 +3681,11 @@
         "godaddy_connected": false,
         "supports_api_token": true,
         "supports_api_key": false,
+        "api_verification": null,
         "verified_providers": [],
         "last_checked_at": "2026-01-01T00:00:00.000Z",
         "check_count": 1,
-        "error_message": "Verification record not found",
+        "error_message": "We could not find the TXT record _proof.added.team.management (value proof-verification=00000000000000000000000000000000) or the file at https://added.team.management/.well-known/proof-holdings-verification.txt. A new DNS record can take a few minutes to appear.",
         "created_at": "2026-01-01T00:00:00.000Z",
         "updated_at": "2026-01-01T00:00:00.000Z",
         "proof_id": null,
@@ -3682,7 +3694,7 @@
         "proof_expires_at": null
       },
       "verified": false,
-      "message": "Verification record not found"
+      "message": "We could not find the TXT record _proof.added.team.management (value proof-verification=00000000000000000000000000000000) or the file at https://added.team.management/.well-known/proof-holdings-verification.txt. A new DNS record can take a few minutes to appear."
     },
     {
       "data": {
@@ -3715,6 +3727,7 @@
         "supports_api_token": true,
         "supports_api_key": false,
         "verified_at": "2026-01-01T00:00:00.000Z",
+        "api_verification": null,
         "verified_providers": [
           "cloudflare"
         ],
@@ -3761,6 +3774,7 @@
         "godaddy_connected": false,
         "supports_api_token": true,
         "supports_api_key": false,
+        "api_verification": null,
         "verified_providers": [],
         "check_count": 0,
         "email_verification": {
@@ -3814,6 +3828,7 @@
         "supports_api_token": true,
         "supports_api_key": false,
         "verified_at": "2026-01-01T00:00:00.000Z",
+        "api_verification": null,
         "verified_providers": [
           "email"
         ],
@@ -3866,6 +3881,7 @@
         "supports_api_token": true,
         "supports_api_key": false,
         "verified_at": "2026-01-01T00:00:00.000Z",
+        "api_verification": null,
         "verified_providers": [],
         "check_count": 0,
         "created_at": "2026-01-01T00:00:00.000Z",
@@ -3905,6 +3921,7 @@
         "godaddy_connected": false,
         "supports_api_token": true,
         "supports_api_key": false,
+        "api_verification": null,
         "verified_providers": [],
         "check_count": 0,
         "email_verification": {
@@ -3958,6 +3975,7 @@
       "supports_api_token": true,
       "supports_api_key": false,
       "verified_at": "2026-01-01T00:00:00.000Z",
+      "api_verification": null,
       "verified_providers": [
         "cloudflare"
       ],
@@ -4420,26 +4438,12 @@
     {
       "status": "verified",
       "verified_at": "2026-01-01T00:00:00.000Z",
-      "method": "ownership",
+      "method": "auto_dns",
       "provider": "cloudflare",
       "request_status": "partial",
       "progress": {
         "completed": 3,
         "completed_required": 3,
-        "required": 4,
-        "optional": 0,
-        "total": 4
-      }
-    },
-    {
-      "status": "verified",
-      "verified_at": "2026-01-01T00:00:00.000Z",
-      "method": "auto_dns",
-      "provider": "cloudflare",
-      "request_status": "completed",
-      "progress": {
-        "completed": 4,
-        "completed_required": 4,
         "required": 4,
         "optional": 0,
         "total": 4
@@ -4644,6 +4648,7 @@
   "POST /api/v1/webhook-deliveries/{id}/retry 200": [
     {
       "success": true,
+      "already_queued": false,
       "message": "Webhook delivery queued for retry",
       "delivery_id": "000000000000000000000001",
       "next_retry_at": "2026-01-01T00:00:00.000Z"

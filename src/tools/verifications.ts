@@ -25,6 +25,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       bot_token: z.string().min(1).max(500).optional().describe('Telegram bot token (required for channel "telegram_bot_token")'),
       proof_expiry_days: z.number().int().min(1).max(365).optional().describe('Per-request proof expiry override in days (1-365)'),
       profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe("The sub-account (24 hex characters) this is for; omitted, the key's own sub-account, else the primary. Its branding and templates are used for every message."),
+      own_domain: z.boolean().optional().describe('For type "domain" only: true when the domain is your own, so once verified it is added to your account\'s domains as pending (it is verified there by its own record, a connected DNS provider or an email code). Leave it out when verifying a domain for one of your users.'),
     },
     async (args) => {
       try {

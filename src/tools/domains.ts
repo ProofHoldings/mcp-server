@@ -6,6 +6,43 @@ import { ApiError } from '../http.js';
 
 const EMAIL_PREFIXES = ['admin', 'administrator', 'webmaster', 'hostmaster', 'postmaster'] as const;
 
+/**
+ * The next step an agent needs when a provider connection PUBLISHED the record but the domain is not
+ * verified yet (h-fix-provider-domain-verification-evidence): a provider accepting the record is not
+ * proof of control; the domain is verified once the record is served in public DNS, which the server
+ * keeps re-checking for about ten minutes. The structured result is the API's answer, untouched.
+ */
+export const PUBLISHED_RECORD_NEXT_STEP =
+  'The verification record is published but not yet live in public DNS, so the domain is not verified yet. ' +
+  'The server keeps checking for about 10 minutes and verifies it as soon as the record is served — usually within a minute. ' +
+  'Call get_domain to see the status, or verify_domain to check now. If it stays unverified, the domain\'s DNS is served by ' +
+  'another host (provider_name in the result): publish the record there, or connect that host.';
+
+/**
+ * For a published row the server is NOT re-checking on its own (the account's limit on background
+ * checks, or no queue) — the API marks such a row by setting `error_message`; its presence decides.
+ */
+export const NO_AUTO_RECHECK_NEXT_STEP =
+  'The verification record is published but not yet live in public DNS, and the server is not checking this domain automatically right now. ' +
+  'Call verify_domain once the record is live to verify it. If it stays unverified, the domain\'s DNS is served by another host ' +
+  '(provider_name in the result): publish the record there, or connect that host.';
+
+function publishedRow(data: unknown): Record<string, unknown> | null {
+  const row = (data as { data?: unknown } | null)?.data && typeof (data as { data?: unknown }).data === 'object'
+    ? (data as { data: Record<string, unknown> }).data
+    : (data as Record<string, unknown> | null);
+  return row && row.status === 'verifying' && row.verification_method === 'auto_dns' ? row : null;
+}
+
+/** `jsonResult`, plus the next step when the domain is published-but-not-yet-served. */
+export function domainResult(data: unknown) {
+  const base = jsonResult(data);
+  const row = publishedRow(data);
+  if (!row) return base;
+  const text = row.error_message ? NO_AUTO_RECHECK_NEXT_STEP : PUBLISHED_RECORD_NEXT_STEP;
+  return { ...base, content: [...base.content, { type: 'text' as const, text }] };
+}
+
 const dnsProviderSchema = {
   id: z.string().describe('Domain ID'),
   provider: z.string().min(1).max(50).describe('DNS provider identifier'),
@@ -40,7 +77,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     async (args) => {
       try {
         const result = await http.post('/api/v1/me/domains', args);
-        return jsonResult(result);
+        return domainResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
         throw e;
@@ -57,7 +94,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     async ({ id }) => {
       try {
         const result = await http.get(`/api/v1/me/domains/${encodeURIComponent(id)}`);
-        return jsonResult(result);
+        return domainResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
         throw e;
@@ -91,7 +128,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     async ({ id }) => {
       try {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/verify`);
-        return jsonResult(result);
+        return domainResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
         throw e;
@@ -101,7 +138,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'connect_cloudflare',
-    'Connect a Cloudflare API token to a domain for automated DNS record management. Note: the API token will be visible in the AI conversation context.',
+    'Connect a Cloudflare API token to a domain: the server publishes the verification record through it. The domain is verified once that record is live in public DNS — often at once, else status "verifying" while the server keeps checking (call get_domain). Note: the API token will be visible in the AI conversation context.',
     {
       id: z.string().describe('Domain ID'),
       api_token: z.string().min(1).describe('Cloudflare API token with DNS edit permissions'),
@@ -109,7 +146,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     async ({ id, api_token }) => {
       try {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/connect/cloudflare`, { api_token });
-        return jsonResult(result);
+        return domainResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
         throw e;
@@ -119,16 +156,17 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'connect_godaddy',
-    'Connect GoDaddy API credentials to a domain for automated DNS record management. Note: the API key and secret will be visible in the AI conversation context.',
+    'Connect GoDaddy credentials to a domain: a Personal Access Token (api_token, permissions domains.domain:read and domains.dns:update), or a Production API key with its secret. The server publishes the verification record through it; the domain is verified once that record is live in public DNS — often at once, else status "verifying" while the server keeps checking (call get_domain). Note: the credentials will be visible in the AI conversation context.',
     {
       id: z.string().describe('Domain ID'),
-      api_key: z.string().min(1).describe('GoDaddy API key'),
-      api_secret: z.string().min(1).describe('GoDaddy API secret'),
+      api_token: z.string().min(1).max(500).optional().describe('GoDaddy Personal Access Token (send this, or api_key with api_secret)'),
+      api_key: z.string().min(1).max(500).optional().describe('GoDaddy Production API key (requires api_secret)'),
+      api_secret: z.string().min(1).max(500).optional().describe('GoDaddy Production API secret, sent with api_key'),
     },
-    async ({ id, api_key, api_secret }) => {
+    async ({ id, api_token, api_key, api_secret }) => {
       try {
-        const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/connect/godaddy`, { api_key, api_secret });
-        return jsonResult(result);
+        const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/connect/godaddy`, { api_token, api_key, api_secret });
+        return domainResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
         throw e;
@@ -138,12 +176,12 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'connect_dns_provider',
-    'Connect a generic DNS provider to a domain using provider-specific credentials. Note: credentials will be visible in the AI conversation context.',
+    'Connect a generic DNS provider to a domain using provider-specific credentials. The server publishes the verification record through it; the domain is verified once that record is live in public DNS — often at once, else status "verifying" while the server keeps checking (call get_domain). Note: credentials will be visible in the AI conversation context.',
     dnsProviderSchema,
     async ({ id, provider, credentials }) => {
       try {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/connect/${encodeURIComponent(provider)}`, { credentials });
-        return jsonResult(result);
+        return domainResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
         throw e;
@@ -183,14 +221,14 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'verify_domain_with_credentials',
-    'Verify a pending domain using previously stored DNS credentials. Use when credentials are already connected.',
+    'Publish a pending domain\'s verification record using previously stored DNS credentials. The domain is verified once that record is live in public DNS — often at once, else status "verifying" while the server keeps checking (call get_domain). Use when credentials are already connected.',
     {
       id: z.string().describe('Domain ID to verify'),
     },
     async ({ id }) => {
       try {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/verify-with-credentials`);
-        return jsonResult(result);
+        return domainResult(result);
       } catch (e) {
         if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
         throw e;

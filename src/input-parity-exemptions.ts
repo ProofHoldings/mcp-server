@@ -29,6 +29,15 @@ export const INPUT_PARITY_EXEMPTIONS: readonly InputParityExemption[] = [
     'wait_for_session',
     'wait_for_verification',
   ].map((tool) => ({ tool, key: 'timeout_seconds', side: 'tool_only' as const, reason: CLIENT_SIDE_WAIT })),
+  // SC-19: a dashboard SESSION names the environment it reads on the delivery routes
+  // (`sessionEnvironment`, `src/middleware/testMode.ts`). This server calls them with an API key,
+  // whose own environment decides and whose parameter is not read — offering it would do nothing.
+  ...['list_webhook_deliveries', 'get_webhook_stats', 'get_webhook_delivery', 'retry_webhook_delivery'].map((tool) => ({
+    tool,
+    key: 'environment',
+    side: 'spec_only' as const,
+    reason: 'Read for a dashboard session only. This server calls the delivery routes with an API key, whose own environment decides; the parameter is not read for a key.',
+  })),
   {
     tool: 'delete_profile',
     key: 'archive_default_linked',

@@ -327,6 +327,40 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "verified_at": {
           "type": "string"
         },
+        "api_verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "verification_id": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "verified_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "proof_expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verification_id",
+                "channel",
+                "verified_at",
+                "proof_expires_at"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set when the domain was added from an API verification, else null. Absent from an API that predates the field."
+        },
         "proof_id": {
           "type": [
             "string",
@@ -647,6 +681,40 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "verified_at": {
           "type": "string"
+        },
+        "api_verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "verification_id": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "verified_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "proof_expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verification_id",
+                "channel",
+                "verified_at",
+                "proof_expires_at"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set when the domain was added from an API verification, else null. Absent from an API that predates the field."
         },
         "proof_id": {
           "type": [
@@ -1085,6 +1153,40 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "verified_at": {
           "type": "string"
         },
+        "api_verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "verification_id": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "verified_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "proof_expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verification_id",
+                "channel",
+                "verified_at",
+                "proof_expires_at"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set when the domain was added from an API verification, else null. Absent from an API that predates the field."
+        },
         "proof_id": {
           "type": [
             "string",
@@ -1484,6 +1586,39 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "verified_at": {
               "type": "string"
             },
+            "api_verification": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "verification_id": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string"
+                    },
+                    "verified_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "proof_expires_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "verification_id",
+                    "channel",
+                    "verified_at",
+                    "proof_expires_at"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "proof_id": {
               "type": [
                 "string",
@@ -1820,6 +1955,40 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "verified_at": {
           "type": "string"
         },
+        "api_verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "verification_id": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "verified_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "proof_expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verification_id",
+                "channel",
+                "verified_at",
+                "proof_expires_at"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set when the domain was added from an API verification, else null. Absent from an API that predates the field."
+        },
         "proof_id": {
           "type": [
             "string",
@@ -2141,6 +2310,40 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "verified_at": {
           "type": "string"
         },
+        "api_verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "verification_id": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "verified_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "proof_expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verification_id",
+                "channel",
+                "verified_at",
+                "proof_expires_at"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set when the domain was added from an API verification, else null. Absent from an API that predates the field."
+        },
         "proof_id": {
           "type": [
             "string",
@@ -2461,6 +2664,40 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "verified_at": {
           "type": "string"
+        },
+        "api_verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "verification_id": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "verified_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "proof_expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verification_id",
+                "channel",
+                "verified_at",
+                "proof_expires_at"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set when the domain was added from an API verification, else null. Absent from an API that predates the field."
         },
         "proof_id": {
           "type": [
@@ -6582,6 +6819,39 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "verified_at": {
               "type": "string"
             },
+            "api_verification": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "verification_id": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string"
+                    },
+                    "verified_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "proof_expires_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "verification_id",
+                    "channel",
+                    "verified_at",
+                    "proof_expires_at"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "proof_id": {
               "type": [
                 "string",
@@ -10109,6 +10379,39 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               "verified_at": {
                 "type": "string"
               },
+              "api_verification": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "verification_id": {
+                        "type": "string"
+                      },
+                      "channel": {
+                        "type": "string"
+                      },
+                      "verified_at": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "proof_expires_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "verification_id",
+                      "channel",
+                      "verified_at",
+                      "proof_expires_at"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
               "proof_id": {
                 "type": [
                   "string",
@@ -12352,6 +12655,39 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "verified_at": {
               "type": "string"
             },
+            "api_verification": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "verification_id": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string"
+                    },
+                    "verified_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "proof_expires_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "verification_id",
+                    "channel",
+                    "verified_at",
+                    "proof_expires_at"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "proof_id": {
               "type": [
                 "string",
@@ -12468,6 +12804,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "properties": {
         "success": {
           "type": "boolean"
+        },
+        "already_queued": {
+          "type": "boolean",
+          "description": "True when a worker already holds an attempt for this delivery, so the request queued nothing and `next_retry_at` is unchanged. False when this request queued a fresh ladder. Present on servers from this release; absent means treat as false."
         },
         "message": {
           "type": "string"
@@ -13468,6 +13808,40 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "verified_at": {
           "type": "string"
         },
+        "api_verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "verification_id": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "verified_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "proof_expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verification_id",
+                "channel",
+                "verified_at",
+                "proof_expires_at"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set when the domain was added from an API verification, else null. Absent from an API that predates the field."
+        },
         "proof_id": {
           "type": [
             "string",
@@ -14091,6 +14465,39 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             },
             "verified_at": {
               "type": "string"
+            },
+            "api_verification": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "verification_id": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string"
+                    },
+                    "verified_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "proof_expires_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "verification_id",
+                    "channel",
+                    "verified_at",
+                    "proof_expires_at"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
             },
             "proof_id": {
               "type": [
@@ -15911,6 +16318,39 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "verified_at": {
               "type": "string"
             },
+            "api_verification": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "verification_id": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string"
+                    },
+                    "verified_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "proof_expires_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "verification_id",
+                    "channel",
+                    "verified_at",
+                    "proof_expires_at"
+                  ]
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
             "proof_id": {
               "type": [
                 "string",
@@ -16246,6 +16686,40 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "verified_at": {
           "type": "string"
+        },
+        "api_verification": {
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "verification_id": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string"
+                },
+                "verified_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "proof_expires_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "verification_id",
+                "channel",
+                "verified_at",
+                "proof_expires_at"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Set when the domain was added from an API verification, else null. Absent from an API that predates the field."
         },
         "proof_id": {
           "type": [
