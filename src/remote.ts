@@ -45,6 +45,7 @@ import {
   sessionCredentialMismatchBody,
   type KeyedToolCall,
 } from './authBoundary.js';
+import { canonicalToolName } from './tool-renames.js';
 import { createProofServer } from './factory.js';
 import { ApiError, HttpClient } from './http.js';
 
@@ -73,6 +74,43 @@ export interface RemoteServerOptions {
    * Carrying the replica in the id turns the routing decision into a lookup instead of a guess.
    */
   replicaId?: string;
+  /**
+   * The browser origins allowed to send to `/mcp` (`MCP_ALLOWED_ORIGINS`, read through
+   * `parseAllowedOrigins`). EMPTY by default: no page calls this server from a browser, and every
+   * measured client sends no `Origin` at all. See the Origin check in the request handler.
+   */
+  allowedOrigins?: readonly string[];
+}
+
+/**
+ * The 403 a disallowed `Origin` gets. For the person debugging a browser client: what happened and where
+ * the allowlist lives. The refused value is not echoed (it is client-supplied; the log line carries it).
+ */
+export const ORIGIN_REFUSED_MESSAGE =
+  'Forbidden: this Origin is not allowed. A browser page may call this server only from an origin listed in ' +
+  "the server's MCP_ALLOWED_ORIGINS; MCP clients outside a browser send no Origin and are not affected.";
+
+/**
+ * `MCP_ALLOWED_ORIGINS` → the exact serialized origins the server accepts: comma-separated, trimmed,
+ * lower-cased by the URL parser. An entry that is not EXACTLY an origin (`scheme://host[:port]`, no
+ * path, no trailing slash) throws at startup — `null`, `*` or a URL with a path would otherwise widen
+ * the rule silently, and a typo should stop the pod rather than open it.
+ */
+export function parseAllowedOrigins(raw: string | undefined): string[] {
+  if (!raw || !raw.trim()) return [];
+  return raw.split(',').map((entry) => {
+    const value = entry.trim();
+    let origin: string;
+    try {
+      origin = new URL(value).origin;
+    } catch {
+      throw new Error(`MCP_ALLOWED_ORIGINS: ${JSON.stringify(value)} is not an origin (scheme://host[:port])`);
+    }
+    if (origin === 'null' || origin !== value.toLowerCase()) {
+      throw new Error(`MCP_ALLOWED_ORIGINS: ${JSON.stringify(value)} is not exactly an origin (scheme://host[:port], no path)`);
+    }
+    return origin;
+  });
 }
 
 export interface RemoteServer {
@@ -257,9 +295,13 @@ class BodyTooLargeError extends Error {}
  *  - `error`/`aborted` HANDLED: a client that disconnects mid-body never emits `end`, so a promise
  *    awaiting only `end` never settles — which silently leaks anything the caller accounts for
  *    after the await (the session reservation below is exactly that).
- *  - `resolve(undefined)` on unparseable JSON is deliberate: the transport answers such a request
- *    itself, and distinguishing "no body" from "bad body" is not this function's job.
+ *  - UNPARSEABLE is told apart from EMPTY (`UNPARSEABLE_BODY`, not `undefined`): the opening path has no
+ *    transport yet to answer a parse error, so it answers JSON-RPC -32700 itself, while an empty body
+ *    stays `initialize_expected`. The existing-session path maps it back to `undefined` and lets the
+ *    transport answer, exactly as before.
  */
+const UNPARSEABLE_BODY = Symbol('unparseable-body');
+
 const readBody = (req: IncomingMessage): Promise<unknown> =>
   new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -289,7 +331,7 @@ const readBody = (req: IncomingMessage): Promise<unknown> =>
       try {
         resolve(JSON.parse(raw));
       } catch {
-        resolve(undefined);
+        resolve(UNPARSEABLE_BODY);
       }
     });
   });
@@ -607,6 +649,8 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
   // Never hold the process open for the sake of the sweeper alone.
   sweep.unref();
 
+  const allowedOrigins: ReadonlySet<string> = new Set(options.allowedOrigins ?? []);
+
   const httpServer = createServer(async (req, res) => {
     const requestPath = (req.url ?? '').split('?')[0];
 
@@ -636,6 +680,23 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
     // one answer — a 405 says nothing about any session.
     if (req.method !== 'POST' && req.method !== 'DELETE') {
       methodNotAllowed(res);
+      return;
+    }
+
+    // THE ORIGIN CHECK (T6). MCP Streamable HTTP, 2025-11-25 and 2026-07-28 alike: "Servers MUST
+    // validate the Origin header on all incoming connections … If the Origin header is present and
+    // invalid, servers MUST respond with HTTP 403 Forbidden." Only a browser sends `Origin`; every
+    // measured client sends none (Claude Code 2.1.322, 11 Nov), so an absent header passes and a
+    // present one passes only when it is EXACTLY an allowlisted origin, compared lower-cased —
+    // `null` and every prefix/suffix lookalike included in "invalid". After the method gate, so a
+    // preflight keeps its 405; before the session lookup and any credential read, so a refusal
+    // builds nothing, resolves no token and touches no session (a DELETE cannot end one).
+    const origin = req.headers.origin;
+    if (origin !== undefined && !allowedOrigins.has(origin.toLowerCase())) {
+      // The refused value is what `MCP_ALLOWED_ORIGINS` would need (T4c). Origin only, capped and
+      // escaped — it is client-supplied; nginx's `zone=mcp` limit sits in front of this branch.
+      console.error(JSON.stringify({ event: 'mcp_origin_refused', origin: origin.slice(0, 200) }));
+      json(res, 403, { jsonrpc: '2.0', error: { code: -32000, message: ORIGIN_REFUSED_MESSAGE } });
       return;
     }
 
@@ -711,6 +772,8 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       let body: unknown;
       try {
         body = req.method === 'POST' ? await readBody(req) : undefined;
+        // The transport answers a parse error on this path itself (-32700, pinned in remote.test.ts).
+        if (body === UNPARSEABLE_BODY) body = undefined;
       } catch (error) {
         // Same bound on the established-session path: a live session is not a licence to buffer.
         // The release is symmetric with the increment above — unconditional here while the
@@ -724,7 +787,9 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // `WWW-Authenticate` is an HTTP answer, and once the message reaches the transport the reply
       // is a JSON-RPC result no client's OAuth stack will read. A session with NO account behind it
       // may run the keyless surface; a registered tool outside it is refused with the challenge that
-      // starts the ceremony, and a name the session's server does not register goes on to the SDK,
+      // starts the ceremony — except a session-only tool (`isSessionOnlyTool`), which no key opens, so it
+      // goes on to the client's readable `user_session_required` naming start_login (M5, sent before any
+      // request) — and a name the session's server does not register goes on to the SDK,
       // which answers it as an unknown tool (`keyedToolsIn` with `existing.toolNames`). For a session
       // with no account behind it `initialize` and `tools/list` are never refused — the control measurement for that arrangement was a connection timeout, not a login
       // prompt. THREE things do answer 401 at the handshake, and the third is on the anonymous
@@ -749,7 +814,7 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // challenge that would restart the ceremony. It grants nothing — it is a worse error message,
       // not a hole.
       if (!existing.keyFingerprint && !existing.http.hasSessionToken()) {
-        const keyed = keyedToolsIn(body, existing.toolNames);
+        const keyed = keyedToolsIn(body, existing.toolNames, canonicalToolName);
         if (keyed.length > 0) {
           // Symmetric with `rejectBody` above: the counter was taken before the body was read, and
           // an unbalanced exit would leave this session permanently "busy" for the sweeper.
@@ -824,6 +889,13 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
     try {
       const body = await readBody(req);
 
+      // No transport exists yet to answer a message that never parsed, so answer it here, in
+      // JSON-RPC's own terms (-32700, `id: null` as the spec requires when the id is unreadable).
+      if (body === UNPARSEABLE_BODY) {
+        json(res, 400, { jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error: Invalid JSON' } });
+        return;
+      }
+
       // Build nothing until the body says it is an opening handshake. Previously any malformed POST
       // constructed a full server + transport (measured 1.35ms in the factory, plus the whole tool set) only for the SDK to
       // answer 400 — an uncounted allocation amplifier on the cheapest possible request.
@@ -840,7 +912,7 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // one initialization request is allowed") and an anonymous session has no credential to
       // spend — but both of those are somebody else's properties, and the boundary should not rest
       // on a dependency's version. Two lines make it self-standing.
-      const smuggled = keyedToolsIn(body);
+      const smuggled = keyedToolsIn(body, undefined, canonicalToolName);
       if (!presented && smuggled.length > 0) {
         challenge(res, options.baseUrl, refusalFor(options.baseUrl, smuggled[0]));
         return;
@@ -929,6 +1001,7 @@ if (isEntrypoint()) {
     sessionTtlMs: positiveIntEnv('MCP_SESSION_TTL_MS'),
     // Public, not a secret: the same token is on proof.holdings's domain card.
     delegationToken: process.env.PROOF_DELEGATION_TOKEN || undefined,
+    allowedOrigins: parseAllowedOrigins(process.env.MCP_ALLOWED_ORIGINS),
   });
 
   remote.httpServer.listen(port, () => {

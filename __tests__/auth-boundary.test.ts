@@ -3,7 +3,10 @@ import { describe, it, expect } from 'vitest';
 import { createProofServer } from '../src/factory.js';
 import {
   KEYLESS_TOOLS,
+  KEY_OR_SESSION_TOOLS,
   SESSION_TOOLS,
+  accessNoticeFor,
+  isSessionOnlyTool,
   PROTECTED_RESOURCE_METADATA_PATH,
   authorizationChallenge,
   authorizationRequiredBody,
@@ -108,7 +111,11 @@ describe('authBoundary — SC-1: what needs an account, named on both sides', ()
 
     // (b) everything else is keyed. No tool is called here — a real call would leave the process
     //     for api.proof.holdings, which is exactly what this suite must never do.
-    const leaked = [...registered].filter((name) => !KEYLESS_TOOLS.has(name) && keyedToolsIn(call(name)).length === 0);
+    //     The one exception is the session-only tools (M5): they pass the gate so the CLIENT can
+    //     refuse them readably before any request — the case below holds that exception exactly.
+    const leaked = [...registered].filter(
+      (name) => !KEYLESS_TOOLS.has(name) && !isSessionOnlyTool(name) && keyedToolsIn(call(name)).length === 0,
+    );
     expect(leaked, `tools that would answer without an account: ${leaked.join(', ')}`).toEqual([]);
   });
 });
@@ -201,5 +208,97 @@ describe('serverInstructions — a connected client is told the account records 
 
   it.each([false, true])('anonymous (remote=%s) does not gain the keyed sentence', (remote) => {
     expect(serverInstructions({ remote, hasCredential: false })).not.toContain('user_session_required');
+  });
+});
+
+describe('authBoundary — M5: the no-key hint for a session tool names the road that opens it', () => {
+  // M5 (r-prod-full-test-keys-delegations, prod 09.11): the notice told an anonymous caller of a
+  // session-only tool to authenticate the client first. Authenticating grants an API key, and a key
+  // on those routes is refused `user_session_required`, so the first road named was a dead end. Only
+  // the tools whose route is in SESSION_EXEMPT_PATHS open to a key as well; they keep both roads.
+  const SESSION_ONLY = 'list_emails';
+
+  it('keeps the key-also set inside the session surface, and non-empty', () => {
+    expect(KEY_OR_SESSION_TOOLS.size).toBeGreaterThan(0);
+    expect([...KEY_OR_SESSION_TOOLS].filter((name) => !SESSION_TOOLS.has(name))).toEqual([]);
+    expect(KEY_OR_SESSION_TOOLS.has(SESSION_ONLY)).toBe(false);
+  });
+
+  it.each([false, true])('a session-only tool (remote=%s) is sent to start_login, not to a key', (remote) => {
+    const notice = accessNoticeFor(SESSION_ONLY, { remote, hasCredential: false });
+    expect(notice).toContain('ACCESS: needs a Proof account');
+    expect(notice).toMatch(/start_login[^.]*wait_for_login[^.]*call this tool again/);
+    expect(notice).toContain('does NOT open this tool');
+    // The key recipe must not be offered as a road here: it is the one that leads to the refusal.
+    expect(notice).not.toContain('Authenticate this client (Claude Code');
+    expect(notice).not.toContain('Set PROOF_API_KEY and restart');
+    expect(notice).not.toMatch(/start_login does NOT/);
+  });
+
+  it.each([false, true])('a tool a key also opens (remote=%s) keeps both roads', (remote) => {
+    for (const tool of KEY_OR_SESSION_TOOLS) {
+      const notice = accessNoticeFor(tool, { remote, hasCredential: false });
+      expect(notice, tool).toContain(remote ? 'Authenticate this client' : 'Set PROOF_API_KEY');
+      expect(notice, tool).toContain('start_login');
+      expect(notice, tool).not.toContain('does NOT');
+    }
+  });
+
+  it('the 401 body for a session-only tool leads with start_login and says connecting does not open it', () => {
+    const body = authorizationRequiredBody('https://api.proof.holdings', SESSION_ONLY);
+    expect(body.error_description).toContain(SESSION_ONLY);
+    expect(body.error_description).toMatch(/start_login[^.]*wait_for_login/);
+    expect(body.error_description).toContain('CALL THE TOOL AGAIN');
+    expect(body.error_description).toContain('does NOT open this tool');
+    expect(body.error_description.indexOf('start_login')).toBeLessThan(body.error_description.indexOf('Authenticate'));
+  });
+
+  it('the 401 body for a key-also tool still leads with connecting the client', () => {
+    for (const tool of KEY_OR_SESSION_TOOLS) {
+      const body = authorizationRequiredBody('https://api.proof.holdings', tool);
+      expect(body.error_description, tool).toContain('claude mcp login');
+      expect(body.error_description, tool).not.toContain('does NOT open this tool');
+      expect(body.keyless_alternative, tool).toContain('works over that signed-in session');
+    }
+  });
+});
+
+describe('authBoundary — M5: the remote gate and the notices agree about session-only tools', () => {
+  // Coordinator condition 1: the gate lets an anonymous call of a session-only tool through (the
+  // client then refuses it with user_session_required naming start_login, before any request),
+  // because the 401 it used to answer sends an OAuth client to Authenticate — a key, which does not
+  // open the tool. "Session-only" is ONE predicate, read by the gate and by both texts.
+  it('defines session-only as SESSION_TOOLS minus KEY_OR_SESSION_TOOLS', () => {
+    for (const name of SESSION_TOOLS) expect(isSessionOnlyTool(name), name).toBe(!KEY_OR_SESSION_TOOLS.has(name));
+    expect(isSessionOnlyTool('list_verifications')).toBe(false);
+    expect(isSessionOnlyTool('start_login')).toBe(false);
+  });
+
+  it('passes an anonymous session-only call, and still stops a key-also or keyed one', () => {
+    expect(keyedToolsIn(call('list_emails'))).toEqual([]);
+    expect(keyedToolsIn(call('get_api_key_usage'))).toEqual([{ name: 'get_api_key_usage', malformed: false }]);
+    expect(keyedToolsIn(call('list_verifications'))).toEqual([{ name: 'list_verifications', malformed: false }]);
+  });
+
+  it('a mixed batch still reports its keyed call, so the request is refused', () => {
+    expect(keyedToolsIn([call('list_emails'), call('list_verifications')])).toEqual([
+      { name: 'list_verifications', malformed: false },
+    ]);
+  });
+
+  it('for every registered tool, the gate passes it exactly when its notice sends the caller to start_login alone', () => {
+    const { server } = createProofServer({ baseUrl: 'https://api.proof.holdings', remote: true });
+    const registered = [...registeredNames(server)];
+    expect(registered.length).toBeGreaterThan(100);
+    const disagree = registered
+      .filter((name) => !KEYLESS_TOOLS.has(name))
+      .filter((name) => {
+        const passes = keyedToolsIn(call(name)).length === 0;
+        const sessionAlone = accessNoticeFor(name, { remote: true, hasCredential: false }).includes('signed in: call start_login');
+        return passes !== sessionAlone;
+      });
+    expect(disagree, `gate and notice disagree about: ${disagree.join(', ')}`).toEqual([]);
+    // Anti-vacuity: the session-only class is not empty.
+    expect(registered.filter((name) => isSessionOnlyTool(name)).length).toBeGreaterThan(40);
   });
 });

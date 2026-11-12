@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, pollUntilTerminal, credentialsSchema, VERIFICATION_TYPE_VALUES, VERIFICATION_CHANNEL_VALUES, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
+import { jsonResult, pollUntilTerminal, credentialsSchema, VERIFICATION_TYPE_VALUES, VERIFICATION_CHANNEL_VALUES, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 /** The output schema of `delete_domain_verification`: the API answers 204 and the tool reports what it removed. */
@@ -32,7 +32,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/verifications', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -49,7 +49,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/verifications/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -59,7 +59,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'list_verifications',
     'List verifications with optional filters. Returns paginated results.',
     {
-      status: z.enum(['pending', 'verified', 'failed', 'expired', 'revoked']).optional().describe('Filter by status'),
+      status: z.enum(['pending', 'verified', 'failed', 'expired', 'revoked', 'cancelled']).optional().describe('Filter by status (cancelled includes a multi-channel sibling that another channel completed first)'),
       type: z.enum(VERIFICATION_TYPE_VALUES).optional().describe('Filter by asset type'),
       channel: z.enum(VERIFICATION_CHANNEL_VALUES).optional().describe('Filter by channel'),
       page: z.number().int().positive().optional().describe('Page number'),
@@ -76,7 +76,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/verifications', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -93,7 +93,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/verifications/${encodeURIComponent(id)}/verify`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -116,7 +116,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/verifications/${encodeURIComponent(id)}/submit`, { code });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -133,7 +133,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/verifications/${encodeURIComponent(id)}/resend`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -150,7 +150,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/verifications/${encodeURIComponent(id)}/test-verify`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -171,7 +171,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/verifications/users', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -188,7 +188,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/verifications/users/${encodeURIComponent(external_user_id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -207,7 +207,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/verifications/domain', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -224,7 +224,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/verifications/domain/${encodeURIComponent(id)}/check`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -243,7 +243,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         await http.del(`/api/v1/verifications/domain/${encodeURIComponent(id)}`);
         return jsonResult({ deleted: true, id });
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -272,7 +272,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
           `verification ${id}`,
         );
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -295,7 +295,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/verifications/multi-channel', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -312,7 +312,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/verifications/multi-channel/${encodeURIComponent(group_id)}/status`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

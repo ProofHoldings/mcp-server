@@ -39,13 +39,13 @@ export const INPUT_PARITY_EXEMPTIONS: readonly InputParityExemption[] = [
     reason: 'Read for a dashboard session only. This server calls the delivery routes with an API key, whose own environment decides; the parameter is not read for a key.',
   })),
   {
-    tool: 'delete_profile',
+    tool: 'delete_sub_account',
     key: 'archive_default_linked',
     side: 'spec_only',
     reason: 'An irreversible fan-out an agent would trigger implicitly; an agent archives each item explicitly instead.',
   },
   {
-    tool: 'upload_hitl_keys',
+    tool: 'upload_approval_channel_keys',
     key: 'force',
     side: 'spec_only',
     reason: 'Acknowledges the key-rotation cascade, which overwrites the keys every approver enrolled against; the owner confirms it in the dashboard.',
@@ -73,7 +73,7 @@ export const INPUT_PARITY_EXEMPTIONS: readonly InputParityExemption[] = [
     tool: 'update_settings',
     key: 'branding',
     side: 'spec_only',
-    reason: 'Retired: the API answers 400 branding_moved, and branding is set on each sub-account with update_profile.',
+    reason: 'Retired: the API answers 400 branding_moved, and branding is set on each sub-account with update_sub_account.',
   },
   ...(['spec_only', 'tool_only'] as const).map((side) => ({
     tool: 'list_reissued_proofs',

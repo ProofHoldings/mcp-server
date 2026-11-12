@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -14,7 +14,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/auth/me');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -29,7 +29,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/auth/sessions');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -46,7 +46,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/auth/sessions/${encodeURIComponent(session_id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

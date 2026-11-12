@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 const themeSchema = z.object({
@@ -32,23 +32,23 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   // =========================================================================
 
   tool(
-    'list_profiles',
-    'List all profiles for the authenticated account. Returns all profiles including primary and secondary.',
+    'list_sub_accounts',
+    'List every sub-account of the authenticated account, the primary one included.',
     {},
     async () => {
       try {
         const result = await http.get('/api/v1/me/profiles');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
 
   tool(
-    'create_profile',
-    'Create a new profile with optional display name, bio, avatar, business info, email branding (theme, support email), and theme settings.',
+    'create_sub_account',
+    'Create a new sub-account with optional display name, bio, avatar, business info, email branding (theme, support email), and theme settings.',
     {
       display_name: z.string().max(100).optional().describe('Display name'),
       bio: z.string().max(500).optional().describe('Profile bio'),
@@ -66,15 +66,15 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/me/profiles', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
 
   tool(
-    'get_profile',
-    'Get a specific profile by ID. Returns full profile details including theme, custom links, and verification display settings.',
+    'get_sub_account',
+    'Get one sub-account by ID, with its full details including theme, custom links, and verification display settings.',
     {
       profile_id: z.string().describe('Profile ID'),
     },
@@ -83,15 +83,15 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
 
   tool(
-    'update_profile',
-    'Update a profile by ID. Supports changing display info, email branding (theme, support email), theme, custom links, and verification display settings.',
+    'update_sub_account',
+    'Update a sub-account by ID. Supports changing display info, email branding (theme, support email), theme, custom links, and verification display settings.',
     {
       profile_id: z.string().describe('Profile ID'),
       display_name: z.string().max(100).optional().describe('Display name'),
@@ -103,8 +103,8 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       is_primary: z.boolean().optional().describe('Set as primary profile'),
       email_theme: emailThemeSchema,
       support_email: supportEmailSchema.nullable().describe('Support email this sub-account\'s messages show (null to remove)'),
-      show_verification_dates: z.boolean().optional().describe('Show verification dates on public profile'),
-      show_proof_channels: z.boolean().optional().describe('Show proof channels on public profile'),
+      show_verification_dates: z.boolean().optional().describe('Show verification dates on the Public page'),
+      show_proof_channels: z.boolean().optional().describe('Show proof channels on the Public page'),
       show_delegations: z.boolean().optional().describe('List the published, in-force delegations for the domains the profile shows (default true)'),
       theme: themeSchema,
       custom_links: customLinksSchema,
@@ -114,15 +114,15 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.patch(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}`, body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
 
   tool(
-    'delete_profile',
-    'Delete a sub-account (profile). Revokes its API keys, archives the HITL setups and declines the pending requests created with its own keys, keeps its history but unlinks it, deletes its message templates, and retires its username for good. The last sub-account cannot be deleted; deleting the primary sub-account makes the oldest remaining one primary (the response names it). In a start_login session: one code first — start_2fa_for_action with action_type profile_delete and targets [this sub-account id]. With an API key alone only an EMPTY sub-account (no API keys, HITL setups or pending requests) can be deleted; anything else answers owner_session_required. archive_default_linked is deliberately not offered here: archiving or cancelling everything linked only by default is an irreversible fan-out, so archive each item explicitly instead. Cannot be undone.',
+    'delete_sub_account',
+    'Delete a sub-account. Revokes its API keys, archives the approval channels and declines the pending requests created with its own keys, keeps its history but unlinks it, deletes its message templates, and retires its username for good. The last sub-account cannot be deleted; deleting the primary sub-account makes the oldest remaining one primary (the response names it). In a start_login session: one code first — start_2fa_for_action with action_type profile_delete and targets [this sub-account id]. With an API key alone only an EMPTY sub-account (no API keys, approval channels or pending requests) can be deleted; anything else answers owner_session_required. archive_default_linked is deliberately not offered here: archiving or cancelling everything linked only by default is an irreversible fan-out, so archive each item explicitly instead. Cannot be undone.',
     {
       profile_id: z.string().describe('Profile ID'),
     },
@@ -131,15 +131,15 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
 
   tool(
-    'set_primary_profile',
-    'Set a profile as the primary profile. The previous primary profile becomes secondary.',
+    'set_primary_sub_account',
+    'Make a sub-account the primary one. The previous primary sub-account becomes secondary.',
     {
       profile_id: z.string().describe('Profile ID to set as primary'),
     },
@@ -148,7 +148,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}/primary`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -159,8 +159,8 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   // =========================================================================
 
   tool(
-    'update_profile_proofs',
-    'Update which verified assets (proofs) are displayed on a specific profile. Controls visibility, privacy masking, ordering, and labels.',
+    'update_sub_account_page_proofs',
+    'Update which verified assets (proofs) are displayed on one named sub-account. Controls visibility, privacy masking, ordering, and labels. For the primary sub-account in a signed-in session, update_public_page_proofs does the same.',
     {
       profile_id: z.string().describe('Profile ID'),
       proofs: z.array(z.object({
@@ -180,30 +180,30 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
 
   tool(
-    'get_my_profile',
-    'Get the current user\'s primary profile. Returns profile details, theme, custom links, and public proof display settings.',
+    'get_current_sub_account',
+    'Get the current sub-account record: with a sub-account key, that key\'s own sub-account; otherwise the account\'s primary sub-account. The first call creates a primary sub-account if the account has none (never for a sub-account key, which gets profile_not_found). Returns profile details, theme, custom links, and public proof display settings. Its write twin is update_public_page (the same record). In the dashboard, the Profile page (https://proof.holdings/profile) edits whichever sub-account is selected there.',
     {},
     async () => {
       try {
         const result = await http.get('/api/v1/profiles/me');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
 
   tool(
-    'update_my_profile',
-    'Update the current user\'s primary profile. Supports display name, bio, avatar, theme, custom links, and verification display settings.',
+    'update_public_page',
+    'Update the record get_current_sub_account reads: a sub-account key\'s own sub-account, otherwise the primary sub-account (never creates one). Takes presentation fields only — display name, bio, avatar, theme, custom links, and verification display settings; business details, the primary flag and email branding go through update_sub_account. In the dashboard, the Profile page (https://proof.holdings/profile) edits whichever sub-account is selected there.',
     {
       display_name: z.string().max(100).optional().describe('Display name'),
       bio: z.string().max(500).optional().describe('Profile bio'),
@@ -220,15 +220,15 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.put('/api/v1/profiles/me', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
 
   tool(
-    'get_profile_assets',
-    'Get available verified assets that can be displayed on the user\'s profile. Returns assets eligible for public proof display.',
+    'list_public_page_proof_options',
+    'List the verified proofs that can be shown on the Public page (each one eligible to be listed with update_public_page_proofs).',
     {
       profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('The sub-account whose shown proofs set each asset\'s is_public flag (24 hex characters); omitted, the primary'),
     },
@@ -239,7 +239,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/profiles/me/assets', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -256,7 +256,24 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/profiles/profiles/${encodeURIComponent(profile_id)}/callback-secret/rotate`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'preview_profile_deletion',
+    'Preview what delete_sub_account would do to one sub-account, without changing anything: the counts the dashboard Delete sub-account dialog shows and the sub-account that would take its place, or why deletion is refused (allowed: false). Needs profiles:read; a key bound to a sub-account previews only its own.',
+    {
+      profile_id: z.string().describe('Sub-account ID'),
+    },
+    async ({ profile_id }) => {
+      try {
+        const result = await http.get(`/api/v1/me/profiles/${encodeURIComponent(profile_id)}/deletion-preview`);
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

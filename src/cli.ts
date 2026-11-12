@@ -274,7 +274,7 @@ async function endSignInSession(io: CliIO, http: HttpClient): Promise<void> {
     await http.post('/api/v1/auth/logout');
   } catch {
     io.error(
-      'The sign-in session could not be ended. Sign it out in the dashboard: Settings → Security → Signed-in devices.',
+      'The sign-in session could not be ended. Sign it out in the dashboard: Settings → Signed-in devices.',
     );
   }
 }

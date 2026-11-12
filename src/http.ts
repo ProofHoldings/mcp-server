@@ -5,7 +5,7 @@
 //
 // Of the carriers a version bump has to move, this is the one it misses: a bare constant at the
 // top of a module about HTTP, where nothing about editing the manifest leads a reader.
-const VERSION = '1.9.0';
+const VERSION = '1.10.0';
 
 // Every request names this client: the issuer tells a request an agent made, signed in as a person,
 // from one the person made in the dashboard by this prefix, and labels it with the name the agent's
@@ -242,10 +242,23 @@ export class HttpClient {
       throw new ApiError(
         `This tool works only in a signed-in Proof session. ${keyOrigin} does not open this tool. A sign-in ` +
           'session opens your own account records (emails, phones, domains, API keys, 2FA, DNS credentials, ' +
-          'verification requests, your public profile\'s username and proof list); getting one is a separate ' +
+          'verification requests, your Public page\'s username and proof list); getting one is a separate ' +
           'confirmation, not a failed sign-in — tell the user that first. Then call start_login, show ' +
           'them its challenge in your reply, call wait_for_login until it reports success, and call this tool ' +
           'again.',
+        'user_session_required',
+        401,
+      );
+    }
+
+    // No key and no session on a session-only route (M5): "get a key" was the wrong road — a key
+    // here is refused `user_session_required` by the branch above. A sign-in session opens it, on
+    // either transport, and start_login needs no credential.
+    if (!bearer && sessionPath && !isSessionExempt(method, path)) {
+      throw new ApiError(
+        'This tool works only in a signed-in Proof session, and this connection has none yet. Call ' +
+          'start_login, show the user its challenge in your reply, call wait_for_login until it reports ' +
+          'success, then call this tool again. An API key does not open this tool.',
         'user_session_required',
         401,
       );
@@ -255,6 +268,10 @@ export class HttpClient {
     // keyed route would otherwise spend a round trip to return `invalid_token`, which reads to an
     // agent as "the key is wrong" rather than "there is no key yet".
     if (!bearer && !isPublicPath(method, path)) {
+      // A session-surface route a key ALSO opens (SESSION_EXEMPT_PATHS): both roads are true.
+      const sessionToo = sessionPath
+        ? ' A signed-in session (start_login, then wait_for_login) opens this tool too.'
+        : '';
       // The wording matters as much as the code, and it has to be true for the transport the caller
       // is actually on. It once said "run create_account to get a key from inside this session",
       // which an agent can follow forever without succeeding on stdio: the key is read at startup
@@ -264,11 +281,11 @@ export class HttpClient {
       // nobody can set an env var on somebody else's pod or restart it. A signed-in remote user
       // calling a tool outside the session surface is exactly who reads this.
       throw new ApiError(
-        this.remote
+        (this.remote
           ? 'This operation needs a Proof account with an API key. Connect this server to your account ' +
             '(your client\'s sign-in / "Authenticate" step), then call the tool again. Signing in with ' +
             'start_login alone covers your own contact and account records — emails, phones, domains, ' +
-            'API keys, 2FA, DNS credentials, verification requests, your public profile\'s username ' +
+            'API keys, 2FA, DNS credentials, verification requests, your Public page\'s username ' +
             'and proof list; account-wide reads such as the platform summary, settings and usage ' +
             'need the key that connecting grants.'
           : 'This operation needs a Proof API key, which this server reads when it starts: from PROOF_API_KEY, or ' +
@@ -276,7 +293,7 @@ export class HttpClient {
             'still create an account or sign in (create_account, start_login) and check proofs and delegations. ' +
             'If you are signed in, create_api_key works over that session — but the new key takes effect only ' +
             'after it is put in PROOF_API_KEY (or the user runs that login command instead) and this MCP server ' +
-            'is restarted.',
+            'is restarted.') + sessionToo,
         'api_key_required',
         401,
       );
@@ -332,12 +349,37 @@ export class HttpClient {
           }
         }
 
+        // A success body that is not JSON (the CSV export) reaches the tool as text inside an
+        // object — a tool with an output schema must return structured content, so a bare string
+        // would become `internal_error`. Before this, `.json()` failed and the tool got `{}`.
+        const contentType = response.headers.get('Content-Type') ?? '';
+        if (response.ok && contentType !== '' && !/json/i.test(contentType)) {
+          return { content_type: contentType, body: await response.text() } as T;
+        }
+
         const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
         if (!response.ok) {
-          const apiError = body.error as { code?: string; message?: string; details?: unknown } | undefined;
+          // Most refusals wrap the error in `error`; a few controllers answer `{ code, message }` at
+          // the top level (the approval-channel plan limit), which used to arrive as `http_403`.
+          const apiError = (
+            body.error !== null && typeof body.error === 'object'
+              ? body.error
+              : typeof body.code === 'string'
+                ? body
+                : undefined
+          ) as { code?: string; message?: string; details?: unknown; request_id?: unknown; top_up_url?: unknown } | undefined;
           const code = apiError?.code ?? `http_${response.status}`;
-          const message = apiError?.message ?? `Request failed with status ${response.status}`;
+          // A body with no code is the edge or a proxy answering, not the API: a 5xx there is temporary.
+          const message =
+            apiError?.message ??
+            (response.status >= 500
+              ? `The Proof API was temporarily unavailable (status ${response.status}). This is temporary: retry in a few seconds.`
+              : `Request failed with status ${response.status}`);
+          const extra: ApiErrorExtra = {
+            requestId: typeof apiError?.request_id === 'string' ? apiError.request_id : response.headers.get('X-Request-Id') ?? undefined,
+            topUpUrl: typeof apiError?.top_up_url === 'string' ? apiError.top_up_url : undefined,
+          };
 
           // Expired session JWT: refresh once and retry the original request.
           if (
@@ -367,14 +409,15 @@ export class HttpClient {
                 : 'The API key this server started with (PROOF_API_KEY, or the key saved by its login command) is no ' +
                   'longer accepted: it was revoked, has expired, or is mistyped. Get a new one by running ' +
                   '`npx @proof-holdings/mcp-server login` in a terminal, or put a new key from the Proof dashboard ' +
-                  '(Settings → API keys) in PROOF_API_KEY, then restart this MCP server.',
+                  '(the API keys page, https://proof.holdings/api-keys) in PROOF_API_KEY, then restart this MCP server.',
               code,
               response.status,
               apiError?.details,
+              extra,
             );
           }
 
-          throw new ApiError(message, code, response.status, apiError?.details);
+          throw new ApiError(message, code, response.status, apiError?.details, extra);
         }
 
         return body as T;
@@ -535,14 +578,28 @@ export class HttpClient {
   }
 }
 
+/** What an error body carries beyond code/message/details, passed on so the agent can quote it. */
+export interface ApiErrorExtra {
+  /** `error.request_id`, else the `X-Request-Id` response header. */
+  requestId?: string;
+  /** Where a human tops up the prepaid balance (`balance_empty`). */
+  topUpUrl?: string;
+}
+
 export class ApiError extends Error {
+  public readonly requestId?: string;
+  public readonly topUpUrl?: string;
+
   constructor(
     message: string,
     public readonly code: string,
     public readonly statusCode: number,
     public readonly details?: unknown,
+    extra?: ApiErrorExtra,
   ) {
     super(message);
+    this.requestId = extra?.requestId;
+    this.topUpUrl = extra?.topUpUrl;
     this.name = 'ApiError';
     Object.setPrototypeOf(this, new.target.prototype);
   }

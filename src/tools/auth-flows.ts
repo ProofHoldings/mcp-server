@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, pollUntilTerminal, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
+import { jsonResult, pollUntilTerminal, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -18,7 +18,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/auth/sessions', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -26,7 +26,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'wait_for_login',
-    'Poll a login session until the user completes authentication. Uses exponential backoff (2s initial, 1.5x, 30s max) with jitter.\n\nAgent usage: Call this after start_login with the returned session ID. Terminal states: "verified" (login succeeded — this server keeps the session for this connection and signs your own account records with it: emails, phones, domains, API keys, 2FA, DNS credentials, verification requests, your public profile\'s username and proof list), "failed", "expired", "completed_elsewhere" (email only: the user pressed "Sign in here" on the email link\'s page, so the browser they clicked from is signed in and this connection never will be — tell them so, and start a new login if this connection still needs one). A result with status "pending" means the wait ran out before the user finished — call this tool again with the same id.\n\n' + WAIT_AFTER_REPLY,
+    'Poll a login session until the user completes authentication. Uses exponential backoff (2s initial, 1.5x, 30s max) with jitter.\n\nAgent usage: Call this after start_login with the returned session ID. Terminal states: "verified" (login succeeded — this server keeps the session for this connection and signs your own account records with it: emails, phones, domains, API keys, 2FA, DNS credentials, verification requests, your Public page\'s username and proof list), "failed", "expired", "completed_elsewhere" (email only: the user pressed "Sign in here" on the email link\'s page, so the browser they clicked from is signed in and this connection never will be — tell them so, and start a new login if this connection still needs one). A result with status "pending" means the wait ran out before the user finished — call this tool again with the same id.\n\n' + WAIT_AFTER_REPLY,
     {
       id: z.string().describe('Auth session ID from start_login'),
       timeout_seconds: z.number().int().min(1).max(600).optional().describe(`Maximum wait time in seconds (default: ${WAIT_DEFAULT_SECONDS}, max: 600). Keep it under your MCP client's request timeout (the SDK default is 60 s) — a longer wait is cut off by the client while the server is still polling. On timeout the tool answers status "pending"; call it again with the same identifier.`),
@@ -40,7 +40,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
           `login session ${id}`,
         );
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

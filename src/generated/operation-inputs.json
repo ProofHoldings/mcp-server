@@ -41,6 +41,20 @@
       "provider": "path"
     }
   },
+  "archive_approval_channel": {
+    "operations": [
+      "DELETE /api/v1/hitl/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "cancel_lookalike_watch": {
+    "operations": [
+      "DELETE /api/v1/lookalike-watch"
+    ],
+    "inputs": {}
+  },
   "cancel_user_request": {
     "operations": [
       "DELETE /api/v1/me/verification-requests/{id}"
@@ -158,6 +172,18 @@
       "scopes": "body"
     }
   },
+  "create_approval_channel": {
+    "operations": [
+      "POST /api/v1/hitl"
+    ],
+    "inputs": {
+      "channels": "body",
+      "circle_id": "body",
+      "name": "body",
+      "profile_id": "body",
+      "timeout_seconds": "body"
+    }
+  },
   "create_authorization": {
     "operations": [
       "POST /api/v1/authorizations"
@@ -231,18 +257,6 @@
       "provider": "body"
     }
   },
-  "create_hitl": {
-    "operations": [
-      "POST /api/v1/hitl"
-    ],
-    "inputs": {
-      "channels": "body",
-      "circle_id": "body",
-      "name": "body",
-      "profile_id": "body",
-      "timeout_seconds": "body"
-    }
-  },
   "create_identity_challenge": {
     "operations": [
       "POST /api/v1/identity-challenges"
@@ -267,7 +281,18 @@
       "type": "body"
     }
   },
-  "create_profile": {
+  "create_session": {
+    "operations": [
+      "POST /api/v1/sessions"
+    ],
+    "inputs": {
+      "channel": "body",
+      "client_metadata": "body",
+      "context": "body",
+      "profile_id": "body"
+    }
+  },
+  "create_sub_account": {
     "operations": [
       "POST /api/v1/me/profiles"
     ],
@@ -282,17 +307,6 @@
       "is_public": "body",
       "support_email": "body",
       "theme": "body"
-    }
-  },
-  "create_session": {
-    "operations": [
-      "POST /api/v1/sessions"
-    ],
-    "inputs": {
-      "channel": "body",
-      "client_metadata": "body",
-      "context": "body",
-      "profile_id": "body"
     }
   },
   "create_user_request": {
@@ -363,6 +377,14 @@
       "url": "body"
     }
   },
+  "delete_approval_channel_keys": {
+    "operations": [
+      "DELETE /api/v1/hitl/{id}/keys"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
   "delete_circle": {
     "operations": [
       "DELETE /api/v1/circles/{id}"
@@ -395,23 +417,7 @@
       "id": "path"
     }
   },
-  "delete_hitl": {
-    "operations": [
-      "DELETE /api/v1/hitl/{id}"
-    ],
-    "inputs": {
-      "id": "path"
-    }
-  },
-  "delete_hitl_keys": {
-    "operations": [
-      "DELETE /api/v1/hitl/{id}/keys"
-    ],
-    "inputs": {
-      "id": "path"
-    }
-  },
-  "delete_profile": {
+  "delete_sub_account": {
     "operations": [
       "DELETE /api/v1/me/profiles/{profileId}"
     ],
@@ -501,9 +507,17 @@
       "id": "path"
     }
   },
-  "get_asset": {
+  "get_approval_channel": {
     "operations": [
-      "GET /api/v1/me/assets/{id}"
+      "GET /api/v1/hitl/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_approval_channel_keys": {
+    "operations": [
+      "GET /api/v1/hitl/{id}/keys"
     ],
     "inputs": {
       "id": "path"
@@ -531,6 +545,12 @@
       "id": "path"
     }
   },
+  "get_company": {
+    "operations": [
+      "GET /api/v1/me/company"
+    ],
+    "inputs": {}
+  },
   "get_confirmation": {
     "operations": [
       "GET /api/v1/confirmations/{id}"
@@ -547,6 +567,12 @@
       "id": "path"
     }
   },
+  "get_current_sub_account": {
+    "operations": [
+      "GET /api/v1/profiles/me"
+    ],
+    "inputs": {}
+  },
   "get_current_user": {
     "operations": [
       "GET /api/v1/auth/me"
@@ -562,6 +588,14 @@
   "get_delegation": {
     "operations": [
       "GET /api/v1/delegations/{id}"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "get_delegation_carriers": {
+    "operations": [
+      "GET /api/v1/delegations/{id}/carriers"
     ],
     "inputs": {
       "id": "path"
@@ -589,22 +623,6 @@
       "id": "path"
     }
   },
-  "get_hitl": {
-    "operations": [
-      "GET /api/v1/hitl/{id}"
-    ],
-    "inputs": {
-      "id": "path"
-    }
-  },
-  "get_hitl_keys": {
-    "operations": [
-      "GET /api/v1/hitl/{id}/keys"
-    ],
-    "inputs": {
-      "id": "path"
-    }
-  },
   "get_identity_challenge": {
     "operations": [
       "GET /api/v1/identity-challenges/{id}"
@@ -612,6 +630,12 @@
     "inputs": {
       "id": "path"
     }
+  },
+  "get_lookalike_watch": {
+    "operations": [
+      "GET /api/v1/lookalike-watch"
+    ],
+    "inputs": {}
   },
   "get_multi_channel_verification_status": {
     "operations": [
@@ -621,11 +645,13 @@
       "group_id": "path"
     }
   },
-  "get_my_profile": {
+  "get_my_proof": {
     "operations": [
-      "GET /api/v1/profiles/me"
+      "GET /api/v1/me/assets/{id}"
     ],
-    "inputs": {}
+    "inputs": {
+      "id": "path"
+    }
   },
   "get_platform_summary": {
     "operations": [
@@ -633,22 +659,6 @@
     ],
     "inputs": {
       "environment": "query",
-      "profile_id": "query"
-    }
-  },
-  "get_profile": {
-    "operations": [
-      "GET /api/v1/me/profiles/{profileId}"
-    ],
-    "inputs": {
-      "profileId": "path"
-    }
-  },
-  "get_profile_assets": {
-    "operations": [
-      "GET /api/v1/profiles/me/assets"
-    ],
-    "inputs": {
       "profile_id": "query"
     }
   },
@@ -703,6 +713,14 @@
       "GET /api/v1/me/settings"
     ],
     "inputs": {}
+  },
+  "get_sub_account": {
+    "operations": [
+      "GET /api/v1/me/profiles/{profileId}"
+    ],
+    "inputs": {
+      "profileId": "path"
+    }
   },
   "get_subscription": {
     "operations": [
@@ -801,13 +819,16 @@
     ],
     "inputs": {}
   },
-  "list_assets": {
+  "list_approval_channels": {
     "operations": [
-      "GET /api/v1/me/assets"
+      "GET /api/v1/hitl"
     ],
     "inputs": {
-      "status": "query",
-      "type": "query"
+      "environment": "query",
+      "limit": "query",
+      "page": "query",
+      "profile_id": "query",
+      "status": "query"
     }
   },
   "list_auth_sessions": {
@@ -909,23 +930,38 @@
     ],
     "inputs": {}
   },
-  "list_hitls": {
-    "operations": [
-      "GET /api/v1/hitl"
-    ],
-    "inputs": {
-      "environment": "query",
-      "limit": "query",
-      "page": "query",
-      "profile_id": "query",
-      "status": "query"
-    }
-  },
   "list_incoming_requests": {
     "operations": [
       "GET /api/v1/me/verification-requests/incoming"
     ],
     "inputs": {}
+  },
+  "list_lookalike_alerts": {
+    "operations": [
+      "GET /api/v1/lookalike-watch/alerts"
+    ],
+    "inputs": {
+      "limit": "query",
+      "page": "query"
+    }
+  },
+  "list_lookalike_reports": {
+    "operations": [
+      "GET /api/v1/lookalike-watch/reports"
+    ],
+    "inputs": {
+      "limit": "query",
+      "page": "query"
+    }
+  },
+  "list_my_proofs": {
+    "operations": [
+      "GET /api/v1/me/assets"
+    ],
+    "inputs": {
+      "status": "query",
+      "type": "query"
+    }
   },
   "list_my_requests": {
     "operations": [
@@ -942,11 +978,13 @@
     ],
     "inputs": {}
   },
-  "list_profiles": {
+  "list_public_page_proof_options": {
     "operations": [
-      "GET /api/v1/me/profiles"
+      "GET /api/v1/profiles/me/assets"
     ],
-    "inputs": {}
+    "inputs": {
+      "profile_id": "query"
+    }
   },
   "list_reissued_proofs": {
     "operations": [
@@ -961,6 +999,12 @@
   "list_revoked_proofs": {
     "operations": [
       "GET /api/v1/proofs/revoked"
+    ],
+    "inputs": {}
+  },
+  "list_sub_accounts": {
+    "operations": [
+      "GET /api/v1/me/profiles"
     ],
     "inputs": {}
   },
@@ -1025,12 +1069,44 @@
     ],
     "inputs": {}
   },
+  "pause_proof": {
+    "operations": [
+      "POST /api/v1/proofs/{id}/suspend"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
   "poll_chat_id_discovery": {
     "operations": [
       "GET /api/v1/hitl/chat-id-discovery/{token}"
     ],
     "inputs": {
       "token": "path"
+    }
+  },
+  "preview_email_removal": {
+    "operations": [
+      "GET /api/v1/me/emails/{id}/removal-preview"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "preview_phone_removal": {
+    "operations": [
+      "GET /api/v1/me/phones/{id}/removal-preview"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "preview_profile_deletion": {
+    "operations": [
+      "GET /api/v1/me/profiles/{profileId}/deletion-preview"
+    ],
+    "inputs": {
+      "profileId": "path"
     }
   },
   "preview_template": {
@@ -1101,9 +1177,17 @@
       "variables": "body"
     }
   },
-  "request_hitl_authorization": {
+  "request_approval_channel_authorization": {
     "operations": [
       "POST /api/v1/hitl/{id}/authorize"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
+  "resend_confirmation": {
+    "operations": [
+      "POST /api/v1/confirmations/{id}/resend"
     ],
     "inputs": {
       "id": "path"
@@ -1134,6 +1218,14 @@
       "id": "path"
     }
   },
+  "resume_proof": {
+    "operations": [
+      "POST /api/v1/proofs/{id}/unsuspend"
+    ],
+    "inputs": {
+      "id": "path"
+    }
+  },
   "retry_webhook_delivery": {
     "operations": [
       "POST /api/v1/webhook-deliveries/{id}/retry"
@@ -1146,14 +1238,6 @@
   "revoke_api_key": {
     "operations": [
       "DELETE /api/v1/me/api-keys/{id}"
-    ],
-    "inputs": {
-      "id": "path"
-    }
-  },
-  "revoke_asset": {
-    "operations": [
-      "DELETE /api/v1/me/assets/{id}"
     ],
     "inputs": {
       "id": "path"
@@ -1183,6 +1267,14 @@
     "inputs": {
       "id": "path",
       "reason": "body"
+    }
+  },
+  "revoke_my_proof": {
+    "operations": [
+      "DELETE /api/v1/me/assets/{id}"
+    ],
+    "inputs": {
+      "id": "path"
     }
   },
   "revoke_proof": {
@@ -1245,7 +1337,7 @@
       "id": "path"
     }
   },
-  "set_primary_profile": {
+  "set_primary_sub_account": {
     "operations": [
       "POST /api/v1/me/profiles/{profileId}/primary"
     ],
@@ -1363,6 +1455,16 @@
       "id": "path"
     }
   },
+  "subscribe_lookalike_watch": {
+    "operations": [
+      "POST /api/v1/lookalike-watch"
+    ],
+    "inputs": {
+      "brand_tokens": "body",
+      "notify_email": "body",
+      "owned_namespaces": "body"
+    }
+  },
   "test_verify": {
     "operations": [
       "POST /api/v1/verifications/{id}/test-verify"
@@ -1379,17 +1481,7 @@
       "id": "path"
     }
   },
-  "update_circle": {
-    "operations": [
-      "PATCH /api/v1/circles/{id}"
-    ],
-    "inputs": {
-      "id": "path",
-      "name": "body",
-      "owner_name": "body"
-    }
-  },
-  "update_hitl": {
+  "update_approval_channel": {
     "operations": [
       "PATCH /api/v1/hitl/{id}"
     ],
@@ -1400,7 +1492,17 @@
       "timeout_seconds": "body"
     }
   },
-  "update_my_profile": {
+  "update_circle": {
+    "operations": [
+      "PATCH /api/v1/circles/{id}"
+    ],
+    "inputs": {
+      "id": "path",
+      "name": "body",
+      "owner_name": "body"
+    }
+  },
+  "update_public_page": {
     "operations": [
       "PUT /api/v1/profiles/me"
     ],
@@ -1416,7 +1518,27 @@
       "theme": "body"
     }
   },
-  "update_profile": {
+  "update_public_page_proofs": {
+    "operations": [
+      "PUT /api/v1/profiles/me/proofs"
+    ],
+    "inputs": {
+      "proof_order": "body",
+      "proofs": "body"
+    }
+  },
+  "update_settings": {
+    "operations": [
+      "PATCH /api/v1/me/settings"
+    ],
+    "inputs": {
+      "branding": "body",
+      "hitl": "body",
+      "proof_expiry_days": "body",
+      "webhook": "body"
+    }
+  },
+  "update_sub_account": {
     "operations": [
       "PATCH /api/v1/me/profiles/{profileId}"
     ],
@@ -1438,7 +1560,7 @@
       "theme": "body"
     }
   },
-  "update_profile_proofs": {
+  "update_sub_account_page_proofs": {
     "operations": [
       "PUT /api/v1/profiles/profiles/{profileId}/proofs"
     ],
@@ -1446,26 +1568,6 @@
       "profileId": "path",
       "proof_order": "body",
       "proofs": "body"
-    }
-  },
-  "update_public_proofs": {
-    "operations": [
-      "PUT /api/v1/profiles/me/proofs"
-    ],
-    "inputs": {
-      "proof_order": "body",
-      "proofs": "body"
-    }
-  },
-  "update_settings": {
-    "operations": [
-      "PATCH /api/v1/me/settings"
-    ],
-    "inputs": {
-      "branding": "body",
-      "hitl": "body",
-      "proof_expiry_days": "body",
-      "webhook": "body"
     }
   },
   "update_template": {
@@ -1496,7 +1598,7 @@
       "url": "body"
     }
   },
-  "upload_hitl_keys": {
+  "upload_approval_channel_keys": {
     "operations": [
       "PUT /api/v1/hitl/{id}/keys"
     ],

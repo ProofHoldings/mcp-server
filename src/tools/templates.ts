@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 /**
@@ -29,7 +29,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(forProject('/api/v1/templates', profile_id));
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -44,7 +44,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/templates/defaults');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -63,7 +63,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(forProject(`/api/v1/templates/${encodeURIComponent(channel)}/${encodeURIComponent(message_type)}`, profile_id));
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -86,7 +86,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.put(forProject(`/api/v1/templates/${encodeURIComponent(channel)}/${encodeURIComponent(message_type)}`, profile_id), body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -105,7 +105,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(forProject(`/api/v1/templates/${encodeURIComponent(channel)}/${encodeURIComponent(message_type)}`, profile_id));
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -117,9 +117,11 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     {
       channel: z.enum(['telegram', 'whatsapp', 'sms', 'email']).describe('Message channel'),
       message_type: z.enum([
-        'verification_request', 'verification_success', 'verification_expired',
+        'verification_request', 'verification_success', 'verification_expired', 'verification_refused',
         'login_request', 'login_success', '2fa_request', '2fa_success',
-      ]).describe('Message type'),
+        'account_deletion_request', 'account_deletion_success',
+        'confirmation_request', 'confirmation_approved', 'confirmation_denied',
+      ]).describe('Message type (verification_refused is sent on Telegram and WhatsApp only)'),
       subject: z.string().max(200).optional().describe('Email subject line'),
       body: z.string().min(1).max(2000).describe('Template body text'),
       button_text: z.string().max(50).optional().describe('Button text'),
@@ -131,7 +133,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(forProject('/api/v1/templates/preview', profile_id), body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -156,7 +158,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(forProject('/api/v1/templates/render', profile_id), body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

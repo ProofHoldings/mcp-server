@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -22,7 +22,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/proofs/validate', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -39,7 +39,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/proofs/${encodeURIComponent(id)}/status`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -47,7 +47,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'revoke_proof',
-    'Revoke a proof by its public handle (ph_ctl_* / ph_dlg_*) or a verification ID — the same addresses get_proof_status takes. The proof token will no longer validate anywhere: the status endpoint, the public validator, the revocation list and the Token Status List all report it revoked. A domain CONTROL proof (a ph_ctl_* of a domain) also revokes, for good, every delegation issued from it; for a domain you own, every proof of the domain is revoked and the domain needs re-verification. The API key needs proofs:write, plus delegations:write while the revocation reaches live delegations — for a domain you own, any live delegation of the domain, whichever of its handles you name (the refusal names the scope and the count). A handle revoked before the domain was verified again does not reach the new proof: revoke that one by its own handle. Otherwise it revokes the PROOF only — the asset or consent it is about stays. Need a temporary stop? Use suspend_proof instead. Cannot be undone.',
+    'Revoke a proof by its public handle (ph_ctl_* / ph_dlg_*) or a verification ID — the same addresses get_proof_status takes. The proof token will no longer validate anywhere: the status endpoint, the public validator, the revocation list and the Token Status List all report it revoked. A domain CONTROL proof (a ph_ctl_* of a domain) also revokes, for good, every delegation issued from it; for a domain you own, every proof of the domain is revoked and the domain needs re-verification. The API key needs proofs:write, plus delegations:write while the revocation reaches live delegations — for a domain you own, any live delegation of the domain, whichever of its handles you name (the refusal names the scope and the count). A handle revoked before the domain was verified again does not reach the new proof: revoke that one by its own handle. Otherwise it revokes the PROOF only — the asset or consent it is about stays. Need a temporary stop? Use pause_proof instead. Cannot be undone.',
     {
       id: z.string().describe('Public proof handle (ph_ctl_* / ph_dlg_*) or verification ID'),
       reason: z.string().optional().describe('Why the proof is revoked, one of: user_request, fraud, key_compromise, asset_transferred, other. A delegation proof (ph_dlg_*) refuses asset_transferred. The API refuses any other value. Defaults to user_request.'),
@@ -59,7 +59,54 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        // T8c: an asset id and a verification id are both ObjectIds, so only the backend's 404 can say
+        // which was meant — and it answers an asset id with exactly that (pinned in
+        // src/__tests__/routes/proofs-domain-control.test.ts). A handle can never be an asset id.
+        if (e instanceof ApiError && e.code === 'not_found' && /^[0-9a-f]{24}$/i.test(id)) {
+          return apiErrorResult({
+            code: e.code,
+            message: `${e.message} If this id came from list_my_proofs, it is an asset id: use revoke_my_proof.`,
+            details: e.details,
+            requestId: e.requestId,
+            topUpUrl: e.topUpUrl,
+          });
+        }
+        if (e instanceof ApiError) return apiErrorResult(e);
+        throw e;
+      }
+    },
+  );
+
+  // A1 (m-fix-mcp-tool-contract-drift SC-8): the dashboard's Pause / Resume (/domains, /delegations), in its words.
+  tool(
+    'pause_proof',
+    'Pause a proof by its public handle (ph_ctl_* / ph_dlg_*) or a verification ID — a reversible stop, undone with resume_proof. While paused the proof is invalid: the status endpoint, the public validator and the Token Status List report it suspended; it is deliberately NOT put on the revocation list. Only an active proof can be paused (already_suspended, proof_expired or proof_revoked otherwise). Pausing a delegation (ph_dlg_*) stops a live publisher\'s tools: an MCP server running the Proof delegation gate refuses its tool calls once its next status check sees the pause (self-refusal). Pausing a domain CONTROL proof hides every delegation issued from it until it is resumed; nothing is revoked. The API key needs proofs:write, plus delegations:write for a ph_dlg_* or while delegations under a control proof are live.',
+    {
+      id: z.string().describe('Public proof handle (ph_ctl_* / ph_dlg_*) or verification ID'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await http.post(`/api/v1/proofs/${encodeURIComponent(id)}/suspend`, {});
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return apiErrorResult(e);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'resume_proof',
+    'Resume a proof paused with pause_proof, by the same handle (ph_ctl_* / ph_dlg_*) or verification ID: it validates again everywhere, and a resumed delegation is honoured again by gated publishers on their next status check. Only the paused row flips back — a proof revoked while paused stays revoked, and a handle whose own row is not the paused one answers not_suspended. The API key needs proofs:write, plus delegations:write for a ph_dlg_*.',
+    {
+      id: z.string().describe('Public proof handle (ph_ctl_* / ph_dlg_*) or verification ID'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await http.post(`/api/v1/proofs/${encodeURIComponent(id)}/unsuspend`, {});
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -74,7 +121,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/proofs/revoked');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -91,7 +138,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/proofs/${encodeURIComponent(id)}/token`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -118,7 +165,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/proofs', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -139,7 +186,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/proofs/delegation-token/${encodeURIComponent(handle)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

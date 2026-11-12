@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/);
@@ -10,7 +10,7 @@ const proofMeChannel = z.enum(['telegram', 'whatsapp']);
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'create_identity_challenge',
-    'Create a Proof-Me cross-channel identity challenge (CONFIRM) for an enrolled Circle member. The account holder approves/denies on a channel different from the one the suspicious contact reached the member on.\n\nAgent usage: poll get_identity_challenge with the returned ID until it leaves pending (confirmed, denied, cancelled, failed, expired or revoked).',
+    'Create a Proof of Me cross-channel identity challenge (CONFIRM) for an enrolled Circle member. The account holder approves/denies on a channel different from the one the suspicious contact reached the member on.\n\nAgent usage: poll get_identity_challenge with the returned ID until it leaves pending (confirmed, denied, cancelled, failed, expired or revoked).',
     {
       circle_id: objectId.describe('Circle that holds the member'),
       member_id: objectId.describe('Enrolled Circle member initiating the check'),
@@ -21,7 +21,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/identity-challenges', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -29,7 +29,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_identity_challenge',
-    'Get a Proof-Me identity challenge by ID. Returns its status (pending, confirmed, denied, cancelled, failed, expired, revoked or suspended), the channel the CONFIRM ran on, and — once the person being checked decided — the proof token and its proof_id. Poll this for resolution.',
+    'Get a Proof of Me identity challenge by ID. Returns its status (pending, confirmed, denied, cancelled, failed, expired, revoked or suspended), the channel the CONFIRM ran on, and — once the person being checked decided — the proof token and its proof_id. Poll this for resolution.',
     {
       id: objectId.describe('Identity challenge ID'),
     },
@@ -38,7 +38,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/identity-challenges/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

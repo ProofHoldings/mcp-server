@@ -2,7 +2,7 @@
 
 [![Proof of Delegation](https://proof.holdings/badge/npm/@proof-holdings/mcp-server)](https://proof.holdings/npm/@proof-holdings/mcp-server)
 
-MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 180 tools for AI agents — 179 for the API plus one delegation status tool — to create verifications, validate proofs, manage assets, and more.
+MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 193 tools for AI agents — 192 for the API plus one delegation status tool — to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect
 
@@ -39,7 +39,7 @@ npx @proof-holdings/mcp-server
 | `PROOF_API_KEY` | No | — | API key (`pk_live_...` or `pk_test_...`). Without it the server still starts in **public mode**: the keyless tools (account bootstrap, login, proof and delegation verification) work, and every other tool answers `api_key_required`. |
 | `PROOF_BASE_URL` | No | `https://api.proof.holdings` | API base URL |
 
-Get your API key from the [proof.holdings dashboard](https://proof.holdings/dashboard/api-keys), or let the
+Get your API key from the dashboard, on the [API keys page](https://proof.holdings/api-keys), or let the
 server get one for you with `login` (below).
 
 ## Sign in from a terminal
@@ -56,7 +56,7 @@ npx @proof-holdings/mcp-server login
 3. The new key is saved in `~/.proof-holdings/credentials` (readable by you only), under the API in
    `PROOF_BASE_URL`. The server uses it from its next start, so restart your MCP client's server.
 4. The sign-in session the terminal used is then signed out. If that fails, `login` says so; sign it out
-   in the dashboard under Settings → Security → Signed-in devices.
+   in the dashboard under Settings → Signed-in devices.
 
 `PROOF_API_KEY`, when set, always wins over the saved key, and a key saved for one API (say, staging) is
 never sent to another. Then leave `env` out of the client config:
@@ -107,7 +107,9 @@ Config file location by client:
 Keep the scoped `npx -y @proof-holdings/mcp-server` command even after a global install. A bare command
 name is looked up on `PATH`, or by `npx` in the npm registry, where it can belong to someone else's package.
 
-## Tools (180 tools)
+## Tools (193 tools)
+
+**Renamed in 1.10.0.** 23 of the tools took the dashboard's names for what they act on — approval channel, Your proofs, sub-account, Public page. Their old names still answer, hosted and local alike, as deprecated aliases listed in the changelog, until 2.0.0: update any permission rule, skill or script that names a tool by hand before then.
 
 Group totals are exact. The tables name the tools you are most likely to reach for rather than all
 of them — your MCP client's own `tools/list` is the complete, current list, and it is the one this
@@ -136,7 +138,7 @@ server answers from.
 | `verify_domain_with_credentials` | Prove control using stored credentials |
 | `setup_domain_email` | Set up sending from the domain |
 
-### Account, settings & billing (39 tools)
+### Account, settings & billing (42 tools)
 
 | Tool | Description |
 |---|---|
@@ -146,13 +148,13 @@ server answers from.
 | `search` | Search across the account |
 | `create_account` | Bootstrap a new account (no key needed) |
 | `create_api_key` | Create a scoped API key |
-| `list_assets` | List verified assets and their proof handles |
+| `list_my_proofs` | List verified assets and their proof handles |
 
-### HITL approvals & consent (22 tools)
+### Approval channels & consent (23 tools)
 
 | Tool | Description |
 |---|---|
-| `create_hitl` | Create a human-approval configuration |
+| `create_approval_channel` | Create a human-approval configuration |
 | `create_confirmation` | Send an approval request to a person |
 | `wait_for_confirmation` | Poll until a person approves or denies |
 | `create_authorization` | Ask a person to consent to being contacted |
@@ -167,13 +169,13 @@ server answers from.
 | `invite_circle_member` | Send a single-use enrollment link |
 | `create_identity_challenge` | Run a cross-channel identity check |
 
-### Public profiles (12 tools)
+### Sub-accounts & Public page (13 tools)
 
 | Tool | Description |
 |---|---|
-| `create_profile` | Create a public profile |
+| `create_sub_account` | Create a public profile |
 | `claim_username` | Claim a public username |
-| `update_public_proofs` | Choose which proofs a profile shows |
+| `update_public_page_proofs` | Choose which proofs a profile shows |
 
 ### Templates & webhooks (11 tools)
 
@@ -199,7 +201,7 @@ the ones you select. A signing secret is returned only on create and on rotate �
 | `rotate_webhook_endpoint_secret` | Replace an endpoint's signing secret |
 | `rotate_callback_secret` | Replace a sub-account's callback signing secret |
 
-### Delegations & proofs (13 tools)
+### Delegations & proofs (16 tools)
 
 | Tool | Description |
 |---|---|
@@ -208,10 +210,20 @@ the ones you select. A signing secret is returned only on create and on rotate �
 | `verify_delegation` | Check whether an artifact is authorized by the domain it claims |
 | `validate_proof` | Verify a signed proof token (no key needed) |
 | `get_proof_status` | Read a proof's status by its public handle |
+| `pause_proof` | Pause a proof or delegation (reversible) |
+| `resume_proof` | Resume a paused proof or delegation |
 | `list_revoked_proofs` | Read the revocation list (no key needed) |
 | `get_proof_token` | Fetch the current (re-signed) token of a proof you own (not one of your own verified assets: that is read in the dashboard) |
 | `list_reissued_proofs` | List your proofs re-signed since an instant, except those of your own verified assets |
 | `get_delegation_token` | Fetch an active delegation's current token by handle (no key needed) |
+
+### Lookalike Watch (5 tools)
+
+| Tool | Description |
+|---|---|
+| `subscribe_lookalike_watch` | Watch newly published packages for names confusable with your brand |
+| `list_lookalike_alerts` | Read the alerts it raised |
+| `list_lookalike_reports` | Read the monthly reports |
 
 ### Sign-in & sessions (9 tools)
 
@@ -232,7 +244,7 @@ The server's own delegation check: this package is delegated by proof.holdings, 
 
 ## Test Mode
 
-Use a test-mode API key (`pk_test_*`) to interact with the API without creating real verifications. Test-mode keys are available in your [dashboard](https://proof.holdings/dashboard/api-keys).
+Use a test-mode API key (`pk_test_*`) to interact with the API without creating real verifications. Test-mode keys are available in the dashboard, on the [API keys page](https://proof.holdings/api-keys).
 
 ## Transport
 
@@ -244,7 +256,10 @@ Two transports ship in this package:
   network by URL, with no install. A connection starts ANONYMOUS — the keyless surface (account
   bootstrap, login, proof and delegation verification) works with no credential at all — and a tool
   that needs an account answers `401` with a `WWW-Authenticate` challenge naming the authorization
-  server, which is what a standards-compliant client follows to sign in. The 401 lands on the TOOL
+  server, which is what a standards-compliant client follows to sign in. The exception is a tool only
+  a `start_login` sign-in opens (your own emails, phones, domains, API keys…): connecting would grant a
+  key that does not open it, so an anonymous call to one answers a readable `user_session_required`
+  result naming `start_login` → `wait_for_login` instead, before any request leaves the server. The 401 lands on the TOOL
   CALL and never on a bare `initialize` or `tools/list` FOR AN ANONYMOUS CONNECTION: measured
   against live clients, refusing an anonymous handshake reads to the user as a connection timeout
   rather than as an invitation to log in. Three shapes are refused at the handshake instead — a
@@ -256,7 +271,15 @@ Two transports ship in this package:
   client, so one user's key or session can never reach another. `/mcp` serves `POST` (every
   JSON-RPC message) and `DELETE` (ending a session); every other method — including the optional
   standalone `GET` event stream — answers `405` with `Allow: POST, DELETE`, whatever session or
-  credential the request carries. Nothing on this server pushes notifications, so declining the
+  credential the request carries. A `POST` or `DELETE` carrying an `Origin` header (only browsers send
+  one; no measured client does) is answered `403` with a JSON-RPC error, before any session or
+  credential is looked at, unless that origin is exactly one listed in `MCP_ALLOWED_ORIGINS`
+  (comma-separated `scheme://host[:port]`, compared case-insensitively; empty by default, and an entry
+  that is not exactly an origin stops the server at startup) — the MCP specification's DNS-rebinding
+  rule. No CORS grant is ever made, so a browser page cannot read an answer either way. MCP Inspector: connect
+  with Connection Type "Via Proxy" (the default; Inspector 2.x always connects this way). "Direct" makes the
+  browser call the server itself, and the server answers no CORS preflight, so it cannot connect — and adding an
+  origin to the allowlist does not change that. Nothing on this server pushes notifications, so declining the
   stream costs a client nothing, and it is what lets a client on Node 26's built-in `fetch` work:
   over HTTP/2 to the edge, with that stream open, it never sent its next request. `PORT` (default 3100),
   `MCP_MAX_SESSIONS` (default 100), `MCP_SESSION_TTL_MS` (default 30 min, counted from the last POST

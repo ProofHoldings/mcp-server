@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 // Mongo ObjectId OR the public ph_dlg_* handle — mirrors delegationIdParamSchema
@@ -30,7 +30,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/delegations', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -65,7 +65,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/delegations', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -82,7 +82,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/delegations/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -101,7 +101,24 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/delegations/${encodeURIComponent(id)}/revoke`, body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'get_delegation_carriers',
+    'Report where a delegation is still visible to a third party, which matters after a revocation: the _mcp.<principal> DNS pointer and, for a url delegate, a direct card fetch. Takes the delegation id or its ph_dlg_* handle; the same read scope as get_delegation (delegations:read), with no revoked-only gate.',
+    {
+      id: z.string().describe('Delegation ID or ph_dlg_* handle'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await http.get(`/api/v1/delegations/${encodeURIComponent(id)}/carriers`);
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

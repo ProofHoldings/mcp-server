@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DEFAULT_REQUEST_TIMEOUT_MSEC } from '@modelcontextprotocol/sdk/shared/protocol.js';
-import { pollUntilTerminal, WAIT_DEFAULT_SECONDS } from '../src/types.js';
+import { pollUntilTerminal, WAIT_DEFAULT_SECONDS, UNLISTED_TARGETS_RULE } from '../src/types.js';
 import { authorizationRequiredBody, serverInstructions } from '../src/authBoundary.js';
 import { PUBLIC_TWO_FA_ACTION_TYPES } from '../src/generated/two-fa-action-types.js';
 
@@ -467,7 +467,21 @@ describe('proofs tools', () => {
     expect(names).toContain('get_proof_token');
     expect(names).toContain('list_reissued_proofs');
     expect(names).toContain('get_delegation_token');
-    expect(tools).toHaveLength(7);
+    expect(names).toContain('pause_proof');
+    expect(names).toContain('resume_proof');
+    expect(tools).toHaveLength(9);
+  });
+
+  // A1 (m-fix-mcp-tool-contract-drift SC-8): the dashboard's Pause / Resume, in those words.
+  it.each([
+    ['pause_proof', 'suspend'],
+    ['resume_proof', 'unsuspend'],
+  ])('%s calls POST /api/v1/proofs/:id/%s on the encoded id', async (name, verb) => {
+    http.post.mockResolvedValueOnce({ success: true });
+    const tool = findTool(tools, name);
+    await tool.handler({ id: 'ph_dlg/x&y' });
+
+    expect(http.post).toHaveBeenCalledWith(`/api/v1/proofs/ph_dlg%2Fx%26y/${verb}`, {});
   });
 
   it('validate_proof calls POST with token', async () => {
@@ -660,14 +674,14 @@ describe('assets tools', () => {
   it('registers all 3 asset tools', () => {
     expect(tools).toHaveLength(3);
     const names = tools.map(t => t.name);
-    expect(names).toContain('list_assets');
-    expect(names).toContain('get_asset');
-    expect(names).toContain('revoke_asset');
+    expect(names).toContain('list_my_proofs');
+    expect(names).toContain('get_my_proof');
+    expect(names).toContain('revoke_my_proof');
   });
 
-  it('list_assets calls GET with query params', async () => {
+  it('list_my_proofs calls GET with query params', async () => {
     http.get.mockResolvedValueOnce({ data: [] });
-    const tool = findTool(tools, 'list_assets');
+    const tool = findTool(tools, 'list_my_proofs');
     await tool.handler({ type: 'phone', status: 'active' });
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/me/assets', {
@@ -676,25 +690,25 @@ describe('assets tools', () => {
     });
   });
 
-  it('list_assets sends empty query for no filters', async () => {
+  it('list_my_proofs sends empty query for no filters', async () => {
     http.get.mockResolvedValueOnce({ data: [] });
-    const tool = findTool(tools, 'list_assets');
+    const tool = findTool(tools, 'list_my_proofs');
     await tool.handler({});
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/me/assets', {});
   });
 
-  it('get_asset calls GET with encoded ID', async () => {
+  it('get_my_proof calls GET with encoded ID', async () => {
     http.get.mockResolvedValueOnce({ id: 'asset_123', type: 'phone' });
-    const tool = findTool(tools, 'get_asset');
+    const tool = findTool(tools, 'get_my_proof');
     await tool.handler({ id: 'asset_123' });
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/me/assets/asset_123');
   });
 
-  it('revoke_asset calls DELETE with encoded ID', async () => {
+  it('revoke_my_proof calls DELETE with encoded ID', async () => {
     http.del.mockResolvedValueOnce({ id: 'asset_123', status: 'revoked' });
-    const tool = findTool(tools, 'revoke_asset');
+    const tool = findTool(tools, 'revoke_my_proof');
     await tool.handler({ id: 'asset_123' });
 
     expect(http.del).toHaveBeenCalledWith('/api/v1/me/assets/asset_123');
@@ -760,8 +774,8 @@ describe('settings tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 8 settings tools', () => {
-    expect(tools).toHaveLength(8);
+  it('registers all 9 settings tools', () => {
+    expect(tools).toHaveLength(9);
     const names = tools.map(t => t.name);
     expect(names).toContain('get_usage');
     expect(names).toContain('get_platform_summary');
@@ -812,7 +826,7 @@ describe('settings tools', () => {
     // The parity map records settings.update as `mcp: available`, and `parity:validate` compares
     // tool NAMES and routes — never request shapes — so without this case the tool could stay
     // narrower than the endpoint with every check green. No `branding`: it lives on each project
-    // now (h-subaccount-branding-per-project), so create_profile / update_profile carry it.
+    // now (h-subaccount-branding-per-project), so create_sub_account / update_sub_account carry it.
     const tool = findTool(tools, 'update_settings');
     expect(Object.keys(tool.schema).sort()).toEqual(['hitl', 'proof_expiry_days', 'webhook']);
 
@@ -1184,19 +1198,19 @@ describe('profiles tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 11 profile tools', () => {
-    expect(tools).toHaveLength(11);
+  it('registers all 12 profile tools', () => {
+    expect(tools).toHaveLength(12);
     const names = tools.map(t => t.name);
-    expect(names).toContain('list_profiles');
-    expect(names).toContain('create_profile');
-    expect(names).toContain('get_profile');
-    expect(names).toContain('update_profile');
-    expect(names).toContain('delete_profile');
-    expect(names).toContain('set_primary_profile');
-    expect(names).toContain('update_profile_proofs');
-    expect(names).toContain('get_my_profile');
-    expect(names).toContain('update_my_profile');
-    expect(names).toContain('get_profile_assets');
+    expect(names).toContain('list_sub_accounts');
+    expect(names).toContain('create_sub_account');
+    expect(names).toContain('get_sub_account');
+    expect(names).toContain('update_sub_account');
+    expect(names).toContain('delete_sub_account');
+    expect(names).toContain('set_primary_sub_account');
+    expect(names).toContain('update_sub_account_page_proofs');
+    expect(names).toContain('get_current_sub_account');
+    expect(names).toContain('update_public_page');
+    expect(names).toContain('list_public_page_proof_options');
     expect(names).toContain('rotate_callback_secret');
   });
 
@@ -1221,8 +1235,8 @@ describe('profiles tools', () => {
     }
   });
 
-  it('create_profile and update_profile declare the project\'s email branding the endpoint accepts', () => {
-    for (const name of ['create_profile', 'update_profile']) {
+  it('create_sub_account and update_sub_account declare the project\'s email branding the endpoint accepts', () => {
+    for (const name of ['create_sub_account', 'update_sub_account']) {
       const shape = findTool(tools, name).schema;
       expect(Object.keys(shape)).toEqual(expect.arrayContaining(['email_theme', 'support_email']));
       const schema = z.object(shape as z.ZodRawShape);
@@ -1231,21 +1245,21 @@ describe('profiles tools', () => {
       expect(schema.safeParse({ profile_id: 'p', support_email: 'not-an-address' }).success).toBe(false);
     }
     // Only an update clears the address; a create simply leaves it out.
-    const update = z.object(findTool(tools, 'update_profile').schema as z.ZodRawShape);
+    const update = z.object(findTool(tools, 'update_sub_account').schema as z.ZodRawShape);
     expect(update.safeParse({ profile_id: 'p', support_email: null }).success).toBe(true);
   });
 
-  it('list_profiles calls GET /api/v1/me/profiles', async () => {
+  it('list_sub_accounts calls GET /api/v1/me/profiles', async () => {
     http.get.mockResolvedValueOnce([]);
-    const tool = findTool(tools, 'list_profiles');
+    const tool = findTool(tools, 'list_sub_accounts');
     await tool.handler({});
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/me/profiles');
   });
 
-  it('create_profile calls POST /api/v1/me/profiles', async () => {
+  it('create_sub_account calls POST /api/v1/me/profiles', async () => {
     http.post.mockResolvedValueOnce({ id: 'prof_1', display_name: 'Test' });
-    const tool = findTool(tools, 'create_profile');
+    const tool = findTool(tools, 'create_sub_account');
     await tool.handler({ display_name: 'Test', is_public: true });
 
     expect(http.post).toHaveBeenCalledWith('/api/v1/me/profiles', {
@@ -1254,17 +1268,17 @@ describe('profiles tools', () => {
     });
   });
 
-  it('get_profile calls GET /api/v1/me/profiles/:id', async () => {
+  it('get_sub_account calls GET /api/v1/me/profiles/:id', async () => {
     http.get.mockResolvedValueOnce({ id: 'prof_1' });
-    const tool = findTool(tools, 'get_profile');
+    const tool = findTool(tools, 'get_sub_account');
     await tool.handler({ profile_id: 'prof_1' });
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/me/profiles/prof_1');
   });
 
-  it('update_profile calls PATCH with body (excluding profile_id)', async () => {
+  it('update_sub_account calls PATCH with body (excluding profile_id)', async () => {
     http.patch.mockResolvedValueOnce({ id: 'prof_1', display_name: 'Updated' });
-    const tool = findTool(tools, 'update_profile');
+    const tool = findTool(tools, 'update_sub_account');
     await tool.handler({ profile_id: 'prof_1', display_name: 'Updated', bio: 'New bio' });
 
     expect(http.patch).toHaveBeenCalledWith('/api/v1/me/profiles/prof_1', {
@@ -1273,25 +1287,25 @@ describe('profiles tools', () => {
     });
   });
 
-  it('delete_profile calls DELETE /api/v1/me/profiles/:id', async () => {
+  it('delete_sub_account calls DELETE /api/v1/me/profiles/:id', async () => {
     http.del.mockResolvedValueOnce({ success: true });
-    const tool = findTool(tools, 'delete_profile');
+    const tool = findTool(tools, 'delete_sub_account');
     await tool.handler({ profile_id: 'prof_1' });
 
     expect(http.del).toHaveBeenCalledWith('/api/v1/me/profiles/prof_1');
   });
 
-  it('set_primary_profile calls POST /api/v1/me/profiles/:id/primary', async () => {
+  it('set_primary_sub_account calls POST /api/v1/me/profiles/:id/primary', async () => {
     http.post.mockResolvedValueOnce({ success: true });
-    const tool = findTool(tools, 'set_primary_profile');
+    const tool = findTool(tools, 'set_primary_sub_account');
     await tool.handler({ profile_id: 'prof_1' });
 
     expect(http.post).toHaveBeenCalledWith('/api/v1/me/profiles/prof_1/primary');
   });
 
-  it('update_profile_proofs calls PUT /profiles/profiles/:id/proofs', async () => {
+  it('update_sub_account_page_proofs calls PUT /profiles/profiles/:id/proofs', async () => {
     http.put.mockResolvedValueOnce({ success: true });
-    const tool = findTool(tools, 'update_profile_proofs');
+    const tool = findTool(tools, 'update_sub_account_page_proofs');
     await tool.handler({
       profile_id: 'prof_1',
       proofs: [{ asset_id: 'asset_1', is_visible: true, mask_level: 'partial' }],
@@ -1303,9 +1317,9 @@ describe('profiles tools', () => {
   });
 
   // The route takes `proof_order` beside `proofs`; the tool's input used to strip it.
-  it('update_profile_proofs sends proof_order through its input schema', async () => {
+  it('update_sub_account_page_proofs sends proof_order through its input schema', async () => {
     http.put.mockResolvedValueOnce({ public_proofs: [], proof_order: 'owner' });
-    const tool = findTool(tools, 'update_profile_proofs');
+    const tool = findTool(tools, 'update_sub_account_page_proofs');
     const input = z.object(tool.schema as z.ZodRawShape);
     await tool.handler(input.parse({ profile_id: 'prof_1', proofs: [{ asset_id: 'asset_1' }], proof_order: 'owner' }));
     expect(http.put).toHaveBeenCalledWith('/api/v1/profiles/profiles/prof_1/proofs', {
@@ -1315,17 +1329,17 @@ describe('profiles tools', () => {
     expect(input.safeParse({ profile_id: 'prof_1', proofs: [], proof_order: 'alphabetical' }).success).toBe(false);
   });
 
-  it('get_my_profile calls GET /api/v1/profiles/me', async () => {
+  it('get_current_sub_account calls GET /api/v1/profiles/me', async () => {
     http.get.mockResolvedValueOnce({ id: 'prof_1', display_name: 'Me' });
-    const tool = findTool(tools, 'get_my_profile');
+    const tool = findTool(tools, 'get_current_sub_account');
     await tool.handler({});
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/profiles/me');
   });
 
-  it('update_my_profile calls PUT /api/v1/profiles/me', async () => {
+  it('update_public_page calls PUT /api/v1/profiles/me', async () => {
     http.put.mockResolvedValueOnce({ id: 'prof_1', display_name: 'Updated' });
-    const tool = findTool(tools, 'update_my_profile');
+    const tool = findTool(tools, 'update_public_page');
     await tool.handler({ display_name: 'Updated', is_public: false });
 
     expect(http.put).toHaveBeenCalledWith('/api/v1/profiles/me', {
@@ -1334,9 +1348,9 @@ describe('profiles tools', () => {
     });
   });
 
-  it('get_profile_assets calls GET /api/v1/profiles/me/assets', async () => {
+  it('list_public_page_proof_options calls GET /api/v1/profiles/me/assets', async () => {
     http.get.mockResolvedValueOnce([]);
-    const tool = findTool(tools, 'get_profile_assets');
+    const tool = findTool(tools, 'list_public_page_proof_options');
     await tool.handler({});
 
     expect(http.get).toHaveBeenCalledWith('/api/v1/profiles/me/assets', {});
@@ -1344,7 +1358,7 @@ describe('profiles tools', () => {
 
   it('returns error result on ApiError', async () => {
     http.get.mockRejectedValueOnce(new ApiError('Not found', 'not_found', 404));
-    const tool = findTool(tools, 'get_profile');
+    const tool = findTool(tools, 'get_sub_account');
     const result = await tool.handler({ profile_id: 'bad' }) as { isError?: boolean };
 
     expect(result.isError).toBe(true);
@@ -1364,11 +1378,12 @@ describe('emails tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 7 email tools', () => {
-    expect(tools).toHaveLength(7);
+  it('registers all 8 email tools', () => {
+    expect(tools).toHaveLength(8);
     expect(tools.map(t => t.name)).toEqual([
       'list_emails', 'remove_email', 'set_primary_email',
       'start_add_email', 'get_add_email_status', 'verify_email_otp', 'resend_email_otp',
+      'preview_email_removal',
     ]);
   });
 
@@ -1442,11 +1457,12 @@ describe('phones tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 5 phone tools', () => {
-    expect(tools).toHaveLength(5);
+  it('registers all 6 phone tools', () => {
+    expect(tools).toHaveLength(6);
     expect(tools.map(t => t.name)).toEqual([
       'list_phones', 'remove_phone', 'set_primary_phone',
       'start_add_phone', 'get_add_phone_status',
+      'preview_phone_removal',
     ]);
   });
 
@@ -1601,6 +1617,19 @@ describe('twofa tools', () => {
     http.post.mockResolvedValueOnce({ session_id: '2fa_2' });
     await tool.handler({ action_type: 'domain_remove', channel: 'telegram', targets: ['dom_1'] });
     expect(http.post).toHaveBeenLastCalledWith('/api/v1/me/2fa/start', { action_type: 'domain_remove', channel: 'telegram', targets: ['dom_1'] });
+  });
+
+  // The targets rule is the SAME sentence in both step-up tools and in the 2fa_required next step
+  // (UNLISTED_TARGETS_RULE in src/types.ts): an action type the description does not name takes targets
+  // when a 2fa_required refusal lists them — "leave out" for every unnamed type was made wrong by #772.
+  it.each([
+    ['start_2fa', '../src/tools/twofa.js'],
+    ['start_2fa_for_action', '../src/tools/accounts.js'],
+  ])('%s: targets follow the refusal for an action type it does not name', async (name, modulePath) => {
+    const mod = (await import(modulePath)) as { registerTools: Parameters<typeof captureTools>[0] };
+    const description = (findTool(captureTools(mod.registerTools, http), name).schema.targets as z.ZodTypeAny).description ?? '';
+    expect(description).toContain(UNLISTED_TARGETS_RULE);
+    expect(description).not.toContain('Leave out for the other action types');
   });
 
   it('start_2fa offers exactly the public 2FA action types (generated from the backend policy)', () => {
@@ -2093,7 +2122,7 @@ describe('public profiles tools', () => {
   it('registers all 2 public profile tools', () => {
     expect(tools).toHaveLength(2);
     expect(tools.map(t => t.name)).toEqual([
-      'claim_username', 'update_public_proofs',
+      'claim_username', 'update_public_page_proofs',
     ]);
 
   });
@@ -2105,9 +2134,9 @@ describe('public profiles tools', () => {
     expect(http.post).toHaveBeenCalledWith('/api/v1/profiles/me/username', { username: 'testuser' });
   });
 
-  it('update_public_proofs calls PUT /api/v1/profiles/me/proofs', async () => {
+  it('update_public_page_proofs calls PUT /api/v1/profiles/me/proofs', async () => {
     http.put.mockResolvedValueOnce({ updated: true });
-    const tool = findTool(tools, 'update_public_proofs');
+    const tool = findTool(tools, 'update_public_page_proofs');
     await tool.handler({
       proofs: [{
         asset_id: 'asset_1',
@@ -2122,9 +2151,9 @@ describe('public profiles tools', () => {
     });
   });
 
-  it('update_public_proofs sends proof_order through its input schema', async () => {
+  it('update_public_page_proofs sends proof_order through its input schema', async () => {
     http.put.mockResolvedValueOnce({ public_proofs: [], proof_order: 'owner' });
-    const tool = findTool(tools, 'update_public_proofs');
+    const tool = findTool(tools, 'update_public_page_proofs');
     const input = z.object(tool.schema as z.ZodRawShape);
     await tool.handler(input.parse({ proofs: [{ asset_id: 'asset_1' }], proof_order: 'owner' }));
     expect(http.put).toHaveBeenCalledWith('/api/v1/profiles/me/proofs', { proofs: [{ asset_id: 'asset_1' }], proof_order: 'owner' });
@@ -2253,21 +2282,21 @@ describe('hitl tools', () => {
   it('registers 9 hitl tools', () => {
     expect(tools).toHaveLength(9);
     expect(tools.map(t => t.name).sort()).toEqual([
+      'archive_approval_channel',
+      'create_approval_channel',
       'create_chat_id_discovery',
-      'create_hitl',
-      'delete_hitl',
-      'get_hitl',
-      'list_hitls',
+      'get_approval_channel',
+      'list_approval_channels',
       'poll_chat_id_discovery',
-      'request_hitl_authorization',
-      'update_hitl',
+      'request_approval_channel_authorization',
+      'update_approval_channel',
       'wait_for_chat_id_discovery',
     ]);
   });
 
-  it('create_hitl calls http.post', async () => {
+  it('create_approval_channel calls http.post', async () => {
     http.post.mockResolvedValueOnce({ id: 'hitl_123', status: 'active' });
-    const tool = findTool(tools, 'create_hitl');
+    const tool = findTool(tools, 'create_approval_channel');
     await tool.handler({
       name: 'My HITL',
       channels: [{ type: 'telegram', config: { chat_id: '123456' } }],
@@ -2280,16 +2309,16 @@ describe('hitl tools', () => {
     });
   });
 
-  it('get_hitl calls http.get with encoded ID', async () => {
+  it('get_approval_channel calls http.get with encoded ID', async () => {
     http.get.mockResolvedValueOnce({ id: 'hitl_123' });
-    const tool = findTool(tools, 'get_hitl');
+    const tool = findTool(tools, 'get_approval_channel');
     await tool.handler({ id: 'hitl/special' });
     expect(http.get).toHaveBeenCalledWith('/api/v1/hitl/hitl%2Fspecial');
   });
 
-  it('list_hitls passes filters to http.get', async () => {
+  it('list_approval_channels passes filters to http.get', async () => {
     http.get.mockResolvedValueOnce({ data: [], pagination: {} });
-    const tool = findTool(tools, 'list_hitls');
+    const tool = findTool(tools, 'list_approval_channels');
     await tool.handler({ status: 'active', page: 1, limit: 10 });
     expect(http.get).toHaveBeenCalledWith('/api/v1/hitl', {
       status: 'active',
@@ -2298,16 +2327,16 @@ describe('hitl tools', () => {
     });
   });
 
-  it('list_hitls omits undefined filters', async () => {
+  it('list_approval_channels omits undefined filters', async () => {
     http.get.mockResolvedValueOnce({ data: [], pagination: {} });
-    const tool = findTool(tools, 'list_hitls');
+    const tool = findTool(tools, 'list_approval_channels');
     await tool.handler({});
     expect(http.get).toHaveBeenCalledWith('/api/v1/hitl', {});
   });
 
-  it('update_hitl calls http.patch with body excluding id', async () => {
+  it('update_approval_channel calls http.patch with body excluding id', async () => {
     http.patch.mockResolvedValueOnce({ id: 'hitl_123', name: 'Updated' });
-    const tool = findTool(tools, 'update_hitl');
+    const tool = findTool(tools, 'update_approval_channel');
     await tool.handler({
       id: 'hitl_123',
       name: 'Updated',
@@ -2319,9 +2348,9 @@ describe('hitl tools', () => {
     });
   });
 
-  it('delete_hitl calls http.del', async () => {
+  it('archive_approval_channel calls http.del', async () => {
     http.del.mockResolvedValueOnce({ id: 'hitl_123', status: 'archived' });
-    const tool = findTool(tools, 'delete_hitl');
+    const tool = findTool(tools, 'archive_approval_channel');
     await tool.handler({ id: 'hitl_123' });
     expect(http.del).toHaveBeenCalledWith('/api/v1/hitl/hitl_123');
   });
@@ -2340,7 +2369,7 @@ describe('hitl tools', () => {
 
   it('returns error result on ApiError', async () => {
     http.post.mockRejectedValueOnce(new ApiError('Validation failed', 'validation_error', 422));
-    const tool = findTool(tools, 'create_hitl');
+    const tool = findTool(tools, 'create_approval_channel');
     const result = await tool.handler({
       name: 'Bad HITL',
       channels: [{ type: 'telegram', config: { chat_id: '123' } }],
@@ -2362,13 +2391,14 @@ describe('confirmations tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers 5 confirmation tools', () => {
-    expect(tools).toHaveLength(5);
+  it('registers 6 confirmation tools', () => {
+    expect(tools).toHaveLength(6);
     expect(tools.map(t => t.name).sort()).toEqual([
       'create_confirmation',
       'get_confirmation',
       'get_confirmation_approval_link',
       'list_confirmations',
+      'resend_confirmation',
       'wait_for_confirmation',
     ]);
   });
@@ -2844,12 +2874,12 @@ describe('proof-me tools', () => {
 // HITL KEYS
 // ============================================================
 describe('hitl-keys tools', () => {
-  it('get_hitl_keys says what a key without hitl:read receives', async () => {
+  it('get_approval_channel_keys says what a key without hitl:read receives', async () => {
     // GET /hitl/:id/keys answers a key holding confirmations:create but not hitl:read with
     // { public_key, kid } only (src/controllers/hitl.ts) — the description must not promise it more.
     const mod = await import('../src/tools/hitl-keys.js');
     const tools = captureTools(mod.registerTools, createMockHttp());
-    const description = findTool(tools, 'get_hitl_keys').description;
+    const description = findTool(tools, 'get_approval_channel_keys').description;
     expect(description).toMatch(/confirmations:create/);
     expect(description).toMatch(/hitl:read/);
     expect(description).toMatch(/only `public_key` and `kid`/);
@@ -3158,8 +3188,8 @@ describe('delegations tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 4 delegation tools', () => {
-    expect(tools).toHaveLength(4);
+  it('registers all 5 delegation tools', () => {
+    expect(tools).toHaveLength(5);
     const names = tools.map(t => t.name);
     expect(names).toContain('create_delegation');
     expect(names).toContain('list_delegations');
@@ -3607,14 +3637,14 @@ describe('input parity with the OpenAPI document', () => {
     expect(http.post).toHaveBeenLastCalledWith('/api/v1/me/2fa/start', args);
   });
 
-  it('add_domain, create_verification and create_hitl name the sub-account; create_hitl may route through a circle', async () => {
+  it('add_domain, create_verification and create_approval_channel name the sub-account; create_approval_channel may route through a circle', async () => {
     await sends('domains', 'add_domain', { domain: 'team.management', profile_id: HEX });
     expect(http.post).toHaveBeenLastCalledWith('/api/v1/me/domains', { domain: 'team.management', profile_id: HEX });
 
     await sends('verifications', 'create_verification', { type: 'email', channel: 'email', identifier: 'a@team.management', profile_id: HEX });
     expect(http.post).toHaveBeenLastCalledWith('/api/v1/verifications', expect.objectContaining({ profile_id: HEX }));
 
-    await sends('hitl', 'create_hitl', { name: 'Payouts', circle_id: HEX, profile_id: HEX });
+    await sends('hitl', 'create_approval_channel', { name: 'Payouts', circle_id: HEX, profile_id: HEX });
     expect(http.post).toHaveBeenLastCalledWith('/api/v1/hitl', { name: 'Payouts', circle_id: HEX, profile_id: HEX });
   });
 
@@ -3625,16 +3655,16 @@ describe('input parity with the OpenAPI document', () => {
     expect(input.safeParse({ assets: [{ type: 'phone' }], validity_requirement: 'a week' }).success).toBe(false);
   });
 
-  it('update_profile and update_my_profile carry every field their own route keeps', async () => {
-    await sends('profiles', 'update_profile', { profile_id: HEX, show_delegations: false });
+  it('update_sub_account and update_public_page carry every field their own route keeps', async () => {
+    await sends('profiles', 'update_sub_account', { profile_id: HEX, show_delegations: false });
     expect(http.patch).toHaveBeenLastCalledWith(`/api/v1/me/profiles/${HEX}`, { show_delegations: false });
 
-    await sends('profiles', 'update_my_profile', { show_delegations: false });
+    await sends('profiles', 'update_public_page', { show_delegations: false });
     expect(http.put).toHaveBeenLastCalledWith('/api/v1/profiles/me', { show_delegations: false });
 
     // `PUT /profiles/me` keeps no business, primary or email-branding field (its validator strips them and
-    // answers 200), so the tool does not offer them; update_profile writes them.
-    const { tool } = await toolFrom('profiles', 'update_my_profile');
+    // answers 200), so the tool does not offer them; update_sub_account writes them.
+    const { tool } = await toolFrom('profiles', 'update_public_page');
     for (const key of ['business_name', 'is_business', 'is_primary', 'email_theme', 'support_email']) {
       expect(Object.keys(tool.schema)).not.toContain(key);
     }
@@ -3656,17 +3686,17 @@ describe('input parity with the OpenAPI document', () => {
     expect(input.safeParse({ hitl: { approver_password_min_length: 4 } }).success).toBe(false);
   });
 
-  it('upload_hitl_keys sends the v2 envelope fields', async () => {
+  it('upload_approval_channel_keys sends the v2 envelope fields', async () => {
     const v2 = { wrapped_dek: 'wd', dek_iv: 'iv', dek_tag: 'tag', backup_wrapped_dek: 'bwd', backup_dek_iv: 'biv', backup_dek_tag: 'btag' };
-    await sends('hitl-keys', 'upload_hitl_keys', { hitl_id: HEX, public_key: 'pem', encrypted_private_key: '{}', kdf_salt: 'salt', ...v2 });
+    await sends('hitl-keys', 'upload_approval_channel_keys', { hitl_id: HEX, public_key: 'pem', encrypted_private_key: '{}', kdf_salt: 'salt', ...v2 });
     expect(http.put).toHaveBeenLastCalledWith(`/api/v1/hitl/${HEX}/keys`, { public_key: 'pem', encrypted_private_key: '{}', kdf_salt: 'salt', ...v2 });
   });
 
   it.each([
     ['settings', 'get_platform_summary', '/api/v1/me/summary', { profile_id: HEX }],
-    ['profiles', 'get_profile_assets', '/api/v1/profiles/me/assets', { profile_id: HEX }],
+    ['profiles', 'list_public_page_proof_options', '/api/v1/profiles/me/assets', { profile_id: HEX }],
     ['confirmations', 'list_confirmations', '/api/v1/confirmations', { start_date: '2026-10-01T00:00:00.000Z', end_date: '2026-10-29T00:00:00.000Z' }],
-    ['hitl', 'list_hitls', '/api/v1/hitl', { profile_id: HEX }],
+    ['hitl', 'list_approval_channels', '/api/v1/hitl', { profile_id: HEX }],
     ['user-requests', 'list_my_requests', '/api/v1/me/verification-requests', { api_key_id: HEX, profile_id: HEX }],
     ['verifications', 'list_verifications', '/api/v1/verifications', { type: 'phone', channel: 'sms' }],
     ['webhook-deliveries', 'list_webhook_deliveries', '/api/v1/webhook-deliveries', { verification_request_id: HEX, endpoint_id: HEX, profile_id: HEX }],
@@ -3677,7 +3707,7 @@ describe('input parity with the OpenAPI document', () => {
 
   it('offers no filter or page the server ignores', async () => {
     for (const [module, name, args, dropped] of [
-      ['assets', 'list_assets', { page: 2, limit: 5 }, ['page', 'limit']],
+      ['assets', 'list_my_proofs', { page: 2, limit: 5 }, ['page', 'limit']],
       ['verifications', 'list_verifications', { external_user_id: 'u1' }, ['external_user_id']],
     ] as const) {
       const { input } = await toolFrom(module, name);
@@ -3686,9 +3716,56 @@ describe('input parity with the OpenAPI document', () => {
     }
   });
 
-  it('delete_profile says why it does not offer archive_default_linked', async () => {
-    const { tool } = await toolFrom('profiles', 'delete_profile');
+  it('delete_sub_account says why it does not offer archive_default_linked', async () => {
+    const { tool } = await toolFrom('profiles', 'delete_sub_account');
     expect(tool.description).toMatch(/archive_default_linked/);
     expect(tool.schema).not.toHaveProperty('archive_default_linked');
+  });
+});
+
+// m-fix-mcp-tool-contract-drift M3 / A6: a refusal reached the agent as `code: message` only — the
+// failing fields, the request id and the top-up address were dropped. The envelope keeps its three
+// fields (contract § 8); everything extra rides inside `message`, ordered so the 1000-point cut drops
+// field details before the request id.
+describe('API error results carry details, request_id and top_up_url', () => {
+  async function refusal(error: ApiError) {
+    const http = createMockHttp();
+    (http.get as ReturnType<typeof vi.fn>).mockRejectedValue(error);
+    const mod = await import('../src/tools/webhook-deliveries.js');
+    const tool = findTool(captureTools(mod.registerTools, http), 'list_webhook_deliveries');
+    const result = (await tool.handler({})) as { isError?: boolean; content: { text: string }[] };
+    expect(result.isError).toBe(true);
+    return JSON.parse(result.content[0].text) as { error: string; message: string; retryable: boolean };
+  }
+
+  it('names each failing field and the request id', async () => {
+    const env = await refusal(new ApiError('Validation failed', 'validation_error', 400,
+      [{ field: 'status', message: 'Invalid enum value' }, { field: 'limit', message: 'Too big' }],
+      { requestId: 'req_123' }));
+    expect(Object.keys(env).sort()).toEqual(['error', 'message', 'retryable']);
+    expect(env.error).toBe('validation_error');
+    expect(env.message).toContain('Validation failed');
+    expect(env.message).toContain('request_id: req_123');
+    expect(env.message).toContain('status: Invalid enum value');
+    expect(env.message).toContain('limit: Too big');
+  });
+
+  it('passes on top_up_url', async () => {
+    const env = await refusal(new ApiError('Top up.', 'balance_empty', 402, undefined,
+      { topUpUrl: 'https://proof.holdings/billing' }));
+    expect(env.message).toContain('top_up_url: https://proof.holdings/billing');
+  });
+
+  it('keeps the request id when long details hit the message bound', async () => {
+    const details = Array.from({ length: 200 }, (_, i) => ({ field: `f${i}`, message: 'x'.repeat(20) }));
+    const env = await refusal(new ApiError('Validation failed', 'validation_error', 400, details, { requestId: 'req_keep' }));
+    expect(env.message).toContain('request_id: req_keep');
+  });
+
+  it('no tool handler still formats an ApiError by hand', () => {
+    const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'tools');
+    const offenders = fs.readdirSync(dir).filter((f) => f.endsWith('.ts'))
+      .filter((f) => /errorResult\(`\$\{e\.code\}: \$\{e\.message\}`\)/.test(fs.readFileSync(path.join(dir, f), 'utf8')));
+    expect(offenders).toEqual([]);
   });
 });

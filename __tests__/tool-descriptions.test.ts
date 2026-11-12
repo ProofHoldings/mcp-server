@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect, vi } from 'vitest';
 
 import { CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../src/types.js';
+import { PUBLIC_TWO_FA_ACTION_TYPES } from '../src/generated/two-fa-action-types.js';
 
 /**
  * Guards over the TEXT an agent reads — the tool descriptions themselves (`h-fix-mcp-agent-facing-text`).
@@ -236,7 +237,7 @@ describe('create_confirmation — message is an envelope, and says so where the 
     // `createConfirmation` refuses a config without a keypair (400 `keypair_required`), so there
     // is no "when E2E is enabled" case — the conditional framing taught agents to try plaintext
     // first and find out from a human.
-    expect(/when the HITL config has E2E encryption enabled/i.test(description)).toBe(false);
+    expect(/when the (HITL config|approval channel) has E2E encryption enabled/i.test(description)).toBe(false);
   });
 
   it.skipIf(!IN_MONOREPO)('bounds the parameter the way the server bounds it', () => {
@@ -425,13 +426,13 @@ describe('challenge flows — the user sees only what the reply shows (W7)', () 
  */
 describe('the deletion tools say what they do before an agent calls them', () => {
   const EXPECTED: Record<string, { verb: string; facts: string[] }> = {
-    revoke_asset: { verb: 'Revoke', facts: ['asset stays on the account', 'revocation_bulk', 'every delegation', 're-verification', 'suspend_proof', 'Cannot be undone'] },
+    revoke_my_proof: { verb: 'Revoke', facts: ['asset stays on the account', 'revocation_bulk', 'every delegation', 're-verification', 'pause_proof', 'Cannot be undone'] },
     delete_domain: { verb: 'Remove', facts: ['every delegation', '_proof TXT', 'domain_remove', 'left for you to remove', 'Cannot be undone'] },
     delete_domain_verification: { verb: 'Delete', facts: ['nothing is revoked', 'domain_verified', 'delete_domain'] },
-    delete_profile: { verb: 'Delete', facts: ['last sub-account cannot be deleted', 'oldest remaining', 'profile_delete', 'EMPTY sub-account', 'retires its username', 'Cannot be undone'] },
+    delete_sub_account: { verb: 'Delete', facts: ['last sub-account cannot be deleted', 'oldest remaining', 'profile_delete', 'EMPTY sub-account', 'retires its username', 'Cannot be undone'] },
     remove_phone: { verb: 'Remove', facts: ['Always requires one code', 'phone_remove', 'circles_need_phone', 'new primary', 'Cannot be undone'] },
     remove_email: { verb: 'Remove', facts: ['Always requires one code', 'email_remove', 'Lookalike Watch', 'new primary', 'Cannot be undone'] },
-    revoke_proof: { verb: 'Revoke', facts: ['every delegation issued from it', 'delegations:write', 'suspend_proof', 'Cannot be undone'] },
+    revoke_proof: { verb: 'Revoke', facts: ['every delegation issued from it', 'delegations:write', 'pause_proof', 'Cannot be undone'] },
   };
 
   it.each(Object.keys(EXPECTED))('%s', async (name) => {
@@ -467,5 +468,154 @@ describe('tool text says "sub-account", never "project", for a public profile', 
   it('the wire-value exemption still matches the text it excuses', async () => {
     const tools = await captureAllDescriptions();
     expect(tools.some((t) => t.texts.some((text) => text.includes(WIRE_SCOPE)))).toBe(true);
+  });
+});
+
+describe('where a human must act in the dashboard, the text names the page and its address (A7)', () => {
+  // Audit §5a A7: "tools say 'in the dashboard' with no place". Each case names the label a person
+  // sees AND the address, and the address is RESOLVED against the dashboard on this tree — its route
+  // directory and, for the Settings hub, its tab ids — so a renamed page fails here, not in a user's hands.
+  const WEB_DASHBOARD = path.join(HERE, '../../web/src/app/(dashboard)');
+  const IN_MONOREPO = fs.existsSync(WEB_DASHBOARD);
+  const CASES: Array<{ tool: string; label: string; url: string }> = [
+    { tool: 'get_balance', label: 'Billing page', url: 'https://proof.holdings/billing' },
+    { tool: 'get_settings', label: 'Webhooks page', url: 'https://proof.holdings/webhooks' },
+    { tool: 'create_confirmation', label: 'Settings → Approvals password', url: 'https://proof.holdings/dev' },
+    { tool: 'upload_approval_channel_keys', label: 'Settings → Approvals password', url: 'https://proof.holdings/dev' },
+  ];
+
+  it.each(CASES)('$tool names "$label" at $url', async ({ tool, label, url }) => {
+    const captured = (await captureAllDescriptions()).find((t) => t.name === tool);
+    expect(captured, `${tool} is not registered`).toBeDefined();
+    const [description] = captured!.texts;
+    expect(description).toContain(label);
+    expect(description).toContain(url);
+  });
+
+  it.skipIf(!IN_MONOREPO).each(CASES)('$url is a page the dashboard has', ({ url }) => {
+    const { pathname, searchParams } = new URL(url);
+    const segment = pathname.replace(/^\//, '');
+    expect(fs.existsSync(path.join(WEB_DASHBOARD, segment, 'page.tsx')), `no dashboard page at /${segment}`).toBe(true);
+    const tab = searchParams.get('tab');
+    if (tab) {
+      const hub = fs.readFileSync(path.join(WEB_DASHBOARD, segment, 'page.tsx'), 'utf-8');
+      expect(hub, `/${segment} has no tab "${tab}"`).toContain(`id: '${tab}'`);
+    }
+  });
+});
+
+describe('set_primary_phone / set_primary_email name the second-factor code they need (A6)', () => {
+  // `PUT /me/phones/:id/primary` and `/emails/:id/primary` sit behind require2FA('phone_primary' /
+  // 'email_primary') in src/routes/me.ts; the descriptions said nothing, so the first call always
+  // came back 2fa_required with no warning. Phrased like remove_phone's.
+  it.each([
+    ['set_primary_phone', 'phone_primary'],
+    ['set_primary_email', 'email_primary'],
+  ])('%s says start_2fa_for_action with action_type %s', async (tool, actionType) => {
+    expect(PUBLIC_TWO_FA_ACTION_TYPES as readonly string[]).toContain(actionType);
+    const captured = (await captureAllDescriptions()).find((t) => t.name === tool);
+    const [description] = captured!.texts;
+    expect(description).toContain(`Always requires one code: start_2fa_for_action with action_type ${actionType}`);
+  });
+});
+
+describe('the /profiles/me twins say which sub-account they act on, and name each other (T8b, T8d)', () => {
+  // GET and PUT /profiles/me act on a sub-account key's own sub-account, else the primary (the
+  // backend's `currentSubAccount`); only the GET creates one. The descriptions said "the current
+  // user's primary profile", which is false for a sub-account key, and nothing tied the pair together.
+  async function text(name: string) {
+    const captured = (await captureAllDescriptions()).find((t) => t.name === name);
+    expect(captured, `${name} is not registered`).toBeDefined();
+    return captured!.texts[0];
+  }
+
+  it('get_current_sub_account: the primary or a sub-account key\'s own, created on first call, twin update_public_page', async () => {
+    const d = await text('get_current_sub_account');
+    expect(d).toContain('primary sub-account');
+    expect(d).toContain('sub-account key');
+    expect(d).toMatch(/first call creates/i);
+    expect(d).toContain('update_public_page');
+    expect(d).toContain('https://proof.holdings/profile');
+  });
+
+  it('update_public_page: the same record, presentation fields only, the rest through update_sub_account', async () => {
+    const d = await text('update_public_page');
+    expect(d).toContain('get_current_sub_account');
+    expect(d).toContain('presentation');
+    expect(d).toContain('update_sub_account');
+    expect(d).toContain('https://proof.holdings/profile');
+  });
+
+  it('update_public_page_proofs and update_sub_account_page_proofs each name the other', async () => {
+    expect(await text('update_public_page_proofs')).toContain('update_sub_account_page_proofs');
+    expect(await text('update_sub_account_page_proofs')).toContain('update_public_page_proofs');
+  });
+});
+
+describe('pause_proof / resume_proof say what they do, and nothing names a tool that does not exist (A1, SC-8)', () => {
+  async function all() {
+    return captureAllDescriptions();
+  }
+
+  it('pause_proof says pause, reversible with resume_proof, and what it does to a live delegation', async () => {
+    const d = (await all()).find((t) => t.name === 'pause_proof')!.texts[0];
+    expect(d).toMatch(/^Pause/);
+    expect(d).toContain('resume_proof');
+    expect(d).toContain('ph_dlg_');
+    expect(d).toMatch(/self-refusal/);
+    expect(d).toContain('delegations:write');
+  });
+
+  it('resume_proof says resume and names not_suspended', async () => {
+    const d = (await all()).find((t) => t.name === 'resume_proof')!.texts[0];
+    expect(d).toMatch(/^Resume/);
+    expect(d).toContain('not_suspended');
+    expect(d).toContain('pause_proof');
+  });
+
+  it('no description names suspend_proof (never registered); the revoke tools point at pause_proof', async () => {
+    const captured = await all();
+    const names = new Set(captured.map((t) => t.name));
+    expect(names.has('pause_proof')).toBe(true);
+    expect(captured.filter((t) => t.texts.some((x) => x.includes('suspend_proof'))).map((t) => t.name)).toEqual([]);
+    for (const name of ['revoke_proof', 'revoke_my_proof']) {
+      expect(captured.find((t) => t.name === name)!.texts[0], name).toContain('pause_proof');
+    }
+  });
+});
+
+/**
+ * SC-10 (m-fix-mcp-tool-contract-drift, the wording half): tool text uses the dashboard's words for
+ * these objects — "approval channel", "Public page", "Proof of Me" — as the renamed tools' names do.
+ * Read off the real server, every registered description and every input description.
+ */
+describe('tool text uses the dashboard\'s words: approval channel, Public page, Proof of Me', () => {
+  const RETIRED = /\bHITL (?:config|configuration|setup)s?\b|\bProof-Me\b|\bpublic profiles?\b/i;
+
+  it('the pattern catches each retired phrase (positive control)', () => {
+    for (const phrase of ['a HITL config', 'HITL configuration ID', 'the HITL setups', 'Proof-Me', 'your public profile']) {
+      expect(RETIRED.test(phrase), phrase).toBe(true);
+    }
+    expect(RETIRED.test('an approval channel on the Public page, Proof of Me')).toBe(false);
+  });
+
+  it('no listed tool description or input description carries one', async () => {
+    const { createProofServer } = await import('../src/factory.js');
+    const { Client } = await import('@modelcontextprotocol/sdk/client/index.js');
+    const { InMemoryTransport } = await import('@modelcontextprotocol/sdk/inMemory.js');
+    // Through tools/list, as a client reads them: the input descriptions live in the JSON Schema the
+    // server sends, not in the zod object it registered.
+    const { server } = createProofServer({ apiKey: 'pk_test_x', baseUrl: 'https://api.proof.holdings' });
+    const [clientSide, serverSide] = InMemoryTransport.createLinkedPair();
+    await server.connect(serverSide);
+    const client = new Client({ name: 'vocabulary-test', version: '1.0.0' });
+    await client.connect(clientSide);
+    const { tools } = await client.listTools();
+    expect(tools.length).toBeGreaterThan(150);
+    const offending = tools
+      .map((t) => [t.name, `${t.description ?? ''}\n${JSON.stringify(t.inputSchema)}`] as const)
+      .filter(([, text]) => RETIRED.test(text))
+      .map(([name, text]) => `${name}: ${text.match(RETIRED)![0]}`);
+    expect(offending).toEqual([]);
   });
 });

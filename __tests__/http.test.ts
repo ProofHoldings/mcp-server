@@ -43,6 +43,33 @@ describe('HttpClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  // m-fix-mcp-tool-contract-drift M1: a non-JSON success body (CSV export) reached the tool as `{}`.
+  it('returns a non-JSON success body as { content_type, body } instead of {}', async () => {
+    const csv = 'id,status\n1,approved\n';
+    fetchMock.mockResolvedValueOnce(new Response(csv, { status: 200, headers: { 'Content-Type': 'text/csv; charset=utf-8' } }));
+
+    const result = await createClient().get('/api/v1/authorizations/export', { format: 'csv' });
+
+    expect(result).toEqual({ content_type: 'text/csv; charset=utf-8', body: csv });
+  });
+
+  // M3: the request id is what support asks for; A6: a top-level {code, message} body was read as http_403.
+  it('carries error.request_id, else the X-Request-Id header, on ApiError', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: { code: 'validation_error', message: 'bad', request_id: 'req_body', details: [{ field: 'status', message: 'Invalid enum value' }] } }, 400));
+    const e1 = (await createClient().get('/api/v1/x').catch((e: unknown) => e)) as ApiError;
+    expect(e1).toMatchObject({ code: 'validation_error', requestId: 'req_body', details: [{ field: 'status', message: 'Invalid enum value' }] });
+
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ code: 'plan_limit_reached', message: 'Your plan allows 1 active HITL config(s).', limit: 1, current: 1 }), { status: 403, headers: { 'Content-Type': 'application/json', 'X-Request-Id': 'req_header' } }));
+    const e2 = (await createClient().get('/api/v1/hitl').catch((e: unknown) => e)) as ApiError;
+    expect(e2).toMatchObject({ code: 'plan_limit_reached', message: 'Your plan allows 1 active HITL config(s).', statusCode: 403, requestId: 'req_header' });
+  });
+
+  it('carries top_up_url from an error body', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({ error: { code: 'balance_empty', message: 'Top up.', top_up_url: 'https://proof.holdings/billing' } }, 402));
+    const e = (await createClient().post('/api/v1/verifications', {}).catch((x: unknown) => x)) as ApiError;
+    expect(e).toMatchObject({ code: 'balance_empty', topUpUrl: 'https://proof.holdings/billing' });
+  });
+
   it('makes GET requests with correct headers', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({ id: '123' }));
 
@@ -660,6 +687,35 @@ describe('HttpClient public mode (no API key)', () => {
       code: 'api_key_required',
     });
     expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  // M5: with no key and no session, a session-only route answered the generic api_key_required —
+  // "get a key" — and a key there is refused user_session_required. The road that opens it is a
+  // sign-in session, on both transports.
+  it.each([false, true])('sends a keyless caller of a session-only route to start_login (remote=%s)', async (remote) => {
+    const client = new HttpClient({ baseUrl: 'https://api.proof.holdings', remote });
+
+    const error = await client.get('/api/v1/me/emails').catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ code: 'user_session_required', statusCode: 401 });
+    expect((error as Error).message).toMatch(/start_login[^.]*wait_for_login[^.]*call this tool again/);
+    expect((error as Error).message).toContain('An API key does not open this tool');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([false, true])('tells a keyless caller of a key-or-session route that both open it (remote=%s)', async (remote) => {
+    const client = new HttpClient({ baseUrl: 'https://api.proof.holdings', remote });
+
+    const error = await client.get('/api/v1/me/verification-requests').catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ code: 'api_key_required', statusCode: 401 });
+    expect((error as Error).message).toContain('A signed-in session (start_login, then wait_for_login) opens this tool too.');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps the plain api_key_required text for a keyed route off the session surface', async () => {
+    const error = await keylessClient().get('/api/v1/verifications').catch((e: unknown) => e);
+    expect((error as Error).message).not.toContain('opens this tool too');
   });
 });
 

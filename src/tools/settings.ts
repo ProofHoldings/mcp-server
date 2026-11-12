@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -20,7 +20,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/usage', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -28,9 +28,9 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_platform_summary',
-    'Get a one-call account snapshot: quota with end-of-month projection, request health (pending/completed/expired counts + success rate), per-channel completion rates, HITL counts, and active API key count. The same data the dashboard home renders. The hitl_channels sub-object requires the hitl:read scope.',
+    'Get a one-call account snapshot: quota with end-of-month projection, request health (pending/completed/expired counts + success rate), per-channel completion rates, approval channel counts, and active API key count. The same data the dashboard home renders. The hitl_channels sub-object requires the hitl:read scope.',
     {
-      environment: z.enum(['production', 'test']).optional().describe('Scope request/channel/HITL metrics to test or production data (default: production)'),
+      environment: z.enum(['production', 'test']).optional().describe('Scope request, channel and approval-channel metrics to test or production data (default: production)'),
       profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Scope the metrics and key counts to one sub-account (24 hex characters); the quota stays account-wide'),
     },
     async (args) => {
@@ -41,7 +41,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/summary', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -49,14 +49,14 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'get_settings',
-    'Get account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding (name, logo, colour, email theme, support email) belongs to each sub-account: read it with get_profile. The webhook signing secret is NOT returned to an API key — the response reports webhook.secret_set instead, and the value itself is visible only in the dashboard or in the update_settings response that created or rotated it.',
+    'Get account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding (name, logo, colour, email theme, support email) belongs to each sub-account: read it with get_sub_account. The webhook signing secret is NOT returned to an API key — the response reports webhook.secret_set instead, and the value is shown only when it is made: in the update_settings response that created or rotated it, or to the owner rotating it on the Webhooks page in the dashboard (https://proof.holdings/webhooks).',
     {},
     async () => {
       try {
         const result = await http.get('/api/v1/me/settings');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -64,7 +64,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'update_settings',
-    'Update account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding belongs to each sub-account: change it with update_profile. Setting the first webhook endpoint creates the signing secret and returns it in this response; the value is returned only when this call created or rotated it, so record it then.',
+    'Update account settings: the outbound webhook endpoint with its event subscriptions, and the default proof lifetime. Branding belongs to each sub-account: change it with update_sub_account. Setting the first webhook endpoint creates the signing secret and returns it in this response; the value is returned only when this call created or rotated it, so record it then.',
     {
       webhook: z.object({
         url: z.string().url().max(2000).nullable().optional().describe('HTTPS endpoint outbound webhooks are delivered to, at most 2000 characters; null removes it. Private, loopback and link-local addresses are refused.'),
@@ -81,7 +81,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.patch('/api/v1/me/settings', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -104,7 +104,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         if (latest && (latest.status === 'preparing' || latest.status === 'ready')) return jsonResult(latest);
         return jsonResult(await http.post('/api/v1/me/export'));
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -129,7 +129,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/search', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -144,7 +144,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/api-key');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -164,7 +164,22 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/me/api-keys/${encodeURIComponent(args.id)}/usage`, query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'get_company',
+    'Get the account company profile: legal name, registration code, country, EU VAT number, billing address and billing email, with the state of the VAT number VIES check. company is null before one is saved. Needs settings:read on an account-wide key; a key bound to one sub-account is refused account_key_required, since this is the account itself. The owner edits it in the dashboard on the Billing page (https://proof.holdings/billing).',
+    {},
+    async () => {
+      try {
+        const result = await http.get('/api/v1/me/company');
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

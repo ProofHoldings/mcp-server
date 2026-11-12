@@ -21,6 +21,7 @@ import {
   PATH_PARAM_ALIASES,
   TOOLS_WITHOUT_OPERATION,
 } from '../src/input-parity-exemptions.js';
+import { canonicalToolName } from '../src/tool-renames.js';
 
 type Location = 'path' | 'query' | 'body';
 type OperationInputs = Record<string, { operations: string[]; inputs: Record<string, Location> }>;
@@ -61,7 +62,8 @@ beforeAll(async () => {
   const client = new Client({ name: 'input-parity-test', version: '1.0.0' });
   await client.connect(clientSide);
   const { tools } = await client.listTools();
-  advertised = new Map(tools.map((t) => [
+  // A deprecated alias takes its tool's input (`tool-renames.test.ts`), so the tools are what is judged.
+  advertised = new Map(tools.filter((t) => canonicalToolName(t.name) === t.name).map((t) => [
     t.name,
     { type: t.inputSchema.type, keys: Object.keys((t.inputSchema.properties ?? {}) as Record<string, unknown>) },
   ]));

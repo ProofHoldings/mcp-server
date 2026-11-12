@@ -26,16 +26,16 @@ describe('Public Profiles (2 tools)', () => {
     });
   });
 
-  // update_public_proofs
-  describe('update_public_proofs', () => {
+  // update_public_page_proofs
+  describe('update_public_page_proofs', () => {
     it('updates public proof display with empty array', async () => {
-      const result = await callTool('update_public_proofs', { proofs: [] });
+      const result = await callTool('update_public_page_proofs', { proofs: [] });
       // May succeed or error depending on profile state
       expect(result.content).toHaveLength(1);
     });
 
     it('updates public proofs with a nonexistent asset', async () => {
-      const result = await callTool('update_public_proofs', {
+      const result = await callTool('update_public_page_proofs', {
         proofs: [{
           asset_id: '000000000000000000000000',
           is_visible: true,

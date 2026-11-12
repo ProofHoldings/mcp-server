@@ -2,9 +2,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { ZodRawShape } from 'zod';
 
 import { HttpClient } from './http.js';
-import { accessNoticeFor, serverInstructions, type AccessContext } from './authBoundary.js';
+import { errorResult, ERROR_MESSAGE_MAX_CHARS } from './types.js';
+import { boundText } from './validationRewrite.js';
+import { accessNoticeFor, serverInstructions, REMOTE_UNAVAILABLE_TOOLS, REMOTE_UNAVAILABLE_TEXT, type AccessContext } from './authBoundary.js';
 import { annotationsFor } from './toolAnnotations.js';
 import { outputSchemaFor } from './output-schema.js';
+import { aliasesOf, aliasDescription, canonicalToolName } from './tool-renames.js';
 import { installToolCallWrapper } from './toolCallWrapper.js';
 import { installDelegationGate } from './delegationGate.js';
 
@@ -36,6 +39,7 @@ import { registerTools as registerHitlKeys } from './tools/hitl-keys.js';
 import { registerTools as registerProofMe } from './tools/proof-me.js';
 import { registerTools as registerCircles } from './tools/circles.js';
 import { registerTools as registerDelegations } from './tools/delegations.js';
+import { registerTools as registerLookalikeWatch } from './tools/lookalike-watch.js';
 import { registerTools as registerDelegationVerify } from './tools/delegation-verify.js';
 import { registerTools as registerAuthFlows } from './tools/auth-flows.js';
 import { registerTools as registerAccounts } from './tools/accounts.js';
@@ -82,6 +86,61 @@ export interface ProofServerInstance {
  * afterwards, with both paths green — `__tests__/factory.test.ts` pins both the list's completeness
  * against `src/tools` and the absence of a second copy in `server.ts`.
  */
+/** `list_<noun>s` (or `-es`, `-y` → `-ies`) when the registry has it, read as the tool it stands for. */
+function listToolNamed(noun: string, registered: ReadonlySet<string>): string | undefined {
+  const found = [`list_${noun}s`, `list_${noun}es`, `list_${noun.replace(/y$/, 'ies')}`].find((c) => registered.has(c));
+  return found === undefined ? undefined : canonicalToolName(found);
+}
+
+/**
+ * The list tool of the resource a tool acts on, derived from the registry by name: `<verb>_<noun>` →
+ * `list_<noun>s`. A deprecated alias is read as its tool. None for a tool that is itself the list, or
+ * where the registry has no such tool.
+ */
+export function listToolFor(name: string, registered: ReadonlySet<string>): string | undefined {
+  const tool = canonicalToolName(name);
+  const noun = tool.replace(/^[a-z0-9]+_/, '');
+  if (noun === tool) return undefined;
+  const list = listToolNamed(noun, registered);
+  return list === tool ? undefined : list;
+}
+
+/**
+ * The list a not-found refusal points at. `<resource>_not_found` names the MISSING resource, which is not
+ * always the tool's own (`create_confirmation` refused `hitl_not_found` needs the approval channels), so
+ * its list is derived from the code — through the deprecated aliases, which still carry the API's old
+ * resource words — and nothing is added when the registry has none. A bare `not_found` is the tool's own.
+ */
+export function notFoundListTool(code: string, name: string, registered: ReadonlySet<string>): string | undefined {
+  if (code === 'not_found') return listToolFor(name, registered);
+  const resource = /^([a-z0-9_]+)_not_found$/.exec(code)?.[1];
+  return resource === undefined ? undefined : listToolNamed(resource, registered);
+}
+
+/**
+ * A not-found refusal (`not_found` or `<resource>_not_found`) names where the caller sees what exists
+ * (AX bar, coordinator 11 Nov). Only the envelope's `message` grows — the API's text is cut to make room,
+ * so the message stays within `ERROR_MESSAGE_MAX_CHARS` with the hint whole; code and retryable are unchanged.
+ */
+function withNotFoundHint(name: string, registered: ReadonlySet<string>, handler: (...args: unknown[]) => unknown) {
+  return async (...args: unknown[]) => {
+    const result = (await handler(...args)) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+    if (!result?.isError || result.content?.[0]?.type !== 'text' || typeof result.content[0].text !== 'string') return result;
+    let envelope: { error?: unknown; message?: unknown };
+    try {
+      envelope = JSON.parse(result.content[0].text);
+    } catch {
+      return result;
+    }
+    if (typeof envelope.error !== 'string' || typeof envelope.message !== 'string') return result;
+    const list = notFoundListTool(envelope.error, name, registered);
+    if (!list) return result;
+    const hint = ` List what exists with ${list}.`;
+    const message = boundText(envelope.message, ERROR_MESSAGE_MAX_CHARS - [...hint].length) + hint;
+    return { ...result, content: [{ ...result.content[0], text: JSON.stringify({ ...envelope, message }) }, ...result.content.slice(1)] };
+  };
+}
+
 export function createProofServer(options: ProofServerOptions): ProofServerInstance {
   const http = new HttpClient({
     apiKey: options.apiKey,
@@ -103,7 +162,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
       // `src/__tests__/drift/delegation-publication.test.ts` (h-npm-registry-release). If this is
       // ever replaced by a real read, delete the pin in the same change: a pin over a derived
       // value guards nothing.
-      version: '1.9.0',
+      version: '1.10.0',
     },
     { instructions: serverInstructions(access) },
   );
@@ -133,6 +192,11 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
     if (typeof name !== 'string' || typeof description !== 'string' || !(withInput || withoutInput)) {
       throw new Error(`tool registration in an unsupported shape: ${String(name)}`);
     }
+    // On the hosted server a tool it cannot serve answers why instead of sending a request that
+    // comes back `insufficient_scope` (`REMOTE_UNAVAILABLE_TOOLS`).
+    const handler = (options.remote && REMOTE_UNAVAILABLE_TOOLS.has(name)
+      ? async () => errorResult(`tool_unavailable_remote: ${REMOTE_UNAVAILABLE_TEXT}`)
+      : withNotFoundHint(name, toolNames, (withInput ? fourth : third) as (...args: unknown[]) => unknown)) as never;
     const registered = server.registerTool(
       name,
       {
@@ -141,9 +205,23 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
         outputSchema: outputSchemaFor(name),
         annotations: annotationsFor(name),
       },
-      (withInput ? fourth : third) as never,
+      handler,
     );
     toolNames.add(name);
+    // A deprecated alias of a renamed tool (`TOOL_RENAMES`, none while every row's `alias` is false):
+    // the same input, handler and annotations, one line of description, and no output schema.
+    for (const alias of aliasesOf(name)) {
+      server.registerTool(
+        alias,
+        {
+          description: aliasDescription(name),
+          ...(withInput && { inputSchema: third as ZodRawShape }),
+          annotations: annotationsFor(name),
+        },
+        handler,
+      );
+      toolNames.add(alias);
+    }
     return registered;
   }) as McpServer['tool'];
 
@@ -175,6 +253,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
   registerProofMe(tool, http);
   registerCircles(tool, http);
   registerDelegations(tool, http);
+  registerLookalikeWatch(tool, http);
   // Takes the base URL rather than the HTTP client: verifying a third party's delegation runs
   // against PUBLIC surfaces only and carries no API key.
   registerDelegationVerify(tool, { baseUrl: options.baseUrl });

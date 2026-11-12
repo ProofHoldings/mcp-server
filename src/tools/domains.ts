@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, credentialsSchema } from '../types.js';
+import { jsonResult, credentialsSchema, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 const EMAIL_PREFIXES = ['admin', 'administrator', 'webmaster', 'hostmaster', 'postmaster'] as const;
@@ -59,7 +59,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/domains');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -79,7 +79,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/me/domains', args);
         return domainResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -96,7 +96,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/me/domains/${encodeURIComponent(id)}`);
         return domainResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -104,7 +104,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'delete_domain',
-    'Remove a domain from the account. Revokes every proof of the domain and every delegation issued from it (for good — re-adding the domain does not bring them back), deletes the domain and its records, and removes our _proof TXT record and the Resend sending domain where we can; the response lists what is left for you to remove by hand. Owner only, in a start_login session, with one code: start_2fa_for_action with action_type domain_remove and targets [this domain id]. Need only a fresh proof? Revoke the proofs instead (revoke_asset), which keeps the domain. Cannot be undone.',
+    'Remove a domain from the account. Revokes every proof of the domain and every delegation issued from it (for good — re-adding the domain does not bring them back), deletes the domain and its records, and removes our _proof TXT record and the Resend sending domain where we can; the response lists what is left for you to remove by hand. Owner only, in a start_login session, with one code: start_2fa_for_action with action_type domain_remove and targets [this domain id]. Need only a fresh proof? Revoke the proofs instead (revoke_my_proof), which keeps the domain. Cannot be undone.',
     {
       id: z.string().describe('Domain ID to delete'),
     },
@@ -113,7 +113,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/me/domains/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -130,7 +130,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/verify`);
         return domainResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -148,7 +148,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/connect/cloudflare`, { api_token });
         return domainResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -168,7 +168,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/connect/godaddy`, { api_token, api_key, api_secret });
         return domainResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -183,7 +183,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/connect/${encodeURIComponent(provider)}`, { credentials });
         return domainResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -198,7 +198,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/add-provider/${encodeURIComponent(provider)}`, { credentials });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -213,7 +213,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/dns-providers');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -230,7 +230,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/verify-with-credentials`);
         return domainResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -247,7 +247,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/me/domains/${encodeURIComponent(id)}/check-credentials`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -265,7 +265,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/verify-email`, body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -283,7 +283,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/verify-email/confirm`, { code });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -301,7 +301,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/verify-email/resend`, body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -319,7 +319,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/domains/${encodeURIComponent(id)}/email-setup`, body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -336,7 +336,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/me/domains/${encodeURIComponent(id)}/email-status`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

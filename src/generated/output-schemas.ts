@@ -773,6 +773,238 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "Domain record"
     }
   },
+  "archive_approval_channel": {
+    "precision": "proven",
+    "operations": [
+      "DELETE /api/v1/hitl/{id} 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "MongoDB ObjectId"
+        },
+        "user_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Owner user ID (useful for SDK encryption AAD)"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "profile_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "circle_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Backing Circle for a circle-backed Approvals config (null for channel-list configs)"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "config"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "telegram"
+                    ]
+                  },
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "chat_id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "chat_id"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "config"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "whatsapp"
+                    ]
+                  },
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "phone_number": {
+                        "type": "string"
+                      },
+                      "bsuid": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "timeout_seconds": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of a HITL configuration"
+        },
+        "keypair": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "kid": {
+              "type": "string"
+            },
+            "has_encrypted_private_key": {
+              "type": "boolean"
+            },
+            "has_wrapped_dek": {
+              "type": "boolean"
+            },
+            "has_backup_wrapper": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kid",
+            "has_encrypted_private_key",
+            "has_wrapped_dek",
+            "has_backup_wrapper"
+          ],
+          "description": "Encryption keypair metadata (null if not configured)"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "user_id",
+        "channels",
+        "timeout_seconds",
+        "status",
+        "keypair",
+        "environment",
+        "created_at",
+        "updated_at"
+      ],
+      "description": "HITL configuration with messaging channels and timeout"
+    }
+  },
+  "cancel_lookalike_watch": {
+    "precision": "proven",
+    "operations": [
+      "DELETE /api/v1/lookalike-watch 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "MongoDB ObjectId"
+        },
+        "status": {
+          "type": "string"
+        },
+        "brand_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "owned_namespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notify_email": {
+          "type": "string"
+        },
+        "activated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the watch was last turned on (stamped again on reactivation)"
+        },
+        "last_report_period": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The last month reported, `YYYY-MM`; null before the first report"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "brand_tokens",
+        "owned_namespaces",
+        "notify_email",
+        "activated_at",
+        "last_report_period",
+        "created_at",
+        "updated_at"
+      ],
+      "description": "The account's Lookalike Watch subscription. Subscribe, read and cancel all answer it; only the cancel answer reads `canceled`, since a read after cancelling answers 404."
+    }
+  },
   "cancel_user_request": {
     "precision": "proven",
     "operations": [
@@ -2859,6 +3091,173 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "A newly created or regenerated API key, with its full value — the one response that carries it."
     }
   },
+  "create_approval_channel": {
+    "precision": "proven",
+    "operations": [
+      "POST /api/v1/hitl 201"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "MongoDB ObjectId"
+        },
+        "user_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Owner user ID (useful for SDK encryption AAD)"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "profile_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "circle_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Backing Circle for a circle-backed Approvals config (null for channel-list configs)"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "config"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "telegram"
+                    ]
+                  },
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "chat_id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "chat_id"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "config"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "whatsapp"
+                    ]
+                  },
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "phone_number": {
+                        "type": "string"
+                      },
+                      "bsuid": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "timeout_seconds": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of a HITL configuration"
+        },
+        "keypair": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "kid": {
+              "type": "string"
+            },
+            "has_encrypted_private_key": {
+              "type": "boolean"
+            },
+            "has_wrapped_dek": {
+              "type": "boolean"
+            },
+            "has_backup_wrapper": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kid",
+            "has_encrypted_private_key",
+            "has_wrapped_dek",
+            "has_backup_wrapper"
+          ],
+          "description": "Encryption keypair metadata (null if not configured)"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "user_id",
+        "channels",
+        "timeout_seconds",
+        "status",
+        "keypair",
+        "environment",
+        "created_at",
+        "updated_at"
+      ],
+      "description": "HITL configuration with messaging channels and timeout"
+    }
+  },
   "create_authorization": {
     "precision": "proven",
     "operations": [
@@ -3164,173 +3563,6 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "A saved DNS provider credential. The secret is never returned."
     }
   },
-  "create_hitl": {
-    "precision": "proven",
-    "operations": [
-      "POST /api/v1/hitl 201"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "MongoDB ObjectId"
-        },
-        "user_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Owner user ID (useful for SDK encryption AAD)"
-        },
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "profile_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "circle_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Backing Circle for a circle-backed Approvals config (null for channel-list configs)"
-        },
-        "channels": {
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "config"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "telegram"
-                    ]
-                  },
-                  "config": {
-                    "type": "object",
-                    "properties": {
-                      "chat_id": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "chat_id"
-                    ]
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "config"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "whatsapp"
-                    ]
-                  },
-                  "config": {
-                    "type": "object",
-                    "properties": {
-                      "phone_number": {
-                        "type": "string"
-                      },
-                      "bsuid": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "timeout_seconds": {
-          "type": "integer"
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of a HITL configuration"
-        },
-        "keypair": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "kid": {
-              "type": "string"
-            },
-            "has_encrypted_private_key": {
-              "type": "boolean"
-            },
-            "has_wrapped_dek": {
-              "type": "boolean"
-            },
-            "has_backup_wrapper": {
-              "type": "boolean"
-            }
-          },
-          "required": [
-            "kid",
-            "has_encrypted_private_key",
-            "has_wrapped_dek",
-            "has_backup_wrapper"
-          ],
-          "description": "Encryption keypair metadata (null if not configured)"
-        },
-        "environment": {
-          "type": "string"
-        },
-        "created_at": {
-          "type": "string"
-        },
-        "updated_at": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "user_id",
-        "channels",
-        "timeout_seconds",
-        "status",
-        "keypair",
-        "environment",
-        "created_at",
-        "updated_at"
-      ],
-      "description": "HITL configuration with messaging channels and timeout"
-    }
-  },
   "create_identity_challenge": {
     "precision": "proven",
     "operations": [
@@ -3432,7 +3664,47 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "create_profile": {
+  "create_session": {
+    "precision": "described",
+    "operations": [
+      "POST /api/v1/sessions 201"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Session id"
+        },
+        "channel": {
+          "description": "How the person proves the number: `telegram` or `whatsapp` (the bot reads the number from their account), or `sms` (they text a short code from the number to one of ours)."
+        },
+        "status": {},
+        "deep_link": {
+          "description": "Opens the messenger (`https://t.me/…`, `https://wa.me/…`) or the messaging app (`sms:<number>?body=…`) with what the person sends"
+        },
+        "qr_code": {
+          "description": "Base64-encoded PNG QR code for `deep_link`"
+        },
+        "qr_text": {
+          "description": "UTF-8 text QR for `deep_link`, for terminal/agent rendering"
+        },
+        "expires_at": {},
+        "instructions": {
+          "description": "One line telling the person what to do"
+        },
+        "sms_code": {
+          "description": "The short code the person texts (`sms` only)"
+        },
+        "sms_message": {
+          "description": "The message to send, as pre-filled in the links (`sms` only)"
+        },
+        "sms_dids": {
+          "description": "Every number an `sms` session's code can be texted to, one per configured region (a region with no number is absent), each with its own QR code. `deep_link` uses the default region's number; the request comes from your server, so nothing in it says where the person is."
+        }
+      }
+    }
+  },
+  "create_sub_account": {
     "precision": "proven",
     "operations": [
       "POST /api/v1/me/profiles 201"
@@ -3735,46 +4007,6 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "A sub-account as its owner sees it"
     }
   },
-  "create_session": {
-    "precision": "described",
-    "operations": [
-      "POST /api/v1/sessions 201"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "Session id"
-        },
-        "channel": {
-          "description": "How the person proves the number: `telegram` or `whatsapp` (the bot reads the number from their account), or `sms` (they text a short code from the number to one of ours)."
-        },
-        "status": {},
-        "deep_link": {
-          "description": "Opens the messenger (`https://t.me/…`, `https://wa.me/…`) or the messaging app (`sms:<number>?body=…`) with what the person sends"
-        },
-        "qr_code": {
-          "description": "Base64-encoded PNG QR code for `deep_link`"
-        },
-        "qr_text": {
-          "description": "UTF-8 text QR for `deep_link`, for terminal/agent rendering"
-        },
-        "expires_at": {},
-        "instructions": {
-          "description": "One line telling the person what to do"
-        },
-        "sms_code": {
-          "description": "The short code the person texts (`sms` only)"
-        },
-        "sms_message": {
-          "description": "The message to send, as pre-filled in the links (`sms` only)"
-        },
-        "sms_dids": {
-          "description": "Every number an `sms` session's code can be texted to, one per configured region (a region with no number is absent), each with its own QR code. `deep_link` uses the default region's number; the request comes from your server, so nothing in it says where the person is."
-        }
-      }
-    }
-  },
   "create_user_request": {
     "precision": "described",
     "operations": [
@@ -3950,6 +4182,18 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
+  "delete_approval_channel_keys": {
+    "precision": "described",
+    "operations": [
+      "DELETE /api/v1/hitl/{id}/keys 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "message": {}
+      }
+    }
+  },
   "delete_circle": {
     "precision": "envelope",
     "operations": [
@@ -4002,186 +4246,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "delete_hitl": {
-    "precision": "proven",
-    "operations": [
-      "DELETE /api/v1/hitl/{id} 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "MongoDB ObjectId"
-        },
-        "user_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Owner user ID (useful for SDK encryption AAD)"
-        },
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "profile_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "circle_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Backing Circle for a circle-backed Approvals config (null for channel-list configs)"
-        },
-        "channels": {
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "config"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "telegram"
-                    ]
-                  },
-                  "config": {
-                    "type": "object",
-                    "properties": {
-                      "chat_id": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "chat_id"
-                    ]
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "config"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "whatsapp"
-                    ]
-                  },
-                  "config": {
-                    "type": "object",
-                    "properties": {
-                      "phone_number": {
-                        "type": "string"
-                      },
-                      "bsuid": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "timeout_seconds": {
-          "type": "integer"
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of a HITL configuration"
-        },
-        "keypair": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "kid": {
-              "type": "string"
-            },
-            "has_encrypted_private_key": {
-              "type": "boolean"
-            },
-            "has_wrapped_dek": {
-              "type": "boolean"
-            },
-            "has_backup_wrapper": {
-              "type": "boolean"
-            }
-          },
-          "required": [
-            "kid",
-            "has_encrypted_private_key",
-            "has_wrapped_dek",
-            "has_backup_wrapper"
-          ],
-          "description": "Encryption keypair metadata (null if not configured)"
-        },
-        "environment": {
-          "type": "string"
-        },
-        "created_at": {
-          "type": "string"
-        },
-        "updated_at": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "user_id",
-        "channels",
-        "timeout_seconds",
-        "status",
-        "keypair",
-        "environment",
-        "created_at",
-        "updated_at"
-      ],
-      "description": "HITL configuration with messaging channels and timeout"
-    }
-  },
-  "delete_hitl_keys": {
-    "precision": "described",
-    "operations": [
-      "DELETE /api/v1/hitl/{id}/keys 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "message": {}
-      }
-    }
-  },
-  "delete_profile": {
+  "delete_sub_account": {
     "precision": "described",
     "operations": [
       "DELETE /api/v1/me/profiles/{profileId} 200"
@@ -4629,10 +4694,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "Per-API-key usage: verification counts by type/channel/status + per-collection totals (requests, confirmations, authorizations) + attribution metadata. The counts cover the key and every key it replaced (`api_key.replaced_key_ids`). Counts only — no recipient identifiers (SEC-001). Data is returned for revoked keys (audit)."
     }
   },
-  "get_asset": {
+  "get_approval_channel": {
     "precision": "proven",
     "operations": [
-      "GET /api/v1/me/assets/{id} 200"
+      "GET /api/v1/hitl/{id} 200"
     ],
     "schema": {
       "type": "object",
@@ -4641,72 +4706,232 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "type": "string",
           "description": "MongoDB ObjectId"
         },
-        "type": {
-          "type": "string",
-          "description": "Type of asset being verified. Not yet available — no channel of theirs can be completed, so a create or start answers 400 `channel_not_available`: social, wallet, account."
+        "user_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Owner user ID (useful for SDK encryption AAD)"
         },
-        "channel": {
-          "type": "string",
-          "description": "How the asset was verified: a verification channel, or `otp` / `magic_link` for an email address confirmed from the dashboard"
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
-        "identifier": {
-          "type": "string"
+        "profile_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "circle_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Backing Circle for a circle-backed Approvals config (null for channel-list configs)"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "config"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "telegram"
+                    ]
+                  },
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "chat_id": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "chat_id"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "required": [
+                  "type",
+                  "config"
+                ],
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "whatsapp"
+                    ]
+                  },
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "phone_number": {
+                        "type": "string"
+                      },
+                      "bsuid": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "timeout_seconds": {
+          "type": "integer"
         },
         "status": {
           "type": "string",
-          "description": "Status of a verified asset"
+          "description": "Status of a HITL configuration"
         },
-        "proof_id": {
+        "keypair": {
           "type": [
-            "string",
+            "object",
             "null"
           ],
-          "description": "Public handle of the proof backing this asset (`ph_ctl_<32 hex>`), or null when the asset predates the proof registry. This is the `control_proof` value `POST /api/v1/delegations` takes."
-        },
-        "proof_status": {
-          "type": [
-            "string",
-            "null"
+          "properties": {
+            "kid": {
+              "type": "string"
+            },
+            "has_encrypted_private_key": {
+              "type": "boolean"
+            },
+            "has_wrapped_dek": {
+              "type": "boolean"
+            },
+            "has_backup_wrapper": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kid",
+            "has_encrypted_private_key",
+            "has_wrapped_dek",
+            "has_backup_wrapper"
           ],
-          "description": "Registry status of that proof. Only an `active` proof can anchor a delegation."
+          "description": "Encryption keypair metadata (null if not configured)"
         },
-        "proof_token": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "The stored signed proof token. Returned by the point read (`GET /me/assets/{id}`) to a JWT owner session ONLY — an API-key caller and the list response carry `has_proof` alone."
-        },
-        "has_proof": {
-          "type": "boolean",
-          "description": "Whether a proof token is stored for this asset. Sent by the point read (`GET /me/assets/{id}`) only."
-        },
-        "verified_at": {
+        "environment": {
           "type": "string"
         },
-        "proof_expires_at": {
-          "type": "string",
-          "description": "When the proof backing this asset expires"
-        },
-        "metadata": {
-          "type": "object",
-          "additionalProperties": {},
-          "description": "Channel-specific details recorded at verification"
-        },
         "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
           "type": "string"
         }
       },
       "required": [
         "id",
-        "type",
-        "channel",
-        "identifier",
+        "user_id",
+        "channels",
+        "timeout_seconds",
         "status",
-        "proof_expires_at",
-        "created_at"
+        "keypair",
+        "environment",
+        "created_at",
+        "updated_at"
       ],
-      "description": "User verified asset"
+      "description": "HITL configuration with messaging channels and timeout"
+    }
+  },
+  "get_approval_channel_keys": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/hitl/{id}/keys 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "public_key": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The RSA public key (SPKI PEM) messages are sealed to. Null means the stored key material could not be read: a degraded state to report, not \"no key yet\" (a config with no keypair answers 404 `no_keypair`)."
+        },
+        "kid": {
+          "type": "string",
+          "description": "The key id: lowercase hex SHA-256 of the public key's SPKI DER"
+        },
+        "encrypted_private_key": {
+          "type": "string",
+          "description": "The private key as stored, wrapped client-side. Absent for a key holding `confirmations:create` without `hitl:read`."
+        },
+        "kdf_salt": {
+          "type": "string",
+          "description": "The salt the wrapping key is derived with. Absent for a key holding `confirmations:create` without `hitl:read`."
+        },
+        "wrapped_dek": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The per-config data key wrapped under the master key; null for a keypair stored before it existed. Absent for a requester key, as are the five fields below."
+        },
+        "dek_iv": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dek_tag": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "backup_wrapped_dek": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The same data key wrapped under the recovery key; null until recovery is set up"
+        },
+        "backup_dek_iv": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "backup_dek_tag": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "public_key",
+        "kid"
+      ],
+      "description": "A HITL config's keypair. A caller with `hitl:read` (or a dashboard session) gets every field; a key holding `confirmations:create` without `hitl:read` gets `public_key` and `kid` only."
     }
   },
   "get_authorization": {
@@ -5085,6 +5310,20 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "A Circle — a named group of trusted contacts"
     }
   },
+  "get_company": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/me/company 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "company": {
+          "description": "Null until the owner saves one."
+        }
+      }
+    }
+  },
   "get_confirmation": {
     "precision": "proven",
     "operations": [
@@ -5287,6 +5526,309 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "approval_url"
       ],
       "description": "Regenerated approval link for a pending confirmation"
+    }
+  },
+  "get_current_sub_account": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/profiles/me 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "MongoDB ObjectId"
+        },
+        "profile_id": {
+          "type": "string",
+          "description": "The public id used in profile URLs"
+        },
+        "username": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Absent until a username is claimed"
+        },
+        "username_is_default": {
+          "type": "boolean",
+          "description": "The username was given automatically (from the domain the profile shows, else its short id); the owner may replace it once with a name of their choice."
+        },
+        "is_primary": {
+          "type": "boolean"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "bio": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "A URL or a data URI; null once cleared"
+        },
+        "verification_level": {
+          "type": "string",
+          "description": "Always 'basic'; no levels are computed; removed in the next major."
+        },
+        "is_business": {
+          "type": "boolean"
+        },
+        "business_name": {
+          "type": "string"
+        },
+        "public_proofs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "display_value": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string"
+              },
+              "verified_at": {
+                "type": "string"
+              },
+              "is_visible": {
+                "type": "boolean"
+              },
+              "display_order": {
+                "type": "integer"
+              },
+              "mask_level": {
+                "type": "string"
+              },
+              "is_revoked": {
+                "type": "boolean"
+              },
+              "delegate_type": {
+                "type": "string"
+              },
+              "delegation_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset_id",
+              "type",
+              "display_value",
+              "verified_at",
+              "is_visible",
+              "display_order",
+              "mask_level"
+            ]
+          },
+          "description": "The shown proofs, in the order the public profile shows them"
+        },
+        "proof_order": {
+          "type": "string",
+          "description": "Who decided the order of a profile's proofs. `default`: domain, social account, Telegram bot, email, phone, wallet, then each proof's `display_order`. `owner`: the owner's `display_order` alone — send it when the owner reorders. The first shown proof that is not hidden leads the profile's preview card, share tags and badge. Omitted on an update, the profile keeps its current setting."
+        },
+        "custom_links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "icon": {
+                "type": "string"
+              },
+              "is_visible": {
+                "type": "boolean"
+              },
+              "display_order": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "_id",
+              "title",
+              "url",
+              "is_visible",
+              "display_order"
+            ]
+          }
+        },
+        "theme": {
+          "type": "object",
+          "properties": {
+            "primary_color": {
+              "type": "string"
+            },
+            "background_type": {
+              "type": "string"
+            },
+            "background_color": {
+              "type": "string"
+            },
+            "gradient_start": {
+              "type": "string"
+            },
+            "gradient_end": {
+              "type": "string"
+            },
+            "font_style": {
+              "type": "string"
+            }
+          },
+          "description": "Profile theme customization"
+        },
+        "is_public": {
+          "type": "boolean"
+        },
+        "show_verification_dates": {
+          "type": "boolean"
+        },
+        "show_proof_channels": {
+          "type": "boolean"
+        },
+        "show_delegations": {
+          "type": "boolean"
+        },
+        "channels_complete": {
+          "type": "boolean",
+          "description": "The owner's statement that the channels listed are all of theirs."
+        },
+        "name_review": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "brand": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            },
+            "unlocks_with": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason",
+            "brand",
+            "field",
+            "unlocks_with"
+          ],
+          "description": "Why a typed name is left out of the public reads: it reads as a protected brand's own, until a domain of that brand is checked. Null when nothing is held."
+        },
+        "name_headline": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "tier": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ]
+            },
+            "brand": {
+              "type": "string"
+            },
+            "match_kind": {
+              "type": "string"
+            },
+            "field": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "tier",
+            "brand",
+            "match_kind",
+            "field"
+          ],
+          "description": "Why a published name may not lead the page (it carries a protected brand word); it leads only when an OV/EV certificate names it. Null when not demoted."
+        },
+        "support_email": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Support address shown in this sub-account's messages; null when unset."
+        },
+        "email_theme": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Theme of this sub-account's emails; null when unset (read as `dark`)."
+        },
+        "view_count": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "profile_id",
+        "is_primary",
+        "verification_level",
+        "is_business",
+        "public_proofs",
+        "proof_order",
+        "custom_links",
+        "theme",
+        "is_public",
+        "show_verification_dates",
+        "show_proof_channels",
+        "show_delegations",
+        "channels_complete",
+        "name_review",
+        "name_headline",
+        "support_email",
+        "email_theme",
+        "view_count",
+        "created_at",
+        "updated_at"
+      ],
+      "description": "A sub-account as its owner sees it"
     }
   },
   "get_current_user": {
@@ -6481,6 +7023,46 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
+  "get_delegation_carriers": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/delegations/{id}/carriers 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "carriers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "carrier": {
+                "type": "string"
+              },
+              "state": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              },
+              "cardUrl": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "carrier",
+              "state",
+              "reason"
+            ]
+          }
+        }
+      },
+      "required": [
+        "carriers"
+      ],
+      "description": "Where this delegation is still visible to a third party"
+    }
+  },
   "get_delegation_token": {
     "precision": "proven",
     "operations": [
@@ -6966,246 +7548,6 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "A domain with the steps to verify it"
     }
   },
-  "get_hitl": {
-    "precision": "proven",
-    "operations": [
-      "GET /api/v1/hitl/{id} 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "MongoDB ObjectId"
-        },
-        "user_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Owner user ID (useful for SDK encryption AAD)"
-        },
-        "name": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "profile_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "circle_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Backing Circle for a circle-backed Approvals config (null for channel-list configs)"
-        },
-        "channels": {
-          "type": "array",
-          "items": {
-            "oneOf": [
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "config"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "telegram"
-                    ]
-                  },
-                  "config": {
-                    "type": "object",
-                    "properties": {
-                      "chat_id": {
-                        "type": "string"
-                      }
-                    },
-                    "required": [
-                      "chat_id"
-                    ]
-                  }
-                }
-              },
-              {
-                "type": "object",
-                "required": [
-                  "type",
-                  "config"
-                ],
-                "properties": {
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "whatsapp"
-                    ]
-                  },
-                  "config": {
-                    "type": "object",
-                    "properties": {
-                      "phone_number": {
-                        "type": "string"
-                      },
-                      "bsuid": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "timeout_seconds": {
-          "type": "integer"
-        },
-        "status": {
-          "type": "string",
-          "description": "Status of a HITL configuration"
-        },
-        "keypair": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "kid": {
-              "type": "string"
-            },
-            "has_encrypted_private_key": {
-              "type": "boolean"
-            },
-            "has_wrapped_dek": {
-              "type": "boolean"
-            },
-            "has_backup_wrapper": {
-              "type": "boolean"
-            }
-          },
-          "required": [
-            "kid",
-            "has_encrypted_private_key",
-            "has_wrapped_dek",
-            "has_backup_wrapper"
-          ],
-          "description": "Encryption keypair metadata (null if not configured)"
-        },
-        "environment": {
-          "type": "string"
-        },
-        "created_at": {
-          "type": "string"
-        },
-        "updated_at": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "id",
-        "user_id",
-        "channels",
-        "timeout_seconds",
-        "status",
-        "keypair",
-        "environment",
-        "created_at",
-        "updated_at"
-      ],
-      "description": "HITL configuration with messaging channels and timeout"
-    }
-  },
-  "get_hitl_keys": {
-    "precision": "proven",
-    "operations": [
-      "GET /api/v1/hitl/{id}/keys 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "public_key": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "The RSA public key (SPKI PEM) messages are sealed to. Null means the stored key material could not be read: a degraded state to report, not \"no key yet\" (a config with no keypair answers 404 `no_keypair`)."
-        },
-        "kid": {
-          "type": "string",
-          "description": "The key id: lowercase hex SHA-256 of the public key's SPKI DER"
-        },
-        "encrypted_private_key": {
-          "type": "string",
-          "description": "The private key as stored, wrapped client-side. Absent for a key holding `confirmations:create` without `hitl:read`."
-        },
-        "kdf_salt": {
-          "type": "string",
-          "description": "The salt the wrapping key is derived with. Absent for a key holding `confirmations:create` without `hitl:read`."
-        },
-        "wrapped_dek": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "The per-config data key wrapped under the master key; null for a keypair stored before it existed. Absent for a requester key, as are the five fields below."
-        },
-        "dek_iv": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "dek_tag": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "backup_wrapped_dek": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "The same data key wrapped under the recovery key; null until recovery is set up"
-        },
-        "backup_dek_iv": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "backup_dek_tag": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "public_key",
-        "kid"
-      ],
-      "description": "A HITL config's keypair. A caller with `hitl:read` (or a dashboard session) gets every field; a key holding `confirmations:create` without `hitl:read` gets `public_key` and `kid` only."
-    }
-  },
   "get_identity_challenge": {
     "precision": "proven",
     "operations": [
@@ -7281,6 +7623,71 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "An identity challenge (Proof of Me)"
     }
   },
+  "get_lookalike_watch": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/lookalike-watch 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "MongoDB ObjectId"
+        },
+        "status": {
+          "type": "string"
+        },
+        "brand_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "owned_namespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notify_email": {
+          "type": "string"
+        },
+        "activated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the watch was last turned on (stamped again on reactivation)"
+        },
+        "last_report_period": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The last month reported, `YYYY-MM`; null before the first report"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "brand_tokens",
+        "owned_namespaces",
+        "notify_email",
+        "activated_at",
+        "last_report_period",
+        "created_at",
+        "updated_at"
+      ],
+      "description": "The account's Lookalike Watch subscription. Subscribe, read and cancel all answer it; only the cancel answer reads `canceled`, since a read after cancelling answers 404."
+    }
+  },
   "get_multi_channel_verification_status": {
     "precision": "described",
     "operations": [
@@ -7303,10 +7710,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "get_my_profile": {
+  "get_my_proof": {
     "precision": "proven",
     "operations": [
-      "GET /api/v1/profiles/me 200"
+      "GET /api/v1/me/assets/{id} 200"
     ],
     "schema": {
       "type": "object",
@@ -7315,295 +7722,72 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "type": "string",
           "description": "MongoDB ObjectId"
         },
-        "profile_id": {
+        "type": {
           "type": "string",
-          "description": "The public id used in profile URLs"
+          "description": "Type of asset being verified. Not yet available — no channel of theirs can be completed, so a create or start answers 400 `channel_not_available`: social, wallet, account."
         },
-        "username": {
+        "channel": {
+          "type": "string",
+          "description": "How the asset was verified: a verification channel, or `otp` / `magic_link` for an email address confirmed from the dashboard"
+        },
+        "identifier": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of a verified asset"
+        },
+        "proof_id": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Absent until a username is claimed"
+          "description": "Public handle of the proof backing this asset (`ph_ctl_<32 hex>`), or null when the asset predates the proof registry. This is the `control_proof` value `POST /api/v1/delegations` takes."
         },
-        "username_is_default": {
+        "proof_status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Registry status of that proof. Only an `active` proof can anchor a delegation."
+        },
+        "proof_token": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The stored signed proof token. Returned by the point read (`GET /me/assets/{id}`) to a JWT owner session ONLY — an API-key caller and the list response carry `has_proof` alone."
+        },
+        "has_proof": {
           "type": "boolean",
-          "description": "The username was given automatically (from the domain the profile shows, else its short id); the owner may replace it once with a name of their choice."
+          "description": "Whether a proof token is stored for this asset. Sent by the point read (`GET /me/assets/{id}`) only."
         },
-        "is_primary": {
-          "type": "boolean"
-        },
-        "display_name": {
+        "verified_at": {
           "type": "string"
         },
-        "bio": {
-          "type": "string"
-        },
-        "avatar_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "A URL or a data URI; null once cleared"
-        },
-        "verification_level": {
+        "proof_expires_at": {
           "type": "string",
-          "description": "Always 'basic'; no levels are computed; removed in the next major."
+          "description": "When the proof backing this asset expires"
         },
-        "is_business": {
-          "type": "boolean"
-        },
-        "business_name": {
-          "type": "string"
-        },
-        "public_proofs": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "asset_id": {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              },
-              "display_value": {
-                "type": "string"
-              },
-              "label": {
-                "type": "string"
-              },
-              "channel": {
-                "type": "string"
-              },
-              "verified_at": {
-                "type": "string"
-              },
-              "is_visible": {
-                "type": "boolean"
-              },
-              "display_order": {
-                "type": "integer"
-              },
-              "mask_level": {
-                "type": "string"
-              },
-              "is_revoked": {
-                "type": "boolean"
-              },
-              "delegate_type": {
-                "type": "string"
-              },
-              "delegation_id": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "asset_id",
-              "type",
-              "display_value",
-              "verified_at",
-              "is_visible",
-              "display_order",
-              "mask_level"
-            ]
-          },
-          "description": "The shown proofs, in the order the public profile shows them"
-        },
-        "proof_order": {
-          "type": "string",
-          "description": "Who decided the order of a profile's proofs. `default`: domain, social account, Telegram bot, email, phone, wallet, then each proof's `display_order`. `owner`: the owner's `display_order` alone — send it when the owner reorders. The first shown proof that is not hidden leads the profile's preview card, share tags and badge. Omitted on an update, the profile keeps its current setting."
-        },
-        "custom_links": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "_id": {
-                "type": "string"
-              },
-              "title": {
-                "type": "string"
-              },
-              "url": {
-                "type": "string"
-              },
-              "icon": {
-                "type": "string"
-              },
-              "is_visible": {
-                "type": "boolean"
-              },
-              "display_order": {
-                "type": "integer"
-              }
-            },
-            "required": [
-              "_id",
-              "title",
-              "url",
-              "is_visible",
-              "display_order"
-            ]
-          }
-        },
-        "theme": {
+        "metadata": {
           "type": "object",
-          "properties": {
-            "primary_color": {
-              "type": "string"
-            },
-            "background_type": {
-              "type": "string"
-            },
-            "background_color": {
-              "type": "string"
-            },
-            "gradient_start": {
-              "type": "string"
-            },
-            "gradient_end": {
-              "type": "string"
-            },
-            "font_style": {
-              "type": "string"
-            }
-          },
-          "description": "Profile theme customization"
-        },
-        "is_public": {
-          "type": "boolean"
-        },
-        "show_verification_dates": {
-          "type": "boolean"
-        },
-        "show_proof_channels": {
-          "type": "boolean"
-        },
-        "show_delegations": {
-          "type": "boolean"
-        },
-        "channels_complete": {
-          "type": "boolean",
-          "description": "The owner's statement that the channels listed are all of theirs."
-        },
-        "name_review": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "state": {
-              "type": "string"
-            },
-            "reason": {
-              "type": "string"
-            },
-            "brand": {
-              "type": "string"
-            },
-            "field": {
-              "type": "string"
-            },
-            "unlocks_with": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "state",
-            "reason",
-            "brand",
-            "field",
-            "unlocks_with"
-          ],
-          "description": "Why a typed name is left out of the public reads: it reads as a protected brand's own, until a domain of that brand is checked. Null when nothing is held."
-        },
-        "name_headline": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "state": {
-              "type": "string"
-            },
-            "tier": {
-              "anyOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "type": "number"
-                }
-              ]
-            },
-            "brand": {
-              "type": "string"
-            },
-            "match_kind": {
-              "type": "string"
-            },
-            "field": {
-              "type": "string"
-            }
-          },
-          "required": [
-            "state",
-            "tier",
-            "brand",
-            "match_kind",
-            "field"
-          ],
-          "description": "Why a published name may not lead the page (it carries a protected brand word); it leads only when an OV/EV certificate names it. Null when not demoted."
-        },
-        "support_email": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Support address shown in this sub-account's messages; null when unset."
-        },
-        "email_theme": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Theme of this sub-account's emails; null when unset (read as `dark`)."
-        },
-        "view_count": {
-          "type": "integer"
+          "additionalProperties": {},
+          "description": "Channel-specific details recorded at verification"
         },
         "created_at": {
-          "type": "string"
-        },
-        "updated_at": {
           "type": "string"
         }
       },
       "required": [
         "id",
-        "profile_id",
-        "is_primary",
-        "verification_level",
-        "is_business",
-        "public_proofs",
-        "proof_order",
-        "custom_links",
-        "theme",
-        "is_public",
-        "show_verification_dates",
-        "show_proof_channels",
-        "show_delegations",
-        "channels_complete",
-        "name_review",
-        "name_headline",
-        "support_email",
-        "email_theme",
-        "view_count",
-        "created_at",
-        "updated_at"
+        "type",
+        "channel",
+        "identifier",
+        "status",
+        "proof_expires_at",
+        "created_at"
       ],
-      "description": "A sub-account as its owner sees it"
+      "description": "User verified asset"
     }
   },
   "get_platform_summary": {
@@ -7634,7 +7818,268 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "get_profile": {
+  "get_proof_status": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/proofs/{id}/status 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "proof_id": {
+          "description": "Public proof handle (`ph_ctl_<32 hex>`), or a verification id for a legacy proof"
+        },
+        "status": {
+          "description": "Current status of the proof — `active` is a live proof, `suspended` the reversible pause"
+        },
+        "is_valid": {},
+        "is_revoked": {},
+        "revoked_at": {},
+        "revoked_reason": {},
+        "suspended_at": {
+          "description": "When the current suspension began (null unless status is `suspended`)"
+        },
+        "expires_at": {},
+        "is_expired": {}
+      }
+    }
+  },
+  "get_proof_token": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/proofs/{id}/token 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "proof_id": {
+          "type": "string",
+          "description": "Public proof handle (`ph_ctl_<32 hex>`)"
+        },
+        "token": {
+          "type": "string",
+          "description": "The proof token as stored now. After a key rotation it is the re-signed token under a newer `kid`: every claim is kept except `iat`, which is the re-signing time, and a token issued before schema 1.2 also gains the `jti` and `proof_id` its registry row records."
+        },
+        "status": {
+          "type": "string",
+          "description": "Live statuses only — a revoked or expired proof answers 410 `proof_not_live` instead"
+        },
+        "reissued_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the token was last re-signed under a newer key; null if it never was"
+        },
+        "expires_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "proof_id",
+        "token",
+        "status",
+        "reissued_at",
+        "expires_at"
+      ],
+      "description": "The current token of a proof you own. Served with `Cache-Control: no-store`; each read is audited."
+    }
+  },
+  "get_request_by_reference": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/verification-requests/by-reference/{referenceId} 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "MongoDB ObjectId"
+        },
+        "reference_id": {},
+        "status": {
+          "description": "Status of a verification request"
+        },
+        "computed_state": {
+          "description": "Additive machine-readable effective state: re-derives expiry from expires_at (never trusts the stored status). BOTH `is_expiring_soon` and `next_action` are role-aware — `next_action.role` says which side this envelope was computed for, and the two fields are consistent within it. Present only on authenticated owner/requester and recipient responses; absent on public/third-party surfaces."
+        },
+        "assets": {},
+        "action_type": {
+          "description": "Type of action for verification request or authorization"
+        },
+        "action_context": {
+          "description": "The action the person is asked to authorize; null when the request carries none"
+        },
+        "partial_ok": {},
+        "outcome": {
+          "description": "`relying_party` when the request was created to wait for your outcome; null otherwise. Absent from an API that predates the field."
+        },
+        "outcome_timeout_seconds": {
+          "description": "The window set on the request, in seconds; null when it does not wait for an outcome. Absent from an API that predates the field."
+        },
+        "validity_requirement": {
+          "description": "Required proof freshness as set on the request (e.g. \"7d\"); null when none was set"
+        },
+        "verification_url": {
+          "description": "URL for the verification flow"
+        },
+        "redirect_url": {},
+        "callback_url": {
+          "description": "The webhook URL set on the request, if any"
+        },
+        "progress": {},
+        "expires_at": {},
+        "completed_at": {},
+        "created_at": {},
+        "updated_at": {}
+      }
+    }
+  },
+  "get_request_proofs": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/verification-requests/{id}/proofs 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "proofs": {}
+      }
+    }
+  },
+  "get_self_api_key": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/me/api-key 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "MongoDB ObjectId"
+        },
+        "name": {
+          "type": "string"
+        },
+        "key_prefix": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "scopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "profile_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Sub-account (PublicProfile) the key is bound to; null for unbound keys."
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "last_used_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the key last authenticated a request; null if never"
+        },
+        "expires_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the key stops authenticating; null means it never expires. Enforced at authentication — an expired key is rejected exactly like an unknown one."
+        },
+        "revoked_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the key was revoked; null while it is live"
+        },
+        "replaced_key_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Ids of the keys this key replaced, newest first: the earlier keys of the same integration, replaced when the key was regenerated (`POST /api/v1/me/api-keys/{id}/regenerate`) or renewed by an MCP sign-in refresh. Requests and usage of those keys count as this key's. Empty when it replaced none. Recorded from the release of key history on; a key replaced before it is not linked."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "key_prefix",
+        "environment",
+        "scopes",
+        "created_at"
+      ],
+      "description": "An API key's redacted metadata, as the calling key reads itself (`GET /me/api-key`). Never carries the key value."
+    }
+  },
+  "get_session": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/sessions/{id} 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "Session id"
+        },
+        "channel": {
+          "description": "How the person proves the number: `telegram` or `whatsapp` (the bot reads the number from their account), or `sms` (they text a short code from the number to one of ours)."
+        },
+        "status": {},
+        "created_at": {},
+        "phone_number": {
+          "description": "The proven number (once `verified`)"
+        },
+        "verified_at": {
+          "description": "Once `verified`"
+        },
+        "verification_id": {
+          "description": "The verification record created on completion (once `verified`)"
+        },
+        "proof": {
+          "description": "Proof token after successful verification"
+        }
+      }
+    }
+  },
+  "get_settings": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/me/settings 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "webhook": {
+          "description": "Outbound webhook configuration — DEPRECATED (#421). An account switched over to webhook endpoints sees its account-wide (`legacy`) endpoint here: `url` is null while that endpoint is disabled, a `url` write updates or creates it, `url: null` disables it (its secret is kept), and `rotate_secret` rotates its secret. An account not yet switched over sees its settings fields, as before. Omitted for an API key bound to one sub-account."
+        },
+        "proof_expiry_days": {
+          "description": "Default lifetime in days of newly issued verification proofs, or null when the account has never set one. Confirmation-decision proofs do not use it."
+        },
+        "hitl": {
+          "description": "Approval-setup settings."
+        }
+      }
+    }
+  },
+  "get_sub_account": {
     "precision": "proven",
     "operations": [
       "GET /api/v1/me/profiles/{profileId} 200"
@@ -7935,320 +8380,6 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "updated_at"
       ],
       "description": "A sub-account as its owner sees it"
-    }
-  },
-  "get_profile_assets": {
-    "precision": "proven",
-    "operations": [
-      "GET /api/v1/profiles/me/assets 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "assets": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              },
-              "identifier": {
-                "type": "string"
-              },
-              "channel": {
-                "type": "string"
-              },
-              "verified_at": {
-                "type": "string"
-              },
-              "proof_expires_at": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "is_public": {
-                "type": "boolean"
-              }
-            },
-            "required": [
-              "id",
-              "type",
-              "identifier",
-              "channel",
-              "is_public"
-            ]
-          }
-        }
-      },
-      "required": [
-        "assets"
-      ]
-    }
-  },
-  "get_proof_status": {
-    "precision": "described",
-    "operations": [
-      "GET /api/v1/proofs/{id}/status 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "proof_id": {
-          "description": "Public proof handle (`ph_ctl_<32 hex>`), or a verification id for a legacy proof"
-        },
-        "status": {
-          "description": "Current status of the proof — `active` is a live proof, `suspended` the reversible pause"
-        },
-        "is_valid": {},
-        "is_revoked": {},
-        "revoked_at": {},
-        "revoked_reason": {},
-        "suspended_at": {
-          "description": "When the current suspension began (null unless status is `suspended`)"
-        },
-        "expires_at": {},
-        "is_expired": {}
-      }
-    }
-  },
-  "get_proof_token": {
-    "precision": "proven",
-    "operations": [
-      "GET /api/v1/proofs/{id}/token 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "proof_id": {
-          "type": "string",
-          "description": "Public proof handle (`ph_ctl_<32 hex>`)"
-        },
-        "token": {
-          "type": "string",
-          "description": "The proof token as stored now. After a key rotation it is the re-signed token under a newer `kid`: every claim is kept except `iat`, which is the re-signing time, and a token issued before schema 1.2 also gains the `jti` and `proof_id` its registry row records."
-        },
-        "status": {
-          "type": "string",
-          "description": "Live statuses only — a revoked or expired proof answers 410 `proof_not_live` instead"
-        },
-        "reissued_at": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "When the token was last re-signed under a newer key; null if it never was"
-        },
-        "expires_at": {
-          "type": "string"
-        }
-      },
-      "required": [
-        "proof_id",
-        "token",
-        "status",
-        "reissued_at",
-        "expires_at"
-      ],
-      "description": "The current token of a proof you own. Served with `Cache-Control: no-store`; each read is audited."
-    }
-  },
-  "get_request_by_reference": {
-    "precision": "described",
-    "operations": [
-      "GET /api/v1/verification-requests/by-reference/{referenceId} 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "MongoDB ObjectId"
-        },
-        "reference_id": {},
-        "status": {
-          "description": "Status of a verification request"
-        },
-        "computed_state": {
-          "description": "Additive machine-readable effective state: re-derives expiry from expires_at (never trusts the stored status). BOTH `is_expiring_soon` and `next_action` are role-aware — `next_action.role` says which side this envelope was computed for, and the two fields are consistent within it. Present only on authenticated owner/requester and recipient responses; absent on public/third-party surfaces."
-        },
-        "assets": {},
-        "action_type": {
-          "description": "Type of action for verification request or authorization"
-        },
-        "action_context": {
-          "description": "The action the person is asked to authorize; null when the request carries none"
-        },
-        "partial_ok": {},
-        "outcome": {
-          "description": "`relying_party` when the request was created to wait for your outcome; null otherwise. Absent from an API that predates the field."
-        },
-        "outcome_timeout_seconds": {
-          "description": "The window set on the request, in seconds; null when it does not wait for an outcome. Absent from an API that predates the field."
-        },
-        "validity_requirement": {
-          "description": "Required proof freshness as set on the request (e.g. \"7d\"); null when none was set"
-        },
-        "verification_url": {
-          "description": "URL for the verification flow"
-        },
-        "redirect_url": {},
-        "callback_url": {
-          "description": "The webhook URL set on the request, if any"
-        },
-        "progress": {},
-        "expires_at": {},
-        "completed_at": {},
-        "created_at": {},
-        "updated_at": {}
-      }
-    }
-  },
-  "get_request_proofs": {
-    "precision": "described",
-    "operations": [
-      "GET /api/v1/verification-requests/{id}/proofs 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "proofs": {}
-      }
-    }
-  },
-  "get_self_api_key": {
-    "precision": "proven",
-    "operations": [
-      "GET /api/v1/me/api-key 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "MongoDB ObjectId"
-        },
-        "name": {
-          "type": "string"
-        },
-        "key_prefix": {
-          "type": "string"
-        },
-        "environment": {
-          "type": "string"
-        },
-        "scopes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "profile_id": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Sub-account (PublicProfile) the key is bound to; null for unbound keys."
-        },
-        "created_at": {
-          "type": "string"
-        },
-        "last_used_at": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "When the key last authenticated a request; null if never"
-        },
-        "expires_at": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "When the key stops authenticating; null means it never expires. Enforced at authentication — an expired key is rejected exactly like an unknown one."
-        },
-        "revoked_at": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "When the key was revoked; null while it is live"
-        },
-        "replaced_key_ids": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Ids of the keys this key replaced, newest first: the earlier keys of the same integration, replaced when the key was regenerated (`POST /api/v1/me/api-keys/{id}/regenerate`) or renewed by an MCP sign-in refresh. Requests and usage of those keys count as this key's. Empty when it replaced none. Recorded from the release of key history on; a key replaced before it is not linked."
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "key_prefix",
-        "environment",
-        "scopes",
-        "created_at"
-      ],
-      "description": "An API key's redacted metadata, as the calling key reads itself (`GET /me/api-key`). Never carries the key value."
-    }
-  },
-  "get_session": {
-    "precision": "described",
-    "operations": [
-      "GET /api/v1/sessions/{id} 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "Session id"
-        },
-        "channel": {
-          "description": "How the person proves the number: `telegram` or `whatsapp` (the bot reads the number from their account), or `sms` (they text a short code from the number to one of ours)."
-        },
-        "status": {},
-        "created_at": {},
-        "phone_number": {
-          "description": "The proven number (once `verified`)"
-        },
-        "verified_at": {
-          "description": "Once `verified`"
-        },
-        "verification_id": {
-          "description": "The verification record created on completion (once `verified`)"
-        },
-        "proof": {
-          "description": "Proof token after successful verification"
-        }
-      }
-    }
-  },
-  "get_settings": {
-    "precision": "described",
-    "operations": [
-      "GET /api/v1/me/settings 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "webhook": {
-          "description": "Outbound webhook configuration — DEPRECATED (#421). An account switched over to webhook endpoints sees its account-wide (`legacy`) endpoint here: `url` is null while that endpoint is disabled, a `url` write updates or creates it, `url: null` disables it (its secret is kept), and `rotate_secret` rotates its secret. An account not yet switched over sees its settings fields, as before. Omitted for an API key bound to one sub-account."
-        },
-        "proof_expiry_days": {
-          "description": "Default lifetime in days of newly issued verification proofs, or null when the account has never set one. Confirmation-decision proofs do not use it."
-        },
-        "hitl": {
-          "description": "Approval-setup settings."
-        }
-      }
     }
   },
   "get_subscription": {
@@ -9297,10 +9428,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       ]
     }
   },
-  "list_assets": {
+  "list_approval_channels": {
     "precision": "proven",
     "operations": [
-      "GET /api/v1/me/assets 200"
+      "GET /api/v1/hitl 200"
     ],
     "schema": {
       "type": "object",
@@ -9313,68 +9444,204 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               "id": {
                 "type": "string"
               },
-              "type": {
-                "type": "string"
+              "user_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
               },
-              "channel": {
-                "type": "string"
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
-              "identifier": {
-                "type": "string"
+              "profile_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "circle_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "config"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "telegram"
+                          ]
+                        },
+                        "config": {
+                          "type": "object",
+                          "properties": {
+                            "chat_id": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "chat_id"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "required": [
+                        "type",
+                        "config"
+                      ],
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "whatsapp"
+                          ]
+                        },
+                        "config": {
+                          "type": "object",
+                          "properties": {
+                            "phone_number": {
+                              "type": "string"
+                            },
+                            "bsuid": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "timeout_seconds": {
+                "type": "integer"
               },
               "status": {
                 "type": "string"
               },
-              "proof_id": {
+              "keypair": {
                 "type": [
-                  "string",
+                  "object",
                   "null"
+                ],
+                "properties": {
+                  "kid": {
+                    "type": "string"
+                  },
+                  "has_encrypted_private_key": {
+                    "type": "boolean"
+                  },
+                  "has_wrapped_dek": {
+                    "type": "boolean"
+                  },
+                  "has_backup_wrapper": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kid",
+                  "has_encrypted_private_key",
+                  "has_wrapped_dek",
+                  "has_backup_wrapper"
                 ]
               },
-              "proof_status": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "proof_token": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "has_proof": {
-                "type": "boolean"
-              },
-              "verified_at": {
+              "environment": {
                 "type": "string"
-              },
-              "proof_expires_at": {
-                "type": "string"
-              },
-              "metadata": {
-                "type": "object",
-                "additionalProperties": {}
               },
               "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
                 "type": "string"
               }
             },
             "required": [
               "id",
-              "type",
-              "channel",
-              "identifier",
+              "user_id",
+              "channels",
+              "timeout_seconds",
               "status",
-              "proof_expires_at",
-              "created_at"
+              "keypair",
+              "environment",
+              "created_at",
+              "updated_at"
             ]
           }
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer"
+            },
+            "limit": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            },
+            "total_pages": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "page",
+            "limit",
+            "total",
+            "total_pages"
+          ]
+        },
+        "limits": {
+          "type": "object",
+          "properties": {
+            "max_active_configs": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "active_configs": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "max_active_configs",
+            "active_configs"
+          ]
         }
       },
       "required": [
-        "data"
-      ]
+        "data",
+        "pagination",
+        "limits"
+      ],
+      "description": "Paginated list of HITL configurations"
     }
   },
   "list_auth_sessions": {
@@ -10483,222 +10750,6 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "list_hitls": {
-    "precision": "proven",
-    "operations": [
-      "GET /api/v1/hitl 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "user_id": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "name": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "profile_id": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "circle_id": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "channels": {
-                "type": "array",
-                "items": {
-                  "oneOf": [
-                    {
-                      "type": "object",
-                      "required": [
-                        "type",
-                        "config"
-                      ],
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "telegram"
-                          ]
-                        },
-                        "config": {
-                          "type": "object",
-                          "properties": {
-                            "chat_id": {
-                              "type": "string"
-                            }
-                          },
-                          "required": [
-                            "chat_id"
-                          ]
-                        }
-                      }
-                    },
-                    {
-                      "type": "object",
-                      "required": [
-                        "type",
-                        "config"
-                      ],
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [
-                            "whatsapp"
-                          ]
-                        },
-                        "config": {
-                          "type": "object",
-                          "properties": {
-                            "phone_number": {
-                              "type": "string"
-                            },
-                            "bsuid": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  ]
-                }
-              },
-              "timeout_seconds": {
-                "type": "integer"
-              },
-              "status": {
-                "type": "string"
-              },
-              "keypair": {
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "kid": {
-                    "type": "string"
-                  },
-                  "has_encrypted_private_key": {
-                    "type": "boolean"
-                  },
-                  "has_wrapped_dek": {
-                    "type": "boolean"
-                  },
-                  "has_backup_wrapper": {
-                    "type": "boolean"
-                  }
-                },
-                "required": [
-                  "kid",
-                  "has_encrypted_private_key",
-                  "has_wrapped_dek",
-                  "has_backup_wrapper"
-                ]
-              },
-              "environment": {
-                "type": "string"
-              },
-              "created_at": {
-                "type": "string"
-              },
-              "updated_at": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "id",
-              "user_id",
-              "channels",
-              "timeout_seconds",
-              "status",
-              "keypair",
-              "environment",
-              "created_at",
-              "updated_at"
-            ]
-          }
-        },
-        "pagination": {
-          "type": "object",
-          "properties": {
-            "page": {
-              "type": "integer"
-            },
-            "limit": {
-              "type": "integer"
-            },
-            "total": {
-              "type": "integer"
-            },
-            "total_pages": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "page",
-            "limit",
-            "total",
-            "total_pages"
-          ]
-        },
-        "limits": {
-          "type": "object",
-          "properties": {
-            "max_active_configs": {
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "active_configs": {
-              "type": "integer"
-            }
-          },
-          "required": [
-            "max_active_configs",
-            "active_configs"
-          ]
-        }
-      },
-      "required": [
-        "data",
-        "pagination",
-        "limits"
-      ],
-      "description": "Paginated list of HITL configurations"
-    }
-  },
   "list_incoming_requests": {
     "precision": "proven",
     "operations": [
@@ -10890,6 +10941,304 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "pagination"
       ],
       "description": "The verification requests the account was asked to complete, newest first"
+    }
+  },
+  "list_lookalike_alerts": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/lookalike-watch/alerts 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "registry": {
+                "type": "string"
+              },
+              "artifact_name": {
+                "type": "string"
+              },
+              "canonical_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "match_kind": {
+                "type": "string"
+              },
+              "brand_token": {
+                "type": "string"
+              },
+              "match_evidence": {
+                "type": "string"
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "location": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": "string"
+                    },
+                    "checked_at": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "location",
+                    "result",
+                    "checked_at"
+                  ]
+                }
+              },
+              "first_seen_at": {
+                "type": "string"
+              },
+              "notified_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "created_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "registry",
+              "artifact_name",
+              "canonical_id",
+              "match_kind",
+              "brand_token",
+              "match_evidence",
+              "evidence",
+              "first_seen_at",
+              "notified_at",
+              "created_at"
+            ]
+          }
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer"
+            },
+            "limit": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "page",
+            "limit",
+            "total"
+          ],
+          "description": "The page sent, its size and the total count. There is no `total_pages`: derive it from `total` and `limit`."
+        }
+      },
+      "required": [
+        "data",
+        "pagination"
+      ],
+      "description": "A page of alerts, newest first"
+    }
+  },
+  "list_lookalike_reports": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/lookalike-watch/reports 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "period": {
+                "type": "string"
+              },
+              "period_start": {
+                "type": "string"
+              },
+              "period_end": {
+                "type": "string"
+              },
+              "alert_count": {
+                "type": "integer"
+              },
+              "artifacts_checked": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              },
+              "bounds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "detail": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "source",
+                    "detail"
+                  ]
+                }
+              },
+              "sent_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "period",
+              "period_start",
+              "period_end",
+              "alert_count",
+              "artifacts_checked",
+              "bounds",
+              "sent_at"
+            ]
+          }
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer"
+            },
+            "limit": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "page",
+            "limit",
+            "total"
+          ],
+          "description": "The page sent, its size and the total count. There is no `total_pages`: derive it from `total` and `limit`."
+        }
+      },
+      "required": [
+        "data",
+        "pagination"
+      ],
+      "description": "A page of monthly reports, latest first"
+    }
+  },
+  "list_my_proofs": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/me/assets 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string"
+              },
+              "identifier": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "proof_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "proof_status": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "proof_token": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "has_proof": {
+                "type": "boolean"
+              },
+              "verified_at": {
+                "type": "string"
+              },
+              "proof_expires_at": {
+                "type": "string"
+              },
+              "metadata": {
+                "type": "object",
+                "additionalProperties": {}
+              },
+              "created_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "channel",
+              "identifier",
+              "status",
+              "proof_expires_at",
+              "created_at"
+            ]
+          }
+        }
+      },
+      "required": [
+        "data"
+      ]
     }
   },
   "list_my_requests": {
@@ -11179,7 +11528,213 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "list_profiles": {
+  "list_public_page_proof_options": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/profiles/me/assets 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "assets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "identifier": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string"
+              },
+              "verified_at": {
+                "type": "string"
+              },
+              "proof_expires_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "is_public": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "identifier",
+              "channel",
+              "is_public"
+            ]
+          }
+        }
+      },
+      "required": [
+        "assets"
+      ]
+    }
+  },
+  "list_reissued_proofs": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/proofs 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "proof_id": {
+                "type": "string"
+              },
+              "reissued_at": {
+                "type": "string"
+              },
+              "token_url": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "proof_id",
+              "reissued_at",
+              "token_url"
+            ]
+          }
+        },
+        "pagination": {
+          "type": "object",
+          "properties": {
+            "page": {
+              "type": "integer"
+            },
+            "limit": {
+              "type": "integer"
+            },
+            "total": {
+              "type": "integer"
+            },
+            "total_pages": {
+              "type": "integer"
+            }
+          },
+          "description": "Pagination info in list responses"
+        }
+      },
+      "required": [
+        "data",
+        "pagination"
+      ],
+      "description": "Your proofs re-issued at or after `reissued_since`, oldest first"
+    }
+  },
+  "list_revoked_proofs": {
+    "precision": "proven",
+    "operations": [
+      "GET /api/v1/proofs/revoked 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "revoked": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "proof_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "public_proof_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "proof_type": {
+                "type": "string"
+              },
+              "revoked_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "proof_id",
+              "public_proof_id",
+              "proof_type",
+              "revoked_at",
+              "reason"
+            ]
+          }
+        },
+        "issued_at": {
+          "type": "string",
+          "description": "When this list was generated"
+        },
+        "count": {
+          "type": "number",
+          "description": "Number of entries in `revoked`"
+        },
+        "has_more": {
+          "type": "boolean",
+          "description": "True when a source hit its cap and the list may be incomplete — re-baseline and prefer the Token Status List, which never truncates"
+        },
+        "status_list_uri": {
+          "type": "string",
+          "description": "The Token Status List endpoint — the scalable status channel that also covers SUSPENDED and can retract entries (an unsuspended bit flips back; a CRL entry cached by a `?since` poller cannot be unpublished)"
+        },
+        "signature": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Signature over the payload for offline verification, in the algorithm of the key `kid` names (null when unsigned)"
+        },
+        "kid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Key id of the signing key, for JWKS lookup"
+        }
+      },
+      "required": [
+        "revoked",
+        "issued_at",
+        "count",
+        "has_more",
+        "status_list_uri",
+        "signature",
+        "kid"
+      ],
+      "description": "Signed list of revoked proofs"
+    }
+  },
+  "list_sub_accounts": {
     "precision": "proven",
     "operations": [
       "GET /api/v1/me/profiles 200"
@@ -11487,159 +12042,6 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "max_profiles"
       ],
       "description": "The account's sub-accounts, as their owner sees them"
-    }
-  },
-  "list_reissued_proofs": {
-    "precision": "proven",
-    "operations": [
-      "GET /api/v1/proofs 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "data": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "proof_id": {
-                "type": "string"
-              },
-              "reissued_at": {
-                "type": "string"
-              },
-              "token_url": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "proof_id",
-              "reissued_at",
-              "token_url"
-            ]
-          }
-        },
-        "pagination": {
-          "type": "object",
-          "properties": {
-            "page": {
-              "type": "integer"
-            },
-            "limit": {
-              "type": "integer"
-            },
-            "total": {
-              "type": "integer"
-            },
-            "total_pages": {
-              "type": "integer"
-            }
-          },
-          "description": "Pagination info in list responses"
-        }
-      },
-      "required": [
-        "data",
-        "pagination"
-      ],
-      "description": "Your proofs re-issued at or after `reissued_since`, oldest first"
-    }
-  },
-  "list_revoked_proofs": {
-    "precision": "proven",
-    "operations": [
-      "GET /api/v1/proofs/revoked 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "revoked": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "proof_id": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "public_proof_id": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "proof_type": {
-                "type": "string"
-              },
-              "revoked_at": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "reason": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              }
-            },
-            "required": [
-              "proof_id",
-              "public_proof_id",
-              "proof_type",
-              "revoked_at",
-              "reason"
-            ]
-          }
-        },
-        "issued_at": {
-          "type": "string",
-          "description": "When this list was generated"
-        },
-        "count": {
-          "type": "number",
-          "description": "Number of entries in `revoked`"
-        },
-        "has_more": {
-          "type": "boolean",
-          "description": "True when a source hit its cap and the list may be incomplete — re-baseline and prefer the Token Status List, which never truncates"
-        },
-        "status_list_uri": {
-          "type": "string",
-          "description": "The Token Status List endpoint — the scalable status channel that also covers SUSPENDED and can retract entries (an unsuspended bit flips back; a CRL entry cached by a `?since` poller cannot be unpublished)"
-        },
-        "signature": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Signature over the payload for offline verification, in the algorithm of the key `kid` names (null when unsigned)"
-        },
-        "kid": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Key id of the signing key, for JWKS lookup"
-        }
-      },
-      "required": [
-        "revoked",
-        "issued_at",
-        "count",
-        "has_more",
-        "status_list_uri",
-        "signature",
-        "kid"
-      ],
-      "description": "Signed list of revoked proofs"
     }
   },
   "list_templates": {
@@ -12161,6 +12563,29 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
+  "pause_proof": {
+    "precision": "described",
+    "operations": [
+      "POST /api/v1/proofs/{id}/suspend 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "proof_id": {
+          "description": "Public proof handle (`ph_ctl_<32 hex>`)"
+        },
+        "status": {
+          "description": "`suspended` after a suspend, `active` after an unsuspend"
+        },
+        "suspended_at": {
+          "description": "When the suspension began; null after an unsuspend"
+        },
+        "status_list_uri": {
+          "description": "The Token Status List where this change is published"
+        }
+      }
+    }
+  },
   "poll_chat_id_discovery": {
     "precision": "described",
     "operations": [
@@ -12171,6 +12596,106 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "properties": {
         "status": {},
         "chat_id": {}
+      }
+    }
+  },
+  "preview_email_removal": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/me/emails/{id}/removal-preview 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "allowed": {
+          "description": "False when a guard refuses the removal; the dialog shows `blocked.message` in its disabled state."
+        },
+        "blocked": {},
+        "type": {},
+        "identifier": {
+          "description": "Masked."
+        },
+        "is_primary": {},
+        "proofs": {
+          "description": "Active proofs of this identifier that would be revoked."
+        },
+        "authorizations": {
+          "description": "Approval consents naming it that would be revoked."
+        },
+        "hitl_configs_without_approver": {
+          "description": "Approval setups whose only approver channel this is; their pending requests would be declined."
+        },
+        "circles": {
+          "description": "Phones only: active Proof of Me circles, which follow the primary phone."
+        },
+        "new_primary": {
+          "description": "The row that becomes (or became) primary when the removed one was; null otherwise."
+        },
+        "lookalike_watch": {
+          "description": "Emails only: what happens to the Lookalike Watch notification address."
+        },
+        "notice_to": {
+          "description": "Where the notice would go — captured before the row is gone."
+        }
+      }
+    }
+  },
+  "preview_phone_removal": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/me/phones/{id}/removal-preview 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "allowed": {
+          "description": "False when a guard refuses the removal; the dialog shows `blocked.message` in its disabled state."
+        },
+        "blocked": {},
+        "type": {},
+        "identifier": {
+          "description": "Masked."
+        },
+        "is_primary": {},
+        "proofs": {
+          "description": "Active proofs of this identifier that would be revoked."
+        },
+        "authorizations": {
+          "description": "Approval consents naming it that would be revoked."
+        },
+        "hitl_configs_without_approver": {
+          "description": "Approval setups whose only approver channel this is; their pending requests would be declined."
+        },
+        "circles": {
+          "description": "Phones only: active Proof of Me circles, which follow the primary phone."
+        },
+        "new_primary": {
+          "description": "The row that becomes (or became) primary when the removed one was; null otherwise."
+        },
+        "lookalike_watch": {
+          "description": "Emails only: what happens to the Lookalike Watch notification address."
+        },
+        "notice_to": {
+          "description": "Where the notice would go — captured before the row is gone."
+        }
+      }
+    }
+  },
+  "preview_profile_deletion": {
+    "precision": "described",
+    "operations": [
+      "GET /api/v1/me/profiles/{profileId}/deletion-preview 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "allowed": {},
+        "blocked": {},
+        "project": {},
+        "counts": {},
+        "new_primary": {
+          "description": "Named when the deleted sub-account is (or was) the primary: the OLDEST remaining sub-account takes over, and messages sent without choosing a sub-account carry its name."
+        }
       }
     }
   },
@@ -12358,7 +12883,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "request_hitl_authorization": {
+  "request_approval_channel_authorization": {
     "precision": "proven",
     "operations": [
       "POST /api/v1/hitl/{id}/authorize 200"
@@ -12406,6 +12931,26 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "message"
       ],
       "description": "Response from requesting authorization consent for HITL channels"
+    }
+  },
+  "resend_confirmation": {
+    "precision": "described",
+    "operations": [
+      "POST /api/v1/confirmations/{id}/resend 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "confirmation_id": {
+          "description": "MongoDB ObjectId"
+        },
+        "resent": {
+          "description": "Recipients sent a fresh link, each through their own channel"
+        },
+        "skipped": {
+          "description": "Recipients not sent it: no longer authorized, unable to open the message (an approver added after the confirmation was created), or a failed delivery"
+        }
+      }
     }
   },
   "resend_domain_email": {
@@ -12794,6 +13339,29 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
+  "resume_proof": {
+    "precision": "described",
+    "operations": [
+      "POST /api/v1/proofs/{id}/unsuspend 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "proof_id": {
+          "description": "Public proof handle (`ph_ctl_<32 hex>`)"
+        },
+        "status": {
+          "description": "`suspended` after a suspend, `active` after an unsuspend"
+        },
+        "suspended_at": {
+          "description": "When the suspension began; null after an unsuspend"
+        },
+        "status_list_uri": {
+          "description": "The Token Status List where this change is published"
+        }
+      }
+    }
+  },
   "retry_webhook_delivery": {
     "precision": "proven",
     "operations": [
@@ -12847,38 +13415,6 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "success"
       ],
       "description": "Generic success response"
-    }
-  },
-  "revoke_asset": {
-    "precision": "described",
-    "operations": [
-      "DELETE /api/v1/me/assets/{id} 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "asset_id": {},
-        "outcome": {
-          "description": "`not_found` is also the answer for an asset the account does not own."
-        },
-        "type": {},
-        "identifier": {
-          "description": "Masked for phones and emails; a domain travels in clear."
-        },
-        "revoked_asset_ids": {
-          "description": "Every asset of the same identifier this call revoked with it, the named one included — a phone holds one asset per channel, a domain one per verification."
-        },
-        "delegations_revoked": {
-          "description": "Domains only: the delegations revoked with the proofs. Re-verifying does not bring them back."
-        },
-        "domain_status": {
-          "description": "Domains only: `reverification_required` — the domain stays on the account and needs re-verification before anything can be issued from it."
-        },
-        "success": {
-          "description": "Always `true`"
-        },
-        "notice": {}
-      }
     }
   },
   "revoke_auth_session": {
@@ -13082,6 +13618,38 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
+  "revoke_my_proof": {
+    "precision": "described",
+    "operations": [
+      "DELETE /api/v1/me/assets/{id} 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "asset_id": {},
+        "outcome": {
+          "description": "`not_found` is also the answer for an asset the account does not own."
+        },
+        "type": {},
+        "identifier": {
+          "description": "Masked for phones and emails; a domain travels in clear."
+        },
+        "revoked_asset_ids": {
+          "description": "Every asset of the same identifier this call revoked with it, the named one included — a phone holds one asset per channel, a domain one per verification."
+        },
+        "delegations_revoked": {
+          "description": "Domains only: the delegations revoked with the proofs. Re-verifying does not bring them back."
+        },
+        "domain_status": {
+          "description": "Domains only: `reverification_required` — the domain stays on the account and needs re-verification before anything can be issued from it."
+        },
+        "success": {
+          "description": "Always `true`"
+        },
+        "notice": {}
+      }
+    }
+  },
   "revoke_proof": {
     "precision": "described",
     "operations": [
@@ -13241,7 +13809,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "Generic success response"
     }
   },
-  "set_primary_profile": {
+  "set_primary_sub_account": {
     "precision": "proven",
     "operations": [
       "POST /api/v1/me/profiles/{profileId}/primary 200"
@@ -14746,6 +15314,71 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "Result of submitting the code we emailed"
     }
   },
+  "subscribe_lookalike_watch": {
+    "precision": "proven",
+    "operations": [
+      "POST /api/v1/lookalike-watch 201"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "MongoDB ObjectId"
+        },
+        "status": {
+          "type": "string"
+        },
+        "brand_tokens": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "owned_namespaces": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notify_email": {
+          "type": "string"
+        },
+        "activated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the watch was last turned on (stamped again on reactivation)"
+        },
+        "last_report_period": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The last month reported, `YYYY-MM`; null before the first report"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "brand_tokens",
+        "owned_namespaces",
+        "notify_email",
+        "activated_at",
+        "last_report_period",
+        "created_at",
+        "updated_at"
+      ],
+      "description": "The account's Lookalike Watch subscription. Subscribe, read and cancel all answer it; only the cancel answer reads `canceled`, since a read after cancelling answers 404."
+    }
+  },
   "test_verify": {
     "precision": "proven",
     "operations": [
@@ -14836,36 +15469,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "update_circle": {
-    "precision": "described",
-    "operations": [
-      "PATCH /api/v1/circles/{id} 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "MongoDB ObjectId"
-        },
-        "user_id": {},
-        "name": {},
-        "owner_name": {
-          "description": "How this Circle's members know its owner; null when unset"
-        },
-        "profile_id": {},
-        "environment": {},
-        "proof_me_enabled": {},
-        "status": {
-          "description": "Lifecycle state of a Circle (archived = soft-retired)"
-        },
-        "member_count": {},
-        "members": {},
-        "created_at": {},
-        "updated_at": {}
-      }
-    }
-  },
-  "update_hitl": {
+  "update_approval_channel": {
     "precision": "proven",
     "operations": [
       "PATCH /api/v1/hitl/{id} 200"
@@ -15032,7 +15636,36 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "HITL configuration with messaging channels and timeout"
     }
   },
-  "update_my_profile": {
+  "update_circle": {
+    "precision": "described",
+    "operations": [
+      "PATCH /api/v1/circles/{id} 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "MongoDB ObjectId"
+        },
+        "user_id": {},
+        "name": {},
+        "owner_name": {
+          "description": "How this Circle's members know its owner; null when unset"
+        },
+        "profile_id": {},
+        "environment": {},
+        "proof_me_enabled": {},
+        "status": {
+          "description": "Lifecycle state of a Circle (archived = soft-retired)"
+        },
+        "member_count": {},
+        "members": {},
+        "created_at": {},
+        "updated_at": {}
+      }
+    }
+  },
+  "update_public_page": {
     "precision": "proven",
     "operations": [
       "PUT /api/v1/profiles/me 200"
@@ -15335,7 +15968,102 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "A sub-account as its owner sees it"
     }
   },
-  "update_profile": {
+  "update_public_page_proofs": {
+    "precision": "proven",
+    "operations": [
+      "PUT /api/v1/profiles/me/proofs 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "public_proofs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "asset_id": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "display_value": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "channel": {
+                "type": "string"
+              },
+              "verified_at": {
+                "type": "string"
+              },
+              "is_visible": {
+                "type": "boolean"
+              },
+              "display_order": {
+                "type": "integer"
+              },
+              "mask_level": {
+                "type": "string"
+              },
+              "is_revoked": {
+                "type": "boolean"
+              },
+              "delegate_type": {
+                "type": "string"
+              },
+              "delegation_id": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "asset_id",
+              "type",
+              "display_value",
+              "verified_at",
+              "is_visible",
+              "display_order",
+              "mask_level"
+            ]
+          },
+          "description": "The shown proofs, in the order the public profile shows them"
+        },
+        "proof_order": {
+          "type": "string",
+          "description": "Who decided the order of a profile's proofs. `default`: domain, social account, Telegram bot, email, phone, wallet, then each proof's `display_order`. `owner`: the owner's `display_order` alone — send it when the owner reorders. The first shown proof that is not hidden leads the profile's preview card, share tags and badge. Omitted on an update, the profile keeps its current setting."
+        }
+      },
+      "required": [
+        "public_proofs",
+        "proof_order"
+      ],
+      "description": "A sub-account's shown proofs after an update"
+    }
+  },
+  "update_settings": {
+    "precision": "described",
+    "operations": [
+      "PATCH /api/v1/me/settings 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "success": {},
+        "webhook": {
+          "description": "Outbound webhook configuration — DEPRECATED (#421). An account switched over to webhook endpoints sees its account-wide (`legacy`) endpoint here: `url` is null while that endpoint is disabled, a `url` write updates or creates it, `url: null` disables it (its secret is kept), and `rotate_secret` rotates its secret. An account not yet switched over sees its settings fields, as before. Omitted for an API key bound to one sub-account."
+        },
+        "proof_expiry_days": {
+          "description": "Default lifetime in days of newly issued verification proofs, or null when the account has never set one. Confirmation-decision proofs do not use it."
+        },
+        "hitl": {
+          "description": "Approval-setup settings."
+        }
+      }
+    }
+  },
+  "update_sub_account": {
     "precision": "proven",
     "operations": [
       "PATCH /api/v1/me/profiles/{profileId} 200"
@@ -15638,7 +16366,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "A sub-account as its owner sees it"
     }
   },
-  "update_profile_proofs": {
+  "update_sub_account_page_proofs": {
     "precision": "proven",
     "operations": [
       "PUT /api/v1/profiles/profiles/{profileId}/proofs 200"
@@ -15712,101 +16440,6 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "description": "A sub-account's shown proofs after an update"
     }
   },
-  "update_public_proofs": {
-    "precision": "proven",
-    "operations": [
-      "PUT /api/v1/profiles/me/proofs 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "public_proofs": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "asset_id": {
-                "type": "string"
-              },
-              "type": {
-                "type": "string"
-              },
-              "display_value": {
-                "type": "string"
-              },
-              "label": {
-                "type": "string"
-              },
-              "channel": {
-                "type": "string"
-              },
-              "verified_at": {
-                "type": "string"
-              },
-              "is_visible": {
-                "type": "boolean"
-              },
-              "display_order": {
-                "type": "integer"
-              },
-              "mask_level": {
-                "type": "string"
-              },
-              "is_revoked": {
-                "type": "boolean"
-              },
-              "delegate_type": {
-                "type": "string"
-              },
-              "delegation_id": {
-                "type": "string"
-              }
-            },
-            "required": [
-              "asset_id",
-              "type",
-              "display_value",
-              "verified_at",
-              "is_visible",
-              "display_order",
-              "mask_level"
-            ]
-          },
-          "description": "The shown proofs, in the order the public profile shows them"
-        },
-        "proof_order": {
-          "type": "string",
-          "description": "Who decided the order of a profile's proofs. `default`: domain, social account, Telegram bot, email, phone, wallet, then each proof's `display_order`. `owner`: the owner's `display_order` alone — send it when the owner reorders. The first shown proof that is not hidden leads the profile's preview card, share tags and badge. Omitted on an update, the profile keeps its current setting."
-        }
-      },
-      "required": [
-        "public_proofs",
-        "proof_order"
-      ],
-      "description": "A sub-account's shown proofs after an update"
-    }
-  },
-  "update_settings": {
-    "precision": "described",
-    "operations": [
-      "PATCH /api/v1/me/settings 200"
-    ],
-    "schema": {
-      "type": "object",
-      "properties": {
-        "success": {},
-        "webhook": {
-          "description": "Outbound webhook configuration — DEPRECATED (#421). An account switched over to webhook endpoints sees its account-wide (`legacy`) endpoint here: `url` is null while that endpoint is disabled, a `url` write updates or creates it, `url: null` disables it (its secret is kept), and `rotate_secret` rotates its secret. An account not yet switched over sees its settings fields, as before. Omitted for an API key bound to one sub-account."
-        },
-        "proof_expiry_days": {
-          "description": "Default lifetime in days of newly issued verification proofs, or null when the account has never set one. Confirmation-decision proofs do not use it."
-        },
-        "hitl": {
-          "description": "Approval-setup settings."
-        }
-      }
-    }
-  },
   "update_template": {
     "precision": "described",
     "operations": [
@@ -15859,7 +16492,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "upload_hitl_keys": {
+  "upload_approval_channel_keys": {
     "precision": "proven",
     "operations": [
       "PUT /api/v1/hitl/{id}/keys 200"

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, LIVE_CHANNEL_VALUES } from '../types.js';
+import { jsonResult, errorResult, LIVE_CHANNEL_VALUES, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -20,7 +20,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/verification-requests', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -35,7 +35,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/verification-requests/incoming');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -43,7 +43,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'create_user_request',
-    'Create a new verification request to ask another user to share verified assets. Each asset is an object naming its type, e.g. { "type": "email" }.',
+    'Create a new verification request to ask another user to share verified assets; list_my_requests shows its progress and cancel_user_request withdraws it. Each asset is an object naming its type, e.g. { "type": "email" }.',
     {
       // The asset types and channels below are the ones the API can complete today (social, wallet and
       // account have no live channel and are refused), and the string caps and patterns are the API
@@ -69,7 +69,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         .max(10)
         .describe('Assets to request, e.g. [{ "type": "email" }, { "type": "phone", "required": false }]'),
       reference_id: z.string().min(1).max(255).optional().describe('External reference ID for tracking'),
-      public_profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Public profile ID for branding'),
+      public_profile_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Sub-account ID for branding'),
       action_type: z
         .enum(['verification', '2fa', 'login', 'custom', 'confirmation', 'authorization'])
         .optional()
@@ -106,7 +106,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/me/verification-requests', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -123,7 +123,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/me/verification-requests/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -144,7 +144,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         );
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -162,7 +162,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/verification-requests/${encodeURIComponent(id)}/share-email`, { email });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

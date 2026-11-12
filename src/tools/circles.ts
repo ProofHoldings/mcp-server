@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/);
@@ -23,12 +23,12 @@ const circleMemberInput = z.object({
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'create_circle',
-    'Create a Circle — a named group of trusted contacts (the people-primitive powering Proof-Me and Approvals-on-Circle). Optionally seed initial members; each member\'s declared channels are stored so they can be invited to enroll.\n\nAgent usage: after creating a Circle, add members with add_circle_member (or seed them here), then invite_circle_member to mint the enrollment deep link each contact taps to bind their messenger identity.',
+    'Create a Circle — a named group of trusted contacts (the people-primitive powering Proof of Me and Approvals-on-Circle). Optionally seed initial members; each member\'s declared channels are stored so they can be invited to enroll.\n\nAgent usage: after creating a Circle, add members with add_circle_member (or seed them here), then invite_circle_member to mint the enrollment deep link each contact taps to bind their messenger identity.',
     {
       name: z.string().min(1).max(200).describe('Human-readable name for the Circle'),
       owner_name: ownerName,
-      profile_id: objectId.optional().describe('Public profile (sub-account) to bind for branded messages — create-only'),
-      proof_me_enabled: z.boolean().optional().describe('Enable Proof-Me drills for this Circle'),
+      profile_id: objectId.optional().describe('Sub-account to bind for branded messages — create-only'),
+      proof_me_enabled: z.boolean().optional().describe('Enable Proof of Me drills for this Circle'),
       members: z.array(circleMemberInput).max(100).optional().describe('Initial members (name + optional declared channels)'),
     },
     async (args) => {
@@ -36,7 +36,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/circles', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -48,7 +48,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     {
       status: z.enum(['active', 'archived']).optional().describe('Filter by status (archived excluded unless requested)'),
       environment: z.enum(['production', 'test']).optional().describe('Filter by environment (production or test)'),
-      profile_id: objectId.optional().describe('Filter by bound public profile (sub-account)'),
+      profile_id: objectId.optional().describe('Filter by bound sub-account'),
       page: z.number().int().positive().max(10000).optional().describe('Page number (default 1)'),
       limit: z.number().int().positive().max(100).optional().describe('Items per page (default 20, max 100)'),
     },
@@ -63,7 +63,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/circles', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -80,7 +80,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/circles/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -88,7 +88,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'update_circle',
-    'Update a Circle\'s name and/or owner name. Omitted fields are left unchanged; the profile/identity binding is create-only.',
+    'Update a Circle\'s name and/or owner name. Omitted fields are left unchanged; the sub-account and identity binding is set at creation only.',
     {
       id: objectId.describe('Circle ID'),
       name: z.string().min(1).max(200).optional().describe('New name for the Circle'),
@@ -99,7 +99,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.patch(`/api/v1/circles/${encodeURIComponent(id)}`, body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -116,7 +116,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/circles/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -135,7 +135,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/circles/${encodeURIComponent(id)}/members`, body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -152,7 +152,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/circles/${encodeURIComponent(id)}/members`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -170,7 +170,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/circles/${encodeURIComponent(id)}/members/invite`, { member_id });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -178,7 +178,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'create_circle_member_drill',
-    'Fire an on-demand Proof-Me drill against one enrolled member — a real cross-channel identity challenge carrying the scheduled-safety-check label (the account owner practices confirming). Complements the automated daily drill + monthly reinforcement sweeps. On Pay as you go a live key is refused `422 plan_upgrade_required`; a test key is not, and its drill reaches the member on Telegram only (`400 no_channel` when they have no verified Telegram channel).',
+    'Fire an on-demand Proof of Me drill against one enrolled member — a real cross-channel identity challenge carrying the scheduled-safety-check label (the account owner practices confirming). Complements the automated daily drill + monthly reinforcement sweeps. On Pay as you go a live key is refused `422 plan_upgrade_required`; a test key is not, and its drill reaches the member on Telegram only (`400 no_channel` when they have no verified Telegram channel).',
     {
       id: objectId.describe('Circle ID'),
       member_id: objectId.describe('Member ID to drill'),
@@ -190,7 +190,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         );
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -210,7 +210,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         );
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -233,7 +233,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         );
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -253,7 +253,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         );
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -274,7 +274,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         );
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

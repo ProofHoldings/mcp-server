@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, BSUID_REGEX } from '../types.js';
+import { jsonResult, BSUID_REGEX, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 const authorizationChannelEnum = z.enum(['whatsapp', 'telegram', 'sms', 'email']);
@@ -11,9 +11,9 @@ const authorizationStatusEnum = z.enum(['pending', 'active', 'expired', 'revoked
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'create_authorization',
-    'Create a new authorization request. Authorizations grant permission to send confirmations to a user via a specific channel. The user must approve the authorization before confirmations can be sent.',
+    'Create a new authorization request. Authorizations grant permission to send confirmations to a user via a specific channel. The user must approve the authorization before confirmations can be sent; get_authorization reads its status, which stays pending until they answer.',
     {
-      hitl_id: z.string().regex(/^[0-9a-fA-F]{24}$/).describe('HITL configuration ID to link this authorization to'),
+      hitl_id: z.string().regex(/^[0-9a-fA-F]{24}$/).describe('Approval channel ID to link this authorization to'),
       recipient: z.string().min(1).max(255).describe('Channel-specific recipient identifier (chat_id for Telegram, phone/BSUID for WhatsApp)'),
       phone: z.string().regex(/^\+[1-9]\d{1,14}$/).describe('Target phone number in E.164 format (e.g., +15551234567)'),
       bsuid: z.string().regex(BSUID_REGEX).optional().describe('WhatsApp Business-Scoped User ID (alternative to phone for WhatsApp channel)'),
@@ -28,7 +28,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/authorizations', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -45,7 +45,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/authorizations/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -72,7 +72,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/authorizations', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -91,7 +91,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/authorizations/${encodeURIComponent(id)}`, body);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -99,7 +99,9 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'export_authorizations',
-    'Export authorizations as CSV or JSON. Supports date range and status filtering. Maximum 10,000 records.',
+    `Export authorizations as CSV or JSON. Supports date range and status filtering. Maximum ${EXPORT_MAX_RECORDS.toLocaleString('en-US')} records. ` +
+      'CSV comes back as `{ content_type, body, truncated }` with the file in `body`; a body over ' +
+      `${EXPORT_TEXT_MAX_CHARS.toLocaleString('en-US')} characters is cut at the last full line (\`truncated: true\`, \`total_chars\`) — narrow \`from\`/\`to\` or \`status\` and export again for the rest.`,
     {
       format: z.enum(['csv', 'json']).optional().describe('Export format (default: json)'),
       from: z.string().optional().describe('Start date filter (ISO 8601)'),
@@ -113,12 +115,40 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         if (args.from !== undefined) query.from = args.from;
         if (args.to !== undefined) query.to = args.to;
         if (args.status !== undefined) query.status = args.status;
-        const result = await http.get('/api/v1/authorizations/export', query);
-        return jsonResult(result);
+        const result = await http.get<Record<string, unknown>>('/api/v1/authorizations/export', query);
+        return jsonResult(typeof result.body === 'string' ? boundExportText(result as { content_type: string; body: string }) : result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
   );
+}
+
+/**
+ * The most records the API puts in one export. A DELIBERATE COPY of `MAX_EXPORT_RECORDS` in the backend's
+ * `src/controllers/authorizations.ts` (this package cannot import backend `src/`), held equal by
+ * `src/__tests__/drift/mcp-export-cap.test.ts`, so the description states the API's cap, not a typed one.
+ */
+export const EXPORT_MAX_RECORDS = 10000;
+
+/**
+ * The most CSV one tool result carries. The API caps an export at 10,000 records, which is megabytes
+ * of text — one tool result lands whole in the model's context, so the tool cuts it rather than the
+ * client choking on it. Cut at a line boundary so the rows that arrive are whole rows.
+ */
+export const EXPORT_TEXT_MAX_CHARS = 100_000;
+
+function boundExportText(result: { content_type: string; body: string }) {
+  const { content_type, body } = result;
+  if (body.length <= EXPORT_TEXT_MAX_CHARS) return { content_type, body, truncated: false };
+  const cut = body.lastIndexOf('\n', EXPORT_TEXT_MAX_CHARS - 1);
+  return {
+    content_type,
+    // No line break before the bound (one enormous row): cut at the bound instead of returning nothing.
+    body: cut < 0 ? body.slice(0, EXPORT_TEXT_MAX_CHARS) : body.slice(0, cut + 1),
+    truncated: true,
+    total_chars: body.length,
+    note: `Cut at ${EXPORT_TEXT_MAX_CHARS} characters, at a full line. Narrow from/to or status and export again for the remaining rows.`,
+  };
 }

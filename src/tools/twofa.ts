@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, pollUntilTerminal, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
+import { jsonResult, pollUntilTerminal, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY, apiErrorResult, UNLISTED_TARGETS_RULE } from '../types.js';
 import { ApiError } from '../http.js';
 import { PUBLIC_TWO_FA_ACTION_TYPES } from '../generated/two-fa-action-types.js';
 
@@ -16,14 +16,14 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       phone_id: z.string().optional().describe('Optional: specific UserPhone id for phone-channel 2FA'),
       ttl_seconds: z.number().int().min(60).max(86400).optional().describe('Requested grant lifetime in seconds. Server caps to 300s for destructive action types, 86400s for configuration scopes. Defaults to 300 if omitted.'),
       single_use: z.boolean().optional().describe('Whether the grant is consumed on first use. Server forces true for destructive action types. Defaults to true.'),
-      targets: z.array(z.string().min(1).max(256)).min(1).max(25).optional().describe('The ids the step-up is FOR — the grant is bound to exactly these and refused for any other request (`reason: target_mismatch`). revocation_bulk: the asset id you will pass to revoke_asset (one code per asset); phone_remove / email_remove: the phone or email record id; domain_remove: the domain id; profile_delete: the sub-account id; account_delete: your own user id (get_current_user). Leave out for the other action types.'),
+      targets: z.array(z.string().min(1).max(256)).min(1).max(25).optional().describe('The ids the step-up is FOR — the grant is bound to exactly these and refused for any other request (`reason: target_mismatch`). revocation_bulk: the asset id you will pass to revoke_my_proof (one code per asset); phone_remove / email_remove: the phone or email record id; domain_remove: the domain id; profile_delete: the sub-account id; account_delete: your own user id (get_current_user). ' + UNLISTED_TARGETS_RULE),
     },
     async (args) => {
       try {
         const result = await http.post('/api/v1/me/2fa/start', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -40,7 +40,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/me/2fa/${encodeURIComponent(session_id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -58,7 +58,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/2fa/${encodeURIComponent(session_id)}/verify`, { code });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -75,7 +75,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/2fa/magic/${encodeURIComponent(token)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -97,7 +97,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
           `2FA session ${session_id}`,
         );
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

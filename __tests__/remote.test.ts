@@ -2,13 +2,14 @@ import { createServer as createHttpServer, type Server } from 'node:http';
 import net from 'node:net';
 import { readFileSync } from 'node:fs';
 
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 
 import { keyedToolsIn, malformedToolCallBody, MALFORMED_TOOL_NAME } from '../src/authBoundary.js';
 
 import {
   createRemoteServer,
   createResolveBudget,
+  parseAllowedOrigins,
   positiveIntEnv,
   resolveReplicaId,
   RESOLVE_BURST_CEILING,
@@ -316,7 +317,8 @@ describe('remote server — SC-4: an anonymous handshake is told how to sign in'
     expect(tools.length).toBeGreaterThan(100);
 
     expect(byName.get('get_platform_summary')).toMatch(/start_login does NOT open this tool/);
-    expect(byName.get('list_emails')).toContain('sign in with start_login');
+    expect(byName.get('list_emails')).toContain('signed in: call start_login');
+    expect(byName.get('list_emails')).toContain('Authenticating this client alone does NOT open this tool');
     expect(byName.get('render_auth_link')).not.toContain('ACCESS:');
   });
 
@@ -571,10 +573,16 @@ describe('remote server — SC-2: the road the refusal advertises actually works
     const { url } = await start({ baseUrl: stub.url });
     const sessionId = await openSession(url);
 
-    // Before signing in, the keyed surface is refused — the positive control for the case below.
+    // Before signing in, the tool answers the client's readable refusal naming start_login — not the
+    // 401 challenge (M5: Authenticate grants a key, which does not open it) — and nothing reaches the
+    // backend. The positive control for the case below: same session, no reconnect.
     const before = await callTool(url, sessionId, 'list_api_keys');
-    await before.text();
-    expect(before.status).toBe(401);
+    const beforeBody = await before.text();
+    expect(before.status).toBe(200);
+    expect(before.headers.get('www-authenticate')).toBeNull();
+    expect(beforeBody).toContain('user_session_required');
+    expect(beforeBody).toContain('start_login');
+    expect(stub.requests.some((entry) => entry.path === '/api/v1/me/api-keys')).toBe(false);
 
     const login = await callTool(url, sessionId, 'start_login', {}, { channel: 'email', email: 'someone@example.test' });
     const loginBody = await login.text();
@@ -592,6 +600,88 @@ describe('remote server — SC-2: the road the refusal advertises actually works
     // …and it travelled as the logged-in user, not as nobody.
     const keysCall = stub.requests.find((entry) => entry.path === '/api/v1/me/api-keys');
     expect(keysCall?.authorization).toBe('Bearer jwt-for-this-session');
+  });
+});
+
+describe('remote server — M5: an anonymous session-only call is refused by the client, not challenged', () => {
+  // Before: the gate answered every anonymous call outside KEYLESS_TOOLS with 401 + WWW-Authenticate,
+  // so an OAuth client offered Authenticate — which grants an API key, and a key alone does not open
+  // a session-only tool (`user_session_required`). After: those calls reach the session's server, and
+  // its HttpClient refuses them BEFORE any request with the text that names start_login.
+  async function anonymous() {
+    const stub = await startStubBackend(() => ({ status: 200, body: { data: [] } }));
+    const { url } = await start({ baseUrl: stub.url });
+    const sessionId = await openSession(url);
+    return { stub, url, sessionId };
+  }
+
+  it('answers the readable refusal and sends nothing upstream', async () => {
+    const { stub, url, sessionId } = await anonymous();
+
+    const called = await callTool(url, sessionId, 'list_emails');
+    const body = await called.text();
+
+    expect(called.status).toBe(200);
+    expect(called.headers.get('www-authenticate')).toBeNull();
+    expect(body).toContain('user_session_required');
+    expect(body).toMatch(/start_login[^.]*wait_for_login/);
+    expect(stub.requests).toEqual([]);
+  });
+
+  it('still challenges a tool a key also opens, and a keyed tool', async () => {
+    const { url, sessionId } = await anonymous();
+
+    for (const name of ['get_api_key_usage', 'list_verifications']) {
+      const called = await callTool(url, sessionId, name);
+      await called.text();
+      expect(called.status, name).toBe(401);
+      expect(called.headers.get('www-authenticate'), name).toContain('resource_metadata=');
+    }
+  });
+
+  it('refuses a mixed batch whole: the session-only call cannot carry a keyed one past the gate', async () => {
+    const { stub, url, sessionId } = await anonymous();
+
+    const response = await fetch(`${url}/mcp`, {
+      method: 'POST',
+      headers: { ...MCP_HEADERS, 'mcp-session-id': sessionId },
+      body: JSON.stringify([
+        { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'list_emails', arguments: {} } },
+        { jsonrpc: '2.0', id: 2, method: 'tools/call', params: { name: 'list_verifications', arguments: {} } },
+      ]),
+    });
+    const body = await response.text();
+
+    // What the client receives: one HTTP 401 with the challenge, whose body is the refusal for the
+    // KEYED call — no JSON-RPC result for either message, and nothing sent upstream for either.
+    expect(response.status).toBe(401);
+    expect(response.headers.get('www-authenticate')).toContain('resource_metadata=');
+    expect(JSON.parse(body)).toMatchObject({ error: 'authorization_required' });
+    expect(body).toContain('list_verifications');
+    expect(stub.requests).toEqual([]);
+  });
+
+  it('on the opening request too: a batch with a session-only call is not challenged, one with a keyed call is', async () => {
+    const stub = await startStubBackend(() => ({ status: 200, body: { data: [] } }));
+    const { url } = await start({ baseUrl: stub.url });
+    const open = (calls: string[]) =>
+      fetch(`${url}/mcp`, {
+        method: 'POST',
+        headers: MCP_HEADERS,
+        body: JSON.stringify([
+          INIT_BODY,
+          ...calls.map((name, i) => ({ jsonrpc: '2.0', id: 10 + i, method: 'tools/call', params: { name, arguments: {} } })),
+        ]),
+      });
+
+    const sessionOnly = await open(['list_emails']);
+    await sessionOnly.text();
+    expect(sessionOnly.status).not.toBe(401);
+
+    const mixed = await open(['list_emails', 'list_verifications']);
+    await mixed.text();
+    expect(mixed.status).toBe(401);
+    expect(stub.requests).toEqual([]);
   });
 });
 
@@ -1515,6 +1605,183 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
 
     await new Promise((resolve) => setTimeout(resolve, 500));
     expect(remote.sessionCount()).toBe(0);
+  });
+
+  it('answers JSON-RPC -32700 for an unparseable opening body, and keeps initialize_expected for an empty one', async () => {
+    // T6 (m-fix-mcp-tool-contract-drift): the existing-session path already answers -32700 (the
+    // transport's own), but the opening path folded "bad JSON" into "no body" and answered our
+    // `initialize_expected` — a refusal about the method for a message that never parsed.
+    const { url, remote } = await start();
+
+    const bad = await fetch(`${url}/mcp`, { method: 'POST', headers: MCP_HEADERS, body: '{"jsonrpc": "2.0", "id": 1,' });
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toMatchObject({ jsonrpc: '2.0', id: null, error: { code: -32700 } });
+
+    const empty = await fetch(`${url}/mcp`, { method: 'POST', headers: MCP_HEADERS, body: '' });
+    expect(empty.status).toBe(400);
+    expect(await empty.json()).toMatchObject({ error: 'initialize_expected' });
+
+    expect(remote.sessionCount()).toBe(0);
+  });
+
+  // T6 (coordinator, reversing "no allowlist" after Alex flagged the spec MUST — MCP 2025-11-25 and
+  // 2026-07-28, Streamable HTTP security: "Servers MUST validate the Origin header … If the Origin
+  // header is present and invalid, servers MUST respond with HTTP 403 Forbidden"). Absent Origin passes
+  // (Claude Code 2.1.322 sends none, measured 11 Nov); an Origin passes only when it is EXACTLY one of
+  // `allowedOrigins` (`MCP_ALLOWED_ORIGINS`, empty by default); anything else, `null` included, is 403
+  // before the session lookup and before any credential is read.
+  describe('Origin validation', () => {
+    const initWith = (url: string, headers: Record<string, string>) =>
+      fetch(`${url}/mcp`, { method: 'POST', headers: { ...MCP_HEADERS, ...headers }, body: JSON.stringify(INIT_BODY) });
+
+    it('lets a request with no Origin through (every measured client)', async () => {
+      const { url, remote } = await start();
+      const response = await initWith(url, {});
+      await response.text();
+      expect(response.status).toBe(200);
+      expect(remote.sessionCount()).toBe(1);
+    });
+
+    it.each(['https://attacker.example', 'null', '', 'http://127.0.0.1:6274'])(
+      'refuses Origin %j with 403 and a JSON-RPC error without an id, building nothing and reading no credential',
+      async (origin) => {
+        const stub = await startStubBackend(() => ({ status: 200, body: { api_key: { id: 'k' } } }));
+        const { url, remote } = await start({ baseUrl: stub.url });
+
+        const response = await initWith(url, { origin, authorization: 'Bearer pk_live_whatever' });
+        const body = (await response.json()) as Record<string, unknown>;
+
+        expect(response.status).toBe(403);
+        expect(body).toMatchObject({ jsonrpc: '2.0', error: { code: -32000 } });
+        expect('id' in body).toBe(false);
+        // Readable by a human debugging a browser client: what happened and where the allowlist lives,
+        // never the refused value echoed back.
+        const message = (body.error as { message: string }).message;
+        expect(message).toMatch(/Origin is not allowed/);
+        expect(message).toContain('MCP_ALLOWED_ORIGINS');
+        if (origin) expect(message).not.toContain(origin);
+        expect(remote.sessionCount()).toBe(0);
+        expect(response.headers.get('mcp-session-id')).toBeNull();
+        // The bearer was never resolved: the check runs before any credential is read.
+        expect(stub.requests).toEqual([]);
+      },
+    );
+
+    // T4c (coordinator): the staging run of Claude Desktop and MCP Inspector gates production, and a
+    // refusal must say WHICH Origin was sent — that value is what MCP_ALLOWED_ORIGINS would need. The
+    // line carries the origin only (sliced, stringified): never the bearer, the session id or the path.
+    it('logs one mcp_origin_refused line naming the refused Origin — and nothing else of the request', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      try {
+        const { url } = await start();
+        const refusedLines = () =>
+          errors.mock.calls.map((call) => String(call[0])).filter((line) => line.includes('mcp_origin_refused'));
+
+        await (await initWith(url, {})).text();
+        expect(refusedLines()).toEqual([]);
+
+        const long = `https://${'a'.repeat(300)}.example`;
+        for (const origin of ['http://localhost:6274', long]) {
+          await (await initWith(url, { origin, authorization: 'Bearer pk_live_secretvalue' })).text();
+        }
+        const lines = refusedLines();
+        expect(lines.map((line) => JSON.parse(line))).toEqual([
+          { event: 'mcp_origin_refused', origin: 'http://localhost:6274' },
+          { event: 'mcp_origin_refused', origin: long.slice(0, 200) },
+        ]);
+        expect(lines.join('\n')).not.toContain('pk_live_secretvalue');
+      } finally {
+        errors.mockRestore();
+      }
+    });
+
+    it('refuses a foreign Origin on an EXISTING session too, before the session is looked up', async () => {
+      const { url, remote } = await start();
+      const sessionId = await openSession(url);
+
+      for (const method of ['POST', 'DELETE']) {
+        const response = await fetch(`${url}/mcp`, {
+          method,
+          headers: { ...MCP_HEADERS, 'mcp-session-id': sessionId, origin: 'https://attacker.example' },
+          body: method === 'POST' ? JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'tools/list', params: {} }) : undefined,
+        });
+        await response.text();
+        expect(response.status, method).toBe(403);
+      }
+      // The DELETE did not end the session.
+      expect(remote.sessionCount()).toBe(1);
+    });
+
+    it('lets an allowlisted Origin through — exact serialized origin, case-normalised, nothing looser', async () => {
+      const { url } = await start({ allowedOrigins: parseAllowedOrigins('https://app.example.test') });
+
+      for (const origin of ['https://app.example.test', 'HTTPS://APP.EXAMPLE.TEST']) {
+        const response = await initWith(url, { origin });
+        await response.text();
+        expect(response.status, origin).toBe(200);
+      }
+      for (const origin of [
+        'https://app.example.test.attacker.example',
+        'https://app.example',
+        'https://evil-app.example.test',
+        'http://app.example.test',
+        'https://app.example.test:8443',
+        'https://app.example.test/',
+        'null',
+      ]) {
+        const response = await initWith(url, { origin });
+        await response.text();
+        expect(response.status, origin).toBe(403);
+      }
+    });
+  });
+
+  describe('parseAllowedOrigins (MCP_ALLOWED_ORIGINS)', () => {
+    it('is empty when unset or blank', () => {
+      expect(parseAllowedOrigins(undefined)).toEqual([]);
+      expect(parseAllowedOrigins('  ')).toEqual([]);
+    });
+
+    it('splits on commas, trims and normalises each origin', () => {
+      expect(parseAllowedOrigins(' https://A.example.test , http://localhost:6274')).toEqual([
+        'https://a.example.test',
+        'http://localhost:6274',
+      ]);
+    });
+
+    it.each(['null', 'not a url', 'https://a.example.test/path', 'https://a.example.test/', '*', 'file:///x'])(
+      'refuses %j at startup rather than allowing something looser than one exact origin',
+      (entry) => {
+        expect(() => parseAllowedOrigins(entry)).toThrow(/MCP_ALLOWED_ORIGINS/);
+      },
+    );
+  });
+
+  it('gives a browser no CORS grant: a preflight is 405 and no answer carries Access-Control-Allow-*', async () => {
+    // Defence beside the Origin check below (T6): no CORS grant is ever made, so even an allowlisted
+    // browser origin could not read a cross-origin answer — the preflight (OPTIONS) is answered 405 by
+    // the method gate, ahead of the Origin check, with no Access-Control-Allow-* header, and the
+    // credential is a bearer header, never a cookie. If this server ever answers a preflight or grants
+    // an origin, this case goes red and the CORS stance must be decided on purpose.
+    const { url } = await start();
+    const origin = 'https://attacker.example';
+
+    const preflight = await fetch(`${url}/mcp`, {
+      method: 'OPTIONS',
+      headers: {
+        origin,
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type, authorization, mcp-session-id',
+      },
+    });
+    await preflight.text();
+    expect(preflight.status).toBe(405);
+    const granted = (response: Response) => [...response.headers.keys()].filter((k) => k.startsWith('access-control-'));
+    expect(granted(preflight)).toEqual([]);
+
+    const post = await fetch(`${url}/mcp`, { method: 'POST', headers: { ...MCP_HEADERS, origin }, body: JSON.stringify(INIT_BODY) });
+    await post.text();
+    expect(granted(post)).toEqual([]);
   });
 
   it('answers initialize_expected for a POST that is not an initialize, creating no session', async () => {

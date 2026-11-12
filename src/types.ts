@@ -156,6 +156,77 @@ export function errorResult(message: string) {
 }
 
 /**
+ * What to pass as `targets` for an action type the step-up tools do not name. One sentence, shared by
+ * the `targets` description of start_2fa and start_2fa_for_action and by the `2fa_required` next step,
+ * so the three cannot disagree. A list of the target-bound types would drift with the backend's
+ * `twoFATargets`; the refusal is where the exact strings are, so the rule points there.
+ */
+export const UNLISTED_TARGETS_RULE =
+  'For any other action type, leave targets out unless a 2fa_required refusal lists targets; then pass exactly those strings.';
+
+/**
+ * The next step for an API refusal whose own sentence says what failed but not what to do (AX bar,
+ * coordinator 11 Nov). Only codes whose remedy is the same for every tool that can meet them; a code the
+ * API already explains with its remedy is not listed.
+ */
+const NEXT_STEP: Readonly<Record<string, string>> = {
+  '2fa_required':
+    'Next: call start_2fa_for_action with the action_type this step-up is for, passing targets as start_2fa_for_action ' +
+    `lists them for that type. ${UNLISTED_TARGETS_RULE} Show the user where the code went, then wait_for_2fa, then ` +
+    'call this tool again.',
+  username_requires_brand_domain:
+    'Next: check a domain of that brand on this account (details.unlocks_with) — start_user_domain_verification, ' +
+    'publish the record it returns, then check_user_domain_verification — then call claim_username again.',
+  insufficient_scope:
+    'Next: the credential in use lacks that scope. On the hosted server, sign in again (in Claude Code: /mcp → Authenticate) ' +
+    'and keep that scope selected on the consent screen; with PROOF_API_KEY, use a key that has it.',
+};
+
+/**
+ * The error result for a refusal the API answered (`ApiError` from `./http.js`, typed structurally so
+ * this module keeps importing nothing but the validation rewrite).
+ *
+ * The envelope stays `{error, message, retryable}` (contract § 8); what the API sent beyond the code
+ * and message rides INSIDE `message`, in this order: the request id, the top-up address, then each
+ * failing field. The order is the point — `errorEnvelope` cuts `message` at
+ * `ERROR_MESSAGE_MAX_CHARS`, and a long field list must lose its tail, not the id support asks for.
+ */
+export function apiErrorResult(e: {
+  code: string;
+  message: string;
+  details?: unknown;
+  requestId?: string;
+  topUpUrl?: string;
+}) {
+  const parts = [`${e.code}: ${e.message}`];
+  const next = NEXT_STEP[e.code];
+  if (next) parts.push(next);
+  if (e.requestId) parts.push(`(request_id: ${e.requestId})`);
+  if (e.topUpUrl) parts.push(`top_up_url: ${e.topUpUrl}`);
+  const fields = describeDetails(e.details);
+  if (fields) parts.push(`Fields — ${fields}`);
+  return errorResult(parts.join(' '));
+}
+
+/** `[{field, message}]` (the validator's shape) as `field: message; …`; anything else as compact JSON. */
+function describeDetails(details: unknown): string {
+  if (details === undefined || details === null) return '';
+  if (Array.isArray(details)) {
+    if (details.length === 0) return '';
+    if (details.every((d) => d !== null && typeof d === 'object' && typeof (d as { field?: unknown }).field === 'string')) {
+      return details
+        .map((d) => {
+          const { field, message } = d as { field: string; message?: unknown };
+          return typeof message === 'string' ? `${field}: ${message}` : field;
+        })
+        .join('; ');
+    }
+  }
+  if (typeof details === 'object' && Object.keys(details as object).length === 0) return '';
+  return JSON.stringify(details);
+}
+
+/**
  * Default `timeout_seconds` for every tool that waits through `pollUntilTerminal`.
  *
  * Under a minute on purpose: the MCP SDK's default request timeout is 60 s

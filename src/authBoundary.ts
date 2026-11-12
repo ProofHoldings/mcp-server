@@ -80,7 +80,7 @@ export const SESSION_TOOLS: ReadonlySet<string> = new Set([
   'create_user_request',
   'delete_dns_credential',
   'delete_domain',
-  'delete_profile',
+  'delete_sub_account',
   'export_data',
   'extend_request',
   'get_2fa_status',
@@ -98,13 +98,15 @@ export const SESSION_TOOLS: ReadonlySet<string> = new Set([
   'list_incoming_requests',
   'list_my_requests',
   'list_phones',
+  'preview_email_removal',
+  'preview_phone_removal',
   'regenerate_api_key',
   'remove_email',
   'remove_phone',
   'resend_domain_email',
   'resend_email_otp',
   'revoke_api_key',
-  'revoke_asset',
+  'revoke_my_proof',
   'set_primary_email',
   'set_primary_phone',
   'setup_domain_email',
@@ -114,13 +116,60 @@ export const SESSION_TOOLS: ReadonlySet<string> = new Set([
   'start_add_phone',
   'start_domain_email_verification',
   'start_user_domain_verification',
-  'update_public_proofs',
+  'update_public_page_proofs',
   'verify_2fa',
   'verify_2fa_magic_link',
   'verify_domain',
   'verify_domain_with_credentials',
   'verify_email_otp',
 ]);
+
+/**
+ * The `SESSION_TOOLS` an API key ALSO opens: their routes are in `SESSION_EXEMPT_PATHS` in `./http.ts`,
+ * so the client still sends them with the key when no session is held. Every other session tool is
+ * refused `user_session_required` under a key alone, which is why the no-key hint for those names
+ * start_login and not the key recipe (M5, m-fix-mcp-tool-contract-drift). Held to the map in both
+ * directions by `src/__tests__/drift/api-parity.test.ts` (a tool is here exactly when every one of its
+ * session-surface endpoints is exempt).
+ */
+export const KEY_OR_SESSION_TOOLS: ReadonlySet<string> = new Set([
+  'delete_sub_account',
+  'get_api_key_usage',
+  'list_my_requests',
+]);
+
+/**
+ * A session tool no API key opens: `SESSION_TOOLS` minus `KEY_OR_SESSION_TOOLS`. The ONE predicate the
+ * notice, the 401 body and the remote gate (`keyedToolsIn`) all read, so they cannot disagree about a
+ * tool (pinned per registered tool in `__tests__/auth-boundary.test.ts`).
+ */
+export function isSessionOnlyTool(tool: string): boolean {
+  return SESSION_TOOLS.has(tool) && !KEY_OR_SESSION_TOOLS.has(tool);
+}
+
+/**
+ * Tools the HOSTED (remote) server cannot serve, whatever the connection holds.
+ *
+ * The hosted server's keys are minted by the OAuth surface, which never issues the scopes in the
+ * backend's `MCP_OAUTH_FORBIDDEN_SCOPES` — `auth:read` / `auth:write` would let an agent list and sign
+ * out the owner's devices — and these tools' routes accept nothing else. A `start_login` session does
+ * not reach them either: `/api/v1/auth/sessions` is not on the client's session surface. So on that
+ * transport they are described as unavailable and refused before any request, rather than sent to
+ * come back `insufficient_scope`. Membership is held to the backend's resolved route scopes, in both
+ * directions, by `src/__tests__/drift/mcp-remote-forbidden-scopes.test.ts`.
+ */
+export const REMOTE_UNAVAILABLE_TOOLS: ReadonlySet<string> = new Set([
+  'list_auth_sessions',
+  'revoke_auth_session',
+]);
+
+/** Why, and where the owner does it instead. Names no command: a remote text never does. */
+export const REMOTE_UNAVAILABLE_TEXT =
+  'This tool is not available on the hosted Proof MCP server: it needs the auth:read or auth:write scope, ' +
+  'which the hosted server never grants (an agent holding it could list and sign out the owner\'s devices). ' +
+  'The account owner manages signed-in devices in the dashboard: Settings → Signed-in devices ' +
+  '(https://proof.holdings/dev). A local (stdio) Proof MCP server run with an API key that holds ' +
+  'the scope can call it.';
 
 /**
  * What a caller must do to open a tool, in the two channels a client delivers ANONYMOUSLY and
@@ -176,12 +225,18 @@ function shortRecipe(remote: boolean | undefined): string {
  * (`h-fix-mcp-refusal-roads`).
  */
 export function accessNoticeFor(tool: string, context: AccessContext): string {
+  if (context.remote && REMOTE_UNAVAILABLE_TOOLS.has(tool)) return `\n\nNOT AVAILABLE HERE: ${REMOTE_UNAVAILABLE_TEXT}`;
   if (context.hasCredential) return '';
   if (KEYLESS_TOOLS.has(tool)) return '';
 
+  if (isSessionOnlyTool(tool)) {
+    // The key recipe is NOT a road here: a key on this route is refused user_session_required (M5).
+    const key = context.remote ? 'Authenticating this client alone' : 'An API key alone';
+    return `\n\nACCESS: needs a Proof account, signed in: call start_login, show the user its challenge, then wait_for_login, then call this tool again. ${key} does NOT open this tool.`;
+  }
   const recipe = shortRecipe(context.remote);
   return SESSION_TOOLS.has(tool)
-    ? `\n\nACCESS: needs a Proof account. ${recipe}, or sign in with start_login — a session opens this tool — then call this tool again.`
+    ? `\n\nACCESS: needs a Proof account. ${recipe}, or sign in with start_login — either opens this tool — then call this tool again.`
     : `\n\nACCESS: needs a Proof account. ${recipe}, then call this tool again. start_login does NOT open this tool.`;
 }
 
@@ -196,7 +251,7 @@ export function accessNoticeFor(tool: string, context: AccessContext): string {
 export function serverInstructions(context: AccessContext): string {
   const opening =
     'Proof — identity and control verification (proof.holdings): verification requests across SMS, ' +
-    'messenger and biometric channels, human approvals, proof tokens, delegations and public profiles.';
+    'messenger and biometric channels, human approvals, proof tokens, delegations and Public pages.';
 
   if (context.hasCredential) {
     return (
@@ -205,7 +260,7 @@ export function serverInstructions(context: AccessContext): string {
       'wanted, which is a different problem from needing an account. A tool that answers user_session_required ' +
       'needs a sign-in session as well as the key: a separate sign-in the user confirms on their phone or ' +
       'email (start_login, then wait_for_login), which opens your own account records (emails, phones, ' +
-      "domains, API keys, 2FA, DNS credentials, verification requests, your public profile's username and " +
+      "domains, API keys, 2FA, DNS credentials, verification requests, your Public page's username and " +
       'proof list).'
     );
   }
@@ -238,7 +293,7 @@ export function serverInstructions(context: AccessContext): string {
       context.remote,
     )} and then CALL THE TOOL AGAIN — some clients replay it for you, Claude Code does not. That grants an API key, whose SCOPES then decide which tools work (a tool outside them answers 403 insufficient_scope, not a request to sign in). Or call start_login and wait_for_login, which signs ` +
       'in a session that opens only your own account records — emails, phones, domains, API keys, 2FA, DNS ' +
-      "credentials, verification requests, your public profile's username and proof list.",
+      "credentials, verification requests, your Public page's username and proof list.",
     opaqueFailure,
   ].join('\n\n');
 }
@@ -330,6 +385,22 @@ export function malformedToolCallBody(): { error: 'invalid_request'; error_descr
  */
 export function authorizationRequiredBody(_baseUrl: string, tool: string): AuthorizationRequiredBody {
   const sessionReaches = SESSION_TOOLS.has(tool);
+  if (isSessionOnlyTool(tool)) {
+    // M5: connecting the client grants an API key, and a key on this route is refused
+    // user_session_required — so the road named first is the one that opens it.
+    return {
+      error: 'authorization_required',
+      error_description:
+        `The tool "${tool}" needs a signed-in Proof session. Call start_login — it needs no account ` +
+        'connection — show the user its challenge, then call wait_for_login until it reports success, ' +
+        'then CALL THE TOOL AGAIN. Connecting this client (in Claude Code: /mcp → this server → ' +
+        'Authenticate) grants an API key, and a key alone does NOT open this tool.',
+      connect_instructions_url: CONNECT_INSTRUCTIONS_URL,
+      keyless_alternative:
+        'Call start_login — it returns a sign-in link, and render_auth_link turns that link into a QR ' +
+        'code — then wait_for_login. This tool works over that signed-in session.',
+    };
+  }
   return {
     error: 'authorization_required',
     error_description:
@@ -345,7 +416,7 @@ export function authorizationRequiredBody(_baseUrl: string, tool: string): Autho
         'that signed-in session.'
       : 'start_login will NOT unlock this tool. A signed-in session covers only your own account ' +
         'records — emails, phones, domains, API keys, 2FA, DNS credentials, verification requests, ' +
-        "your public profile's username and proof list. This tool needs the API key that connecting grants.",
+        "your Public page's username and proof list. This tool needs the API key that connecting grants.",
   };
 }
 
@@ -391,7 +462,14 @@ export interface KeyedToolCall {
  * dependency, not of this gate.
  * Without the set (the opening request, before any server exists) the rule stays fully fail-closed.
  */
-export function keyedToolsIn(body: unknown, registered?: ReadonlySet<string>): KeyedToolCall[] {
+export function keyedToolsIn(
+  body: unknown,
+  registered?: ReadonlySet<string>,
+  // The tool a called name stands for — `canonicalToolName` of `./tool-renames.js`, handed in because
+  // this module imports nothing (a backend drift suite loads it directly). A deprecated alias is
+  // classified, and named in the refusal, as the tool it stands for.
+  canonical: (name: string) => string = (name) => name,
+): KeyedToolCall[] {
   const messages = Array.isArray(body) ? body : [body];
   const keyed: KeyedToolCall[] = [];
 
@@ -414,7 +492,13 @@ export function keyedToolsIn(body: unknown, registered?: ReadonlySet<string>): K
       continue;
     }
     if (registered && !registered.has(name)) continue;
-    if (!KEYLESS_TOOLS.has(name)) keyed.push({ name, malformed: false });
+    // A session-only tool is not challenged either (M5): the challenge's only remedy is a key, which
+    // does not open it. It reaches the session's server, whose client refuses it before any request
+    // with `user_session_required` naming start_login. A batch carrying a keyed call beside it is
+    // still refused whole, by that call.
+    const tool = canonical(name);
+    if (isSessionOnlyTool(tool)) continue;
+    if (!KEYLESS_TOOLS.has(tool)) keyed.push({ name: tool, malformed: false });
   }
 
   return keyed;

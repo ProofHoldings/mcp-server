@@ -5,8 +5,15 @@ import { fileURLToPath } from 'node:url';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { createProofServer } from '../src/factory.js';
-import { KEYLESS_TOOLS } from '../src/authBoundary.js';
+import { KEYLESS_TOOLS, REMOTE_UNAVAILABLE_TOOLS } from '../src/authBoundary.js';
 import { READ_ONLY_TOOLS, DESTRUCTIVE_TOOLS, annotationsFor } from '../src/toolAnnotations.js';
+import { TOOL_RENAMES, canonicalToolName } from '../src/tool-renames.js';
+
+/**
+ * The deprecated aliases of renamed tools (`TOOL_RENAMES`). They are registered by the factory, not
+ * declared in a module, and each is judged as the tool it stands for (`tool-renames.test.ts`).
+ */
+const ALIASES = new Set(TOOL_RENAMES.filter((row) => row.alias).map((row) => row.from));
 
 /**
  * Guards for the per-connection server factory (`h-mcp-remote`, SC-4).
@@ -60,8 +67,9 @@ describe('createProofServer — SC-4: registers every tool module, same as the s
     expect(registered.size).toBeGreaterThan(100);
 
     const missing = [...declared].filter((name) => !registered.has(name));
-    const extra = [...registered].filter((name) => !declared.has(name));
-    expect({ missing, extra }).toEqual({ missing: [], extra: [] });
+    const extra = [...registered].filter((name) => !declared.has(name)).sort();
+    // The only names registered without a declaration are the deprecated aliases.
+    expect({ missing, extra }).toEqual({ missing: [], extra: [...ALIASES].sort() });
   });
 
   it('builds a fresh server and a fresh client on every call', () => {
@@ -187,10 +195,19 @@ describe('createProofServer — SC-1: every tool outside the keyless set carries
     // Sampling three names could not see a registration shape the factory's wrapper passes through
     // untouched — today every module registers `tool(name, description, …)`, but a future
     // `tool(name, schema, cb)` would silently get no notice with every sampled case still green.
+    // A tool the hosted server cannot serve carries the unavailable notice instead — no account
+    // opens it there, so "needs a Proof account" would send the caller to sign in for nothing.
     const missing = registered.filter(
-      (name) => !KEYLESS_TOOLS.has(name) && !descriptionOf(server, name).includes('ACCESS: needs a Proof account'),
+      (name) =>
+        !ALIASES.has(name) &&
+        !KEYLESS_TOOLS.has(name) &&
+        !REMOTE_UNAVAILABLE_TOOLS.has(name) &&
+        !descriptionOf(server, name).includes('ACCESS: needs a Proof account'),
     );
     expect(missing).toEqual([]);
+    expect(
+      [...REMOTE_UNAVAILABLE_TOOLS].filter((name) => !descriptionOf(server, name).includes('NOT AVAILABLE HERE:')),
+    ).toEqual([]);
 
     const wrongly = registered.filter(
       (name) => KEYLESS_TOOLS.has(name) && descriptionOf(server, name).includes('ACCESS:'),
@@ -308,6 +325,9 @@ describe('createProofServer — every tool tells the client what it does to the 
   const DESTRUCTIVE_POSTS = new Set([
     'revoke_delegation', // terminal
     'revoke_proof', // terminal
+    // Stop / restart a live proof or delegation; a paused delegation refuses a publisher's tools (A1).
+    'pause_proof',
+    'resume_proof',
     'regenerate_api_key', // invalidates the old key
     // Replace a signing secret: the old one stops verifying (as regenerate_api_key).
     'rotate_webhook_endpoint_secret',
@@ -319,8 +339,8 @@ describe('createProofServer — every tool tells the client what it does to the 
     'add_verification_provider',
     'create_dns_credential',
     // Demote the current primary profile (`PublicProfile.ensureSinglePrimary`).
-    'set_primary_profile',
-    'create_profile',
+    'set_primary_sub_account',
+    'create_sub_account',
   ]);
   const LOCAL_TOOLS = new Set(['render_auth_link', 'verify_delegation', 'verify_delegations']);
 
@@ -342,7 +362,7 @@ describe('createProofServer — every tool tells the client what it does to the 
     const { server } = createProofServer({ baseUrl: 'https://api.proof.holdings' });
     const tools = (server as unknown as { _registeredTools: Record<string, { annotations?: unknown }> })._registeredTools;
     const wrong = Object.entries(tools)
-      .filter(([name, t]) => JSON.stringify(t.annotations) !== JSON.stringify(annotationsFor(name)))
+      .filter(([name, t]) => JSON.stringify(t.annotations) !== JSON.stringify(annotationsFor(canonicalToolName(name))))
       .map(([name, t]) => `${name}: ${JSON.stringify(t.annotations)}`);
     expect(Object.keys(tools).length).toBeGreaterThan(100);
     expect(wrong).toEqual([]);
@@ -357,7 +377,9 @@ describe('createProofServer — every tool tells the client what it does to the 
 
   it('agrees with the HTTP method each handler calls, both ways', () => {
     const methods = methodsByTool();
-    const registered = registeredNames(createProofServer({ baseUrl: 'https://api.proof.holdings' }).server);
+    const registered = new Set(
+      [...registeredNames(createProofServer({ baseUrl: 'https://api.proof.holdings' }).server)].filter((name) => !ALIASES.has(name)),
+    );
 
     // Anti-vacuity: the parse must see every registration, and "calls no HTTP" must mean the three
     // local tools and nothing else — a handler the regex failed to read would otherwise pass as a read.

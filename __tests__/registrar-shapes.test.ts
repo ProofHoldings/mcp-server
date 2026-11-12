@@ -49,7 +49,8 @@ describe('the tool registrar', () => {
     const create = await createWith((tool) => tool('shape_probe', 'd', shape, handler));
     const probe = registered(create().server).shape_probe;
     expect(probe).toBeDefined();
-    expect(probe.handler).toBe(handler);
+    // The registered handler is the module's, wrapped only by the not-found hint: it returns what the module's returns.
+    expect(await (probe.handler as (...a: unknown[]) => Promise<unknown>)({ a: 'x' }, {})).toEqual(await handler());
     expect(probe.inputSchema).toBeDefined();
   });
 
@@ -57,7 +58,8 @@ describe('the tool registrar', () => {
     const create = await createWith((tool) => tool('shape_probe', 'd', handler));
     const probe = registered(create().server).shape_probe;
     expect(probe).toBeDefined();
-    expect(probe.handler).toBe(handler);
+    // The registered handler is the module's, wrapped only by the not-found hint: it returns what the module's returns.
+    expect(await (probe.handler as (...a: unknown[]) => Promise<unknown>)({ a: 'x' }, {})).toEqual(await handler());
     expect(probe.inputSchema).toBeUndefined();
   });
 });

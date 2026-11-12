@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -14,7 +14,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/emails');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -31,7 +31,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/me/emails/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -39,7 +39,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'set_primary_email',
-    'Set an email address as the primary email for the account.',
+    'Set an email address as the primary email for the account. Always requires one code: start_2fa_for_action with action_type email_primary (no targets); without it the call answers 403 2fa_required.',
     {
       id: z.string().describe('Email record ID to set as primary'),
     },
@@ -48,7 +48,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.put(`/api/v1/me/emails/${encodeURIComponent(id)}/primary`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -56,7 +56,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'start_add_email',
-    'Start adding a new email address. Sends an OTP code to the email. Returns a session ID to verify with.',
+    'Start adding a new email address. Sends an OTP code to the email. Returns a session ID: when the user has the code, pass it with that session ID to verify_email_otp (resend_email_otp if it did not arrive; get_add_email_status reads the session).',
     {
       email: z.string().email().describe('Email address to add'),
     },
@@ -65,7 +65,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/me/emails/add', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -82,7 +82,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/me/emails/add/${encodeURIComponent(session_id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -100,7 +100,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/emails/add/${encodeURIComponent(session_id)}/verify`, { code });
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -117,7 +117,24 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/me/emails/add/${encodeURIComponent(session_id)}/resend`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'preview_email_removal',
+    'Preview what remove_email would do to one email address, without changing anything: the counts the dashboard Remove dialog shows, or the reason removal would be refused. Needs a signed-in session, like remove_email.',
+    {
+      id: z.string().regex(/^[0-9a-f]{24}$/i, 'Expected a 24-hex id').describe('Email record ID (24 hex characters)'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await http.get(`/api/v1/me/emails/${encodeURIComponent(id)}/removal-preview`);
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

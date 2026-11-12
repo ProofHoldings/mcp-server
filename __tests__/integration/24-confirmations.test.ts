@@ -10,7 +10,7 @@ describe('Confirmations (3 tools)', () => {
 
   // Setup: create a HITL config to use for confirmations
   beforeAll(async () => {
-    const result = await callTool('create_hitl', {
+    const result = await callTool('create_approval_channel', {
       name: 'Confirmation Test HITL',
       channels: [{ type: 'telegram', config: { chat_id: '123456789' } }],
     });
@@ -21,7 +21,7 @@ describe('Confirmations (3 tools)', () => {
   // Cleanup: archive the HITL config
   afterAll(async () => {
     if (hitlId) {
-      await callTool('delete_hitl', { id: hitlId });
+      await callTool('archive_approval_channel', { id: hitlId });
     }
   });
 

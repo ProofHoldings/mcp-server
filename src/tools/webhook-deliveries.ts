@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult } from '../types.js';
+import { jsonResult, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -14,7 +14,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/webhook-deliveries/stats');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -24,7 +24,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     'list_webhook_deliveries',
     'List webhook delivery attempts with pagination and filtering. Shows delivery status, response codes, and timestamps.',
     {
-      status: z.enum(['pending', 'success', 'failed']).optional().describe('Filter by delivery status'),
+      status: z.enum(['pending', 'delivered', 'failed']).optional().describe('Filter by delivery status: pending (not yet delivered, retries may follow), delivered, or failed'),
       event_type: z.string().optional().describe('Filter by event type (e.g. verification.completed)'),
       verification_request_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Only deliveries for this verification request'),
       endpoint_id: z.string().regex(/^[0-9a-fA-F]{24}$/).optional().describe('Only deliveries to this webhook endpoint'),
@@ -45,7 +45,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/webhook-deliveries', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -62,7 +62,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/webhook-deliveries/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -79,7 +79,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post(`/api/v1/webhook-deliveries/${encodeURIComponent(id)}/retry`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

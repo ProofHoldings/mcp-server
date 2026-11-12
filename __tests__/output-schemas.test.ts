@@ -30,6 +30,7 @@ import { createProofServer } from '../src/factory.js';
 import { OUTPUT_SCHEMAS } from '../src/generated/output-schemas.js';
 import { LOCAL_OUTPUT_SCHEMA_TOOLS, OUTPUT_SCHEMA_EXEMPTIONS } from '../src/output-schema.js';
 import { jsonResult } from '../src/types.js';
+import { canonicalToolName } from '../src/tool-renames.js';
 
 type Json = Record<string, unknown>;
 type Tool = { name: string; inputSchema: Json; outputSchema?: Json };
@@ -122,6 +123,8 @@ const ARG_OVERRIDES: Record<string, Json> = {
   // `card` XOR `token` is a refinement the advertised schema cannot express.
   verify_delegation: DELEGATION_ITEM,
   verify_delegations: { items: [DELEGATION_ITEM] },
+  // A 24-hex asset id: the tool refuses any other shape by a refinement the advertised schema cannot express (T8c).
+  revoke_my_proof: { id: '0123456789abcdef01234567' },
 };
 
 // ---- Recording fetch ----
@@ -160,7 +163,9 @@ async function connect(signIn: boolean) {
   const client = new Client({ name: 'output-schemas-test', version: '1.0.0' });
   await client.connect(clientSide);
   const { tools } = await client.listTools();
-  return { client, tools: tools as Tool[] };
+  // The deprecated aliases carry no output schema by design and stand for a tool listed here
+  // (`tool-renames.test.ts` holds them to that tool), so the artifact is judged over the tools.
+  return { client, tools: (tools as Tool[]).filter((t) => canonicalToolName(t.name) === t.name) };
 }
 
 type Call = { isError: boolean; text: string; structured: unknown; requests: Array<{ method: string; path: string }> };

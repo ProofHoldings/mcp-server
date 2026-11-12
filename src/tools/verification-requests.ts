@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, pollUntilTerminal, VERIFICATION_TYPE_VALUES, VERIFICATION_CHANNEL_VALUES, WAIT_DEFAULT_SECONDS } from '../types.js';
+import { jsonResult, pollUntilTerminal, VERIFICATION_TYPE_VALUES, VERIFICATION_CHANNEL_VALUES, WAIT_DEFAULT_SECONDS, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 const channelEnum = z.enum(VERIFICATION_CHANNEL_VALUES);
@@ -9,7 +9,7 @@ const channelEnum = z.enum(VERIFICATION_CHANNEL_VALUES);
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   tool(
     'create_verification_request',
-    'Create a multi-asset verification request. Allows verifying multiple assets (phone, email, domain, social, wallet, account, telegram_bot) in a single flow.',
+    'Create a multi-asset verification request. Allows verifying multiple assets (phone, email, domain, social, wallet, account, telegram_bot) in a single flow. Give the recipient the returned verification_url; wait_for_request or get_verification_request then reads its progress until it is completed, expired or cancelled.',
     {
       assets: z.array(z.object({
         type: z.enum(VERIFICATION_TYPE_VALUES).describe('Asset type to verify'),
@@ -28,7 +28,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       redirect_url: z.string().optional().describe('URL to redirect user after verification completes (HTTPS only)'),
       callback_url: z.string().optional().describe('Webhook URL for status updates (HTTPS only)'),
       expires_in: z.number().int().positive().optional().describe('Request expiry in seconds (default: 604800, i.e. 7 days; max: 2592000, i.e. 30 days)'),
-      public_profile_id: z.string().optional().describe('Public profile ID for branding'),
+      public_profile_id: z.string().optional().describe('Sub-account ID for branding'),
       proof_expiry_days: z.number().int().optional().describe('Per-request proof expiry override in days (7, 30, 90, or 365)'),
       validity_requirement: z.string().regex(/^\d+[hdwm]$/).optional().describe('How fresh an existing proof must be to count, as <n>h, <n>d, <n>w or <n>m (e.g. "7d")'),
     },
@@ -37,7 +37,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/verification-requests', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -54,7 +54,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/verification-requests/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -71,7 +71,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/verification-requests/${encodeURIComponent(id)}/proofs`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -96,7 +96,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/verification-requests', query);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -113,7 +113,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/verification-requests/by-reference/${encodeURIComponent(reference_id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -130,7 +130,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/verification-requests/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -152,7 +152,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
           `verification request ${id}`,
         );
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },

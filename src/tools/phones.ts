@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, errorResult, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY } from '../types.js';
+import { jsonResult, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY, apiErrorResult } from '../types.js';
 import { ApiError } from '../http.js';
 
 export function registerTools(tool: ToolRegistrar, http: HttpClient) {
@@ -14,7 +14,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get('/api/v1/me/phones');
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -31,7 +31,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.del(`/api/v1/me/phones/${encodeURIComponent(id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -39,7 +39,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'set_primary_phone',
-    'Set a phone number as the primary phone for the account.',
+    'Set a phone number as the primary phone for the account. Always requires one code: start_2fa_for_action with action_type phone_primary (no targets); without it the call answers 403 2fa_required.',
     {
       id: z.string().describe('Phone record ID to set as primary'),
     },
@@ -48,7 +48,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.put(`/api/v1/me/phones/${encodeURIComponent(id)}/primary`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -65,7 +65,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.post('/api/v1/me/phones/add', args);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
@@ -82,7 +82,24 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
         const result = await http.get(`/api/v1/me/phones/add/${encodeURIComponent(session_id)}`);
         return jsonResult(result);
       } catch (e) {
-        if (e instanceof ApiError) return errorResult(`${e.code}: ${e.message}`);
+        if (e instanceof ApiError) return apiErrorResult(e);
+        throw e;
+      }
+    },
+  );
+
+  tool(
+    'preview_phone_removal',
+    'Preview what remove_phone would do to one phone, without changing anything: the counts the dashboard Remove dialog shows, or the reason removal would be refused. Needs a signed-in session, like remove_phone.',
+    {
+      id: z.string().regex(/^[0-9a-f]{24}$/i, 'Expected a 24-hex id').describe('Phone record ID (24 hex characters)'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await http.get(`/api/v1/me/phones/${encodeURIComponent(id)}/removal-preview`);
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return apiErrorResult(e);
         throw e;
       }
     },
