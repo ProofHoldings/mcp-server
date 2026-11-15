@@ -5,7 +5,7 @@
 //
 // Of the carriers a version bump has to move, this is the one it misses: a bare constant at the
 // top of a module about HTTP, where nothing about editing the manifest leads a reader.
-const VERSION = '1.10.0';
+const VERSION = '1.11.0';
 
 // Every request names this client: the issuer tells a request an agent made, signed in as a person,
 // from one the person made in the dashboard by this prefix, and labels it with the name the agent's
@@ -368,7 +368,10 @@ export class HttpClient {
               : typeof body.code === 'string'
                 ? body
                 : undefined
-          ) as { code?: string; message?: string; details?: unknown; request_id?: unknown; top_up_url?: unknown } | undefined;
+          ) as {
+            code?: string; message?: string; details?: unknown; request_id?: unknown; top_up_url?: unknown;
+            action_type?: unknown; reason?: unknown; targets?: unknown;
+          } | undefined;
           const code = apiError?.code ?? `http_${response.status}`;
           // A body with no code is the edge or a proxy answering, not the API: a 5xx there is temporary.
           const message =
@@ -379,6 +382,7 @@ export class HttpClient {
           const extra: ApiErrorExtra = {
             requestId: typeof apiError?.request_id === 'string' ? apiError.request_id : response.headers.get('X-Request-Id') ?? undefined,
             topUpUrl: typeof apiError?.top_up_url === 'string' ? apiError.top_up_url : undefined,
+            stepUp: stepUpOf(code, apiError),
           };
 
           // Expired session JWT: refresh once and retry the original request.
@@ -584,11 +588,36 @@ export interface ApiErrorExtra {
   requestId?: string;
   /** Where a human tops up the prepaid balance (`balance_empty`). */
   topUpUrl?: string;
+  /** A `2fa_required` refusal's step-up fields (`stepUpOf`). */
+  stepUp?: StepUp;
+}
+
+/**
+ * What a `2fa_required` refusal says the step-up must be (`send2FARequired` in the API): its action type,
+ * `target_mismatch` when a grant was confirmed for other ids, and the exact `targets` to name. Carried as
+ * keys of the error envelope (`apiErrorResult`), since the API says the targets in its sentence only while
+ * the list is short, and the message is cut.
+ */
+export interface StepUp {
+  actionType?: string;
+  reason?: string;
+  targets?: string[];
+}
+
+/** The step-up fields of a `2fa_required` error body, each only when it has its type; undefined when none does. */
+function stepUpOf(code: string, body: { action_type?: unknown; reason?: unknown; targets?: unknown } | undefined): StepUp | undefined {
+  if (code !== '2fa_required' || !body) return undefined;
+  const stepUp: StepUp = {};
+  if (typeof body.action_type === 'string') stepUp.actionType = body.action_type;
+  if (typeof body.reason === 'string') stepUp.reason = body.reason;
+  if (Array.isArray(body.targets) && body.targets.every((t) => typeof t === 'string')) stepUp.targets = [...body.targets];
+  return Object.keys(stepUp).length > 0 ? stepUp : undefined;
 }
 
 export class ApiError extends Error {
   public readonly requestId?: string;
   public readonly topUpUrl?: string;
+  public readonly stepUp?: StepUp;
 
   constructor(
     message: string,
@@ -600,6 +629,7 @@ export class ApiError extends Error {
     super(message);
     this.requestId = extra?.requestId;
     this.topUpUrl = extra?.topUpUrl;
+    this.stepUp = extra?.stepUp;
     this.name = 'ApiError';
     Object.setPrototypeOf(this, new.target.prototype);
   }

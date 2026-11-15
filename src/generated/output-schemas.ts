@@ -318,6 +318,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "type": "string",
           "description": "Why the last check failed."
         },
+        "publish_recheck_waiting_since": {
+          "type": "string",
+          "description": "When this domain joined its account's re-check line: present only while a record published at the DNS provider waits there, before its automatic re-check starts. Absent when it is not waiting."
+        },
         "created_at": {
           "type": "string"
         },
@@ -672,6 +676,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "error_message": {
           "type": "string",
           "description": "Why the last check failed."
+        },
+        "publish_recheck_waiting_since": {
+          "type": "string",
+          "description": "When this domain joined its account's re-check line: present only while a record published at the DNS provider waits there, before its automatic re-check starts. Absent when it is not waiting."
         },
         "created_at": {
           "type": "string"
@@ -1376,6 +1384,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "type": "string",
           "description": "Why the last check failed."
         },
+        "publish_recheck_waiting_since": {
+          "type": "string",
+          "description": "When this domain joined its account's re-check line: present only while a record published at the DNS provider waits there, before its automatic re-check starts. Absent when it is not waiting."
+        },
         "created_at": {
           "type": "string"
         },
@@ -1809,6 +1821,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "error_message": {
               "type": "string"
             },
+            "publish_recheck_waiting_since": {
+              "type": "string"
+            },
             "created_at": {
               "type": "string"
             },
@@ -2178,6 +2193,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "type": "string",
           "description": "Why the last check failed."
         },
+        "publish_recheck_waiting_since": {
+          "type": "string",
+          "description": "When this domain joined its account's re-check line: present only while a record published at the DNS provider waits there, before its automatic re-check starts. Absent when it is not waiting."
+        },
         "created_at": {
           "type": "string"
         },
@@ -2532,6 +2551,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "error_message": {
           "type": "string",
           "description": "Why the last check failed."
+        },
+        "publish_recheck_waiting_since": {
+          "type": "string",
+          "description": "When this domain joined its account's re-check line: present only while a record published at the DNS provider waits there, before its automatic re-check starts. Absent when it is not waiting."
         },
         "created_at": {
           "type": "string"
@@ -2888,6 +2911,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "type": "string",
           "description": "Why the last check failed."
         },
+        "publish_recheck_waiting_since": {
+          "type": "string",
+          "description": "When this domain joined its account's re-check line: present only while a record published at the DNS provider waits there, before its automatic re-check starts. Absent when it is not waiting."
+        },
         "created_at": {
           "type": "string"
         },
@@ -3072,6 +3099,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "created_at": {
           "type": "string"
+        },
+        "expires_at": {
+          "type": "string",
+          "description": "When the key stops working. Present only on a regenerated key that has an expiry (the old key's instant, carried over); absent on a key that never expires."
         },
         "warning": {
           "type": "string"
@@ -4091,7 +4122,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "max_attempts": {},
         "created_at": {},
         "updated_at": {},
-        "verified_at": {}
+        "verified_at": {},
+        "environment": {
+          "description": "Whether the verification was made with a live or a test key."
+        }
       }
     }
   },
@@ -5832,7 +5866,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
     }
   },
   "get_current_user": {
-    "precision": "described",
+    "precision": "proven",
     "operations": [
       "GET /api/v1/auth/me 200"
     ],
@@ -5840,12 +5874,99 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "type": "object",
       "properties": {
         "id": {
+          "type": "string",
           "description": "MongoDB ObjectId"
         },
-        "phone_numbers": {},
-        "emails": {},
-        "created_at": {}
-      }
+        "phone_number": {
+          "type": "string",
+          "description": "The account's login phone, when it has one."
+        },
+        "login_phone": {
+          "type": "string",
+          "description": "The phone this session signed in with, else the account's login phone; absent for an account with neither."
+        },
+        "login_email": {
+          "type": "string",
+          "description": "The email this session signed in with; absent for a phone sign-in."
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The primary sub-account's avatar, else any sub-account's; null when none has one."
+        },
+        "login_channel": {
+          "type": "string"
+        },
+        "verification_count": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "last_login_at": {
+          "type": "string"
+        },
+        "tenant": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "plan": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "plan"
+          ]
+        },
+        "deletion": {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string"
+            },
+            "scheduled_for": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "hold_reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "state",
+            "scheduled_for",
+            "hold_reason"
+          ],
+          "description": "Where the account stands with deletion; the dashboard routes a locked session to the lock page from it."
+        }
+      },
+      "required": [
+        "id",
+        "avatar_url",
+        "login_channel",
+        "verification_count",
+        "created_at",
+        "tenant",
+        "deletion"
+      ],
+      "description": "The signed-in account, as `GET /auth/me` answers it."
     }
   },
   "get_default_templates": {
@@ -7392,6 +7513,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "error_message": {
               "type": "string"
             },
+            "publish_recheck_waiting_since": {
+              "type": "string"
+            },
             "created_at": {
               "type": "string"
             },
@@ -7819,7 +7943,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
     }
   },
   "get_proof_status": {
-    "precision": "described",
+    "precision": "proven",
     "operations": [
       "GET /api/v1/proofs/{id}/status 200"
     ],
@@ -7827,21 +7951,67 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "type": "object",
       "properties": {
         "proof_id": {
+          "type": "string",
           "description": "Public proof handle (`ph_ctl_<32 hex>`), or a verification id for a legacy proof"
         },
         "status": {
+          "type": "string",
           "description": "Current status of the proof — `active` is a live proof, `suspended` the reversible pause"
         },
-        "is_valid": {},
-        "is_revoked": {},
-        "revoked_at": {},
-        "revoked_reason": {},
+        "is_valid": {
+          "type": "boolean"
+        },
+        "is_revoked": {
+          "type": "boolean"
+        },
+        "revoked_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "revoked_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "suspended_at": {
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "When the current suspension began (null unless status is `suspended`)"
         },
-        "expires_at": {},
-        "is_expired": {}
-      }
+        "expires_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "is_expired": {
+          "type": "boolean"
+        },
+        "verified_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "When the proof was issued (a registered proof) or its verification completed (a legacy proof); null when a legacy proof has no completion time."
+        }
+      },
+      "required": [
+        "proof_id",
+        "status",
+        "is_valid",
+        "is_revoked",
+        "revoked_at",
+        "revoked_reason",
+        "suspended_at",
+        "expires_at",
+        "is_expired"
+      ],
+      "description": "Proof status check result"
     }
   },
   "get_proof_token": {
@@ -8774,7 +8944,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
     }
   },
   "get_verification": {
-    "precision": "described",
+    "precision": "proven",
     "operations": [
       "GET /api/v1/verifications/{id} 200"
     ],
@@ -8782,33 +8952,98 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       "type": "object",
       "properties": {
         "id": {
+          "type": "string",
           "description": "MongoDB ObjectId"
         },
         "type": {
+          "type": "string",
           "description": "Type of asset being verified. Not yet available — no channel of theirs can be completed, so a create or start answers 400 `channel_not_available`: social, wallet, account."
         },
         "channel": {
+          "type": "string",
           "description": "Channel used for verification. Not yet available — a create or start naming one answers 400 `channel_not_available`: github, google, facebook, x, linkedin, instagram, youtube, tiktok, ethereum, solana, bitcoin, coinbase, kraken."
         },
         "identifier": {
+          "type": "string",
           "description": "The identifier being verified; absent for an identifier-free phone verification, whose number is learned only when the person completes it"
         },
         "status": {
+          "type": "string",
           "description": "Current status of the verification"
         },
         "challenge": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "instruction": {
+              "type": "string"
+            },
+            "expires_at": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
           "description": "Challenge details for verification"
         },
         "proof": {
+          "type": "object",
+          "properties": {
+            "token": {
+              "type": "string"
+            },
+            "expires_at": {
+              "type": "string"
+            },
+            "confidence": {
+              "allOf": [
+                {
+                  "type": "string"
+                },
+                {}
+              ]
+            }
+          },
+          "required": [
+            "token",
+            "expires_at"
+          ],
           "description": "Proof token after successful verification"
         },
-        "external_user_id": {},
-        "attempts": {},
-        "max_attempts": {},
-        "created_at": {},
-        "updated_at": {},
-        "verified_at": {}
-      }
+        "external_user_id": {
+          "type": "string"
+        },
+        "attempts": {
+          "type": "integer"
+        },
+        "max_attempts": {
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "verified_at": {
+          "type": "string"
+        },
+        "environment": {
+          "type": "string",
+          "description": "Whether the verification was made with a live or a test key."
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "channel",
+        "status",
+        "created_at"
+      ],
+      "description": "Verification object"
     }
   },
   "get_verification_request": {
@@ -10637,6 +10872,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               "error_message": {
                 "type": "string"
               },
+              "publish_recheck_waiting_since": {
+                "type": "string"
+              },
               "created_at": {
                 "type": "string"
               },
@@ -10739,15 +10977,58 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
     }
   },
   "list_emails": {
-    "precision": "described",
+    "precision": "proven",
     "operations": [
       "GET /api/v1/me/emails 200"
     ],
     "schema": {
       "type": "object",
       "properties": {
-        "emails": {}
-      }
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "verification_channel": {
+                "type": "string"
+              },
+              "verified_methods": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "is_primary": {
+                "type": "boolean"
+              },
+              "verified_at": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "verification_channel",
+              "verified_methods",
+              "is_primary",
+              "verified_at",
+              "created_at"
+            ]
+          }
+        }
+      },
+      "required": [
+        "data"
+      ]
     }
   },
   "list_incoming_requests": {
@@ -11517,15 +11798,72 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
     }
   },
   "list_phones": {
-    "precision": "described",
+    "precision": "proven",
     "operations": [
       "GET /api/v1/me/phones 200"
     ],
     "schema": {
       "type": "object",
       "properties": {
-        "phones": {}
-      }
+        "data": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "phone_number": {
+                "type": "string"
+              },
+              "verification_channel": {
+                "type": "string"
+              },
+              "verified_channels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "is_primary": {
+                "type": "boolean"
+              },
+              "verified_at": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "channel_metadata": {
+                "type": "object",
+                "properties": {
+                  "telegram_chat_id": {
+                    "type": "string"
+                  },
+                  "telegram_user_id": {
+                    "type": "string"
+                  },
+                  "telegram_username": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "required": [
+              "id",
+              "phone_number",
+              "verification_channel",
+              "verified_channels",
+              "is_primary",
+              "verified_at",
+              "created_at"
+            ]
+          }
+        }
+      },
+      "required": [
+        "data"
+      ]
     }
   },
   "list_public_page_proof_options": {
@@ -12681,7 +13019,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
-  "preview_profile_deletion": {
+  "preview_sub_account_deletion": {
     "precision": "described",
     "operations": [
       "GET /api/v1/me/profiles/{profileId}/deletion-preview 200"
@@ -12762,6 +13100,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "created_at": {
           "type": "string"
+        },
+        "expires_at": {
+          "type": "string",
+          "description": "When the key stops working. Present only on a regenerated key that has an expiry (the old key's instant, carried over); absent on a key that never expires."
         },
         "warning": {
           "type": "string"
@@ -13189,6 +13531,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               "type": "string"
             },
             "error_message": {
+              "type": "string"
+            },
+            "publish_recheck_waiting_since": {
               "type": "string"
             },
             "created_at": {
@@ -14367,6 +14712,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "type": "string",
           "description": "Why the last check failed."
         },
+        "publish_recheck_waiting_since": {
+          "type": "string",
+          "description": "When this domain joined its account's re-check line: present only while a record published at the DNS provider waits there, before its automatic re-check starts. Absent when it is not waiting."
+        },
         "created_at": {
           "type": "string"
         },
@@ -15025,6 +15374,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "error_message": {
               "type": "string"
             },
+            "publish_recheck_waiting_since": {
+              "type": "string"
+            },
             "created_at": {
               "type": "string"
             },
@@ -15183,6 +15535,15 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "expires_at": {},
         "instructions": {},
+        "fallback_code": {
+          "description": "Telegram and WhatsApp sign-ins: the code to send the bot by hand when the deep link does not open."
+        },
+        "fallback_message": {
+          "description": "Telegram and WhatsApp sign-ins: the whole message to send the bot by hand, the code included."
+        },
+        "created_at": {
+          "description": "When the session was started. Sent by the poll."
+        },
         "verified_at": {},
         "user_id": {}
       }
@@ -15465,7 +15826,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "max_attempts": {},
         "created_at": {},
         "updated_at": {},
-        "verified_at": {}
+        "verified_at": {},
+        "environment": {
+          "description": "Whether the verification was made with a live or a test key."
+        }
       }
     }
   },
@@ -16942,6 +17306,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
             "error_message": {
               "type": "string"
             },
+            "publish_recheck_waiting_since": {
+              "type": "string"
+            },
             "created_at": {
               "type": "string"
             },
@@ -17311,6 +17678,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "type": "string",
           "description": "Why the last check failed."
         },
+        "publish_recheck_waiting_since": {
+          "type": "string",
+          "description": "When this domain joined its account's re-check line: present only while a record published at the DNS provider waits there, before its automatic re-check starts. Absent when it is not waiting."
+        },
         "created_at": {
           "type": "string"
         },
@@ -17574,6 +17945,15 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "expires_at": {},
         "instructions": {},
+        "fallback_code": {
+          "description": "Telegram and WhatsApp sign-ins: the code to send the bot by hand when the deep link does not open."
+        },
+        "fallback_message": {
+          "description": "Telegram and WhatsApp sign-ins: the whole message to send the bot by hand, the code included."
+        },
+        "created_at": {
+          "description": "When the session was started. Sent by the poll."
+        },
         "verified_at": {},
         "user_id": {}
       }
@@ -17694,7 +18074,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "max_attempts": {},
         "created_at": {},
         "updated_at": {},
-        "verified_at": {}
+        "verified_at": {},
+        "environment": {
+          "description": "Whether the verification was made with a live or a test key."
+        }
       }
     }
   }

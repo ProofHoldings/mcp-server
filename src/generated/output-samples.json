@@ -100,6 +100,29 @@
       "message": "Verification request cancelled successfully"
     }
   ],
+  "GET /api/v1/auth/me 200": [
+    {
+      "id": "000000000000000000000001",
+      "phone_number": "+15550000044",
+      "login_phone": "+15550000044",
+      "display_name": "Owner",
+      "avatar_url": null,
+      "login_channel": "telegram",
+      "verification_count": 0,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "last_login_at": "2026-01-01T00:00:00.000Z",
+      "tenant": {
+        "id": "000000000000000000000001",
+        "name": "team.management",
+        "plan": "free"
+      },
+      "deletion": {
+        "state": "none",
+        "scheduled_for": null,
+        "hold_reason": null
+      }
+    }
+  ],
   "GET /api/v1/authorizations 200": [
     {
       "data": [
@@ -1181,6 +1204,23 @@
       "updated_at": "2026-01-01T00:00:00.000Z"
     }
   ],
+  "GET /api/v1/me/emails 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "email": "listed@team.management",
+          "verification_channel": "otp",
+          "verified_methods": [
+            "otp"
+          ],
+          "is_primary": false,
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ]
+    }
+  ],
   "GET /api/v1/me/emails/add/{sessionId} 200": [
     {
       "session_id": "addemail_00000000000000000000000000000000",
@@ -1194,6 +1234,23 @@
       "channel": "otp",
       "status": "verified",
       "verified_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "GET /api/v1/me/phones 200": [
+    {
+      "data": [
+        {
+          "id": "000000000000000000000001",
+          "phone_number": "+15550000043",
+          "verification_channel": "telegram",
+          "verified_channels": [
+            "telegram"
+          ],
+          "is_primary": false,
+          "verified_at": "2026-01-01T00:00:00.000Z",
+          "created_at": "2026-01-01T00:00:00.000Z"
+        }
+      ]
     }
   ],
   "GET /api/v1/me/phones/add/{sessionId} 200": [
@@ -1937,6 +1994,20 @@
       }
     }
   ],
+  "GET /api/v1/proofs/{id}/status 200": [
+    {
+      "proof_id": "000000000000000000000001",
+      "status": "active",
+      "is_valid": true,
+      "is_revoked": false,
+      "revoked_at": null,
+      "revoked_reason": null,
+      "suspended_at": null,
+      "expires_at": "2026-01-01T00:00:00.000Z",
+      "is_expired": false,
+      "verified_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
   "GET /api/v1/proofs/{id}/token 200": [
     {
       "proof_id": "ph_ctl_00000000000000000000000000000000",
@@ -2492,6 +2563,23 @@
         "total": 1,
         "total_pages": 1,
         "pages": 1
+      }
+    }
+  ],
+  "GET /api/v1/verifications/{id} 200": [
+    {
+      "id": "000000000000000000000001",
+      "type": "phone",
+      "channel": "whatsapp",
+      "status": "pending",
+      "identifier": "+15550000045",
+      "environment": "production",
+      "attempts": 0,
+      "max_attempts": 3,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "challenge": {
+        "expires_at": "2026-01-01T00:00:00.000Z",
+        "message": "Challenge code was provided when verification was created. Request a new verification if code was lost."
       }
     }
   ],

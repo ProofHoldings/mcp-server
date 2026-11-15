@@ -40,7 +40,7 @@ const CASES: Array<{ file: string; tool: string; args: Record<string, unknown>; 
   { file: 'settings', tool: 'get_company', args: {}, verb: 'get', call: ['/api/v1/me/company'] },
   { file: 'phones', tool: 'preview_phone_removal', args: { id: ID }, verb: 'get', call: [`/api/v1/me/phones/${ID}/removal-preview`] },
   { file: 'emails', tool: 'preview_email_removal', args: { id: ID }, verb: 'get', call: [`/api/v1/me/emails/${ID}/removal-preview`] },
-  { file: 'profiles', tool: 'preview_profile_deletion', args: { profile_id: ID }, verb: 'get', call: [`/api/v1/me/profiles/${ID}/deletion-preview`] },
+  { file: 'profiles', tool: 'preview_sub_account_deletion', args: { profile_id: ID }, verb: 'get', call: [`/api/v1/me/profiles/${ID}/deletion-preview`] },
 ];
 
 describe('A8 tools — each sends the route its api-map row names', () => {
@@ -59,7 +59,7 @@ describe('A8 tools — each sends the route its api-map row names', () => {
 
   it('cancel is destructive; the reads are read-only; resend and subscribe are additive writes', () => {
     expect(annotationsFor('cancel_lookalike_watch')).toMatchObject({ destructiveHint: true });
-    for (const name of ['get_lookalike_watch', 'list_lookalike_alerts', 'list_lookalike_reports', 'get_delegation_carriers', 'get_company', 'preview_phone_removal', 'preview_email_removal', 'preview_profile_deletion']) {
+    for (const name of ['get_lookalike_watch', 'list_lookalike_alerts', 'list_lookalike_reports', 'get_delegation_carriers', 'get_company', 'preview_phone_removal', 'preview_email_removal', 'preview_sub_account_deletion']) {
       expect(annotationsFor(name), name).toMatchObject({ readOnlyHint: true });
     }
     for (const name of ['resend_confirmation', 'subscribe_lookalike_watch']) {

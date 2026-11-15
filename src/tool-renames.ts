@@ -22,6 +22,8 @@ export interface ToolRename {
   readonly alias: boolean;
   /** What a caller migrating by hand should know beyond the name, when there is something. */
   readonly note?: string;
+  /** The release that renamed it, when not 1.10.0 (the release of the first 23). */
+  readonly since?: string;
 }
 
 export const TOOL_RENAMES: readonly ToolRename[] = [
@@ -53,6 +55,8 @@ export const TOOL_RENAMES: readonly ToolRename[] = [
   { from: 'get_my_profile', to: 'get_current_sub_account', alias: true },
   { from: 'update_my_profile', to: 'update_public_page', alias: true },
   { from: 'update_public_proofs', to: 'update_public_page_proofs', alias: true },
+  // Added in 1.10.0 beside the renamed sub-account tools and still named for a profile (Alex, 12 Nov: "rename").
+  { from: 'preview_profile_deletion', to: 'preview_sub_account_deletion', alias: true, since: '1.11.0' },
 ];
 
 const KEPT_REASON = 'already the dashboard\'s word: "proof"';

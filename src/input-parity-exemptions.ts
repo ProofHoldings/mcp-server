@@ -50,6 +50,12 @@ export const INPUT_PARITY_EXEMPTIONS: readonly InputParityExemption[] = [
     side: 'spec_only',
     reason: 'Acknowledges the key-rotation cascade, which overwrites the keys every approver enrolled against; the owner confirms it in the dashboard.',
   },
+  ...['start_2fa', 'start_2fa_for_action'].map((tool) => ({
+    tool,
+    key: 'destination',
+    side: 'spec_only' as const,
+    reason: 'Names the address in the dashboard\'s confirmation prompt and is never part of the grant, so a step-up an agent starts binds the same without it.',
+  })),
   {
     tool: 'start_login',
     key: 'return_to',

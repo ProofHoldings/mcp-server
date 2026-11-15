@@ -263,7 +263,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   );
 
   tool(
-    'preview_profile_deletion',
+    'preview_sub_account_deletion',
     'Preview what delete_sub_account would do to one sub-account, without changing anything: the counts the dashboard Delete sub-account dialog shows and the sub-account that would take its place, or why deletion is refused (allowed: false). Needs profiles:read; a key bound to a sub-account previews only its own.',
     {
       profile_id: z.string().describe('Sub-account ID'),

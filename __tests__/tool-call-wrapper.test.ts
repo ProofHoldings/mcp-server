@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { installToolCallWrapper, normalizeToolResult, UNEXPECTED_FAILURE } from '../src/toolCallWrapper.js';
 import { createProofServer } from '../src/factory.js';
 import { ApiError } from '../src/http.js';
-import { errorResult, jsonResult } from '../src/types.js';
+import { apiErrorResult, errorResult, jsonResult } from '../src/types.js';
 
 type Handler = (request: unknown, extra: unknown) => Promise<unknown>;
 
@@ -38,6 +38,12 @@ describe('normalizeToolResult', () => {
 
   it('leaves an envelope error untouched', () => {
     const result = errorResult('not_found: gone');
+
+    expect(normalizeToolResult(result)).toBe(result);
+  });
+
+  it('leaves a 2fa_required envelope with its step-up keys untouched', () => {
+    const result = errorResult('2fa_required: confirm first', { action_type: 'webhook_write', reason: 'target_mismatch', targets: ['abc'] });
 
     expect(normalizeToolResult(result)).toBe(result);
   });
@@ -204,15 +210,35 @@ describe('against the real SDK', () => {
     });
   });
 
+  it('delivers a 2fa_required envelope with its step-up keys byte for byte', async () => {
+    const instance = createProofServer({ apiKey: 'pk_test', baseUrl: 'https://api.proof.holdings' });
+    const refusal = new ApiError('2FA verification required to revoke this proof', '2fa_required', 403, undefined, {
+      stepUp: { actionType: 'revocation_bulk', reason: 'target_mismatch', targets: ['ph_ctl_x'] },
+    });
+    vi.spyOn(instance.http, 'get').mockRejectedValue(refusal);
+    const client = await connected(instance);
+
+    const result = (await call(client, 'get_proof_status', { id: 'ph_ctl_x' })) as { content: Array<{ text: string }> };
+
+    expect(result.content[0].text).toBe(apiErrorResult(refusal).content[0].text);
+    expect(Object.keys(JSON.parse(result.content[0].text))).toEqual(['error', 'message', 'retryable', 'action_type', 'reason', 'targets']);
+  });
+
   it('returns a success as compact JSON', async () => {
     const instance = createProofServer({ apiKey: 'pk_test', baseUrl: 'https://api.proof.holdings' });
-    vi.spyOn(instance.http, 'get').mockResolvedValue({ status: 'active', id: 'ph_ctl_x' });
+    // A whole status body: the tool's output schema is proven against the API's real answer, so a
+    // two-field stub would be refused as ours (internal_error) rather than returned.
+    const status = {
+      proof_id: 'ph_ctl_x', status: 'active', is_valid: true, is_revoked: false, revoked_at: null, revoked_reason: null,
+      suspended_at: null, expires_at: '2027-01-01T00:00:00.000Z', is_expired: false, verified_at: '2026-01-01T00:00:00.000Z',
+    };
+    vi.spyOn(instance.http, 'get').mockResolvedValue(status);
     const client = await connected(instance);
 
     const result = (await call(client, 'get_proof_status', { id: 'ph_ctl_x' })) as { isError?: boolean; content: Array<{ text: string }> };
 
     expect(result.isError).toBeFalsy();
-    expect(result.content[0].text).toBe('{"status":"active","id":"ph_ctl_x"}');
+    expect(result.content[0].text).toBe(JSON.stringify(status));
   });
 
   it('answers a result that fails its own output schema with internal_error, not invalid_arguments', async () => {

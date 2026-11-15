@@ -20,8 +20,8 @@ function registeredNames(server: unknown): Set<string> {
 }
 
 describe('tool renames — the confirmed table, registered', () => {
-  it('is the confirmed shape: 23 renames and 7 kept names, no name used twice', () => {
-    expect(TOOL_RENAMES).toHaveLength(23);
+  it('is the confirmed shape: 24 renames and 7 kept names, no name used twice', () => {
+    expect(TOOL_RENAMES).toHaveLength(24);
     expect(KEPT_TOOL_NAMES).toHaveLength(7);
     const all = [...TOOL_RENAMES.flatMap((row) => [row.from, row.to]), ...KEPT_TOOL_NAMES.map((kept) => kept.name)];
     expect(new Set(all).size).toBe(all.length);

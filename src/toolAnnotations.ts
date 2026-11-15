@@ -111,7 +111,7 @@ export const READ_ONLY_TOOLS: ReadonlySet<string> = new Set([
   'get_company',
   'preview_phone_removal',
   'preview_email_removal',
-  'preview_profile_deletion',
+  'preview_sub_account_deletion',
 ]);
 
 /**

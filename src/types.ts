@@ -98,6 +98,7 @@ export const ENVELOPE_RETRYABLE: Readonly<Record<string, boolean>> = {
   too_many_pending_requests: false,
   transfer_limit_exceeded: false,
   too_many_connections: false,
+  address_busy: false,
   authorization_unavailable: false,
   challenge_delivery_failed: false,
   billing_unavailable: false,
@@ -148,9 +149,25 @@ export function jsonResult(data: unknown) {
     : text;
 }
 
-export function errorResult(message: string) {
+/**
+ * The keys a `2fa_required` envelope adds after `error`, `message`, `retryable` (1.11.0, contract § 8):
+ * what the step-up must be, as the API sent it. Never cut — a long `targets` list is exactly the one the
+ * API leaves out of its own sentence. Its own narrow type, so no caller can overwrite the three.
+ */
+export interface StepUpEnvelopeKeys {
+  action_type?: string;
+  reason?: string;
+  targets?: string[];
+}
+
+export function errorResult(message: string, stepUp?: StepUpEnvelopeKeys) {
+  const envelope: ErrorEnvelope & StepUpEnvelopeKeys = errorEnvelope(message);
+  // Assigned one by one, in this order, so the text always lists them action_type, reason, targets.
+  if (stepUp?.action_type !== undefined) envelope.action_type = stepUp.action_type;
+  if (stepUp?.reason !== undefined) envelope.reason = stepUp.reason;
+  if (stepUp?.targets !== undefined) envelope.targets = stepUp.targets;
   return {
-    content: [{ type: 'text' as const, text: JSON.stringify(errorEnvelope(message)) }],
+    content: [{ type: 'text' as const, text: JSON.stringify(envelope) }],
     isError: true,
   };
 }
@@ -190,6 +207,8 @@ const NEXT_STEP: Readonly<Record<string, string>> = {
  * and message rides INSIDE `message`, in this order: the request id, the top-up address, then each
  * failing field. The order is the point — `errorEnvelope` cuts `message` at
  * `ERROR_MESSAGE_MAX_CHARS`, and a long field list must lose its tail, not the id support asks for.
+ * The one exception is a `2fa_required` refusal's step-up fields, which ride as envelope KEYS
+ * (`StepUpEnvelopeKeys`), never cut; the message is built the same with or without them.
  */
 export function apiErrorResult(e: {
   code: string;
@@ -197,6 +216,8 @@ export function apiErrorResult(e: {
   details?: unknown;
   requestId?: string;
   topUpUrl?: string;
+  /** `ApiError.stepUp`: what a `2fa_required` refusal says the step-up must be. Read for that code only. */
+  stepUp?: { actionType?: string; reason?: string; targets?: string[] };
 }) {
   const parts = [`${e.code}: ${e.message}`];
   const next = NEXT_STEP[e.code];
@@ -205,7 +226,10 @@ export function apiErrorResult(e: {
   if (e.topUpUrl) parts.push(`top_up_url: ${e.topUpUrl}`);
   const fields = describeDetails(e.details);
   if (fields) parts.push(`Fields — ${fields}`);
-  return errorResult(parts.join(' '));
+  const stepUp = e.code === '2fa_required' && e.stepUp
+    ? { action_type: e.stepUp.actionType, reason: e.stepUp.reason, targets: e.stepUp.targets }
+    : undefined;
+  return errorResult(parts.join(' '), stepUp);
 }
 
 /** `[{field, message}]` (the validator's shape) as `field: message; …`; anything else as compact JSON. */

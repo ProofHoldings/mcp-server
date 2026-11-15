@@ -78,6 +78,20 @@ localhost).
 
 ## Client Setup
 
+### Claude Desktop: the hosted server as a connector
+
+Claude Desktop adds the hosted server as a custom connector. Two of the options the dialog picks for you do not work with our server, so change them before you save. These steps were checked in Claude Desktop 5.1231.
+
+1. Open **Settings → Customize → Connectors**, choose **+ Add**, then the custom connector. The dialog is titled **Add custom connector**.
+2. Give it a name and the URL `https://api.proof.holdings/mcp`.
+3. Under **Authentication**, choose **Sign in when needed**. Desktop picks **No sign-in** for you (marked "Detected"), which is for servers without OAuth sign-in; ours signs in with OAuth, and it offers some tools without an account.
+4. Under **OAuth client**, which appears once you have done step 3, choose **Register automatically**. Desktop picks **Use Claude's published identity** for you, and our server does not support that yet.
+5. Leave **Request headers** empty and choose **Add**.
+
+The first tool that needs an API key (for example `get_self_api_key`) then shows **Authentication required to use this tool** with a **Connect** button. Claude asks you to finish connecting, then our page **Connect an MCP client** opens with the request. Approve it and confirm with the code we send you; the tool then runs.
+
+### The local server in a config file
+
 Add the following to your MCP client config file:
 
 ```json
@@ -109,7 +123,7 @@ name is looked up on `PATH`, or by `npx` in the npm registry, where it can belon
 
 ## Tools (193 tools)
 
-**Renamed in 1.10.0.** 23 of the tools took the dashboard's names for what they act on — approval channel, Your proofs, sub-account, Public page. Their old names still answer, hosted and local alike, as deprecated aliases listed in the changelog, until 2.0.0: update any permission rule, skill or script that names a tool by hand before then.
+**Renamed in 1.10.0 and 1.11.0.** 24 of the tools took the dashboard's names for what they act on — approval channel, Your proofs, sub-account, Public page. Their old names still answer, hosted and local alike, as deprecated aliases listed in the changelog, until 2.0.0: update any permission rule, skill or script that names a tool by hand before then.
 
 Group totals are exact. The tables name the tools you are most likely to reach for rather than all
 of them — your MCP client's own `tools/list` is the complete, current list, and it is the one this

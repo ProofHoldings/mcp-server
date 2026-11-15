@@ -1101,7 +1101,7 @@
       "id": "path"
     }
   },
-  "preview_profile_deletion": {
+  "preview_sub_account_deletion": {
     "operations": [
       "GET /api/v1/me/profiles/{profileId}/deletion-preview"
     ],
@@ -1370,6 +1370,7 @@
     "inputs": {
       "action_type": "body",
       "channel": "body",
+      "destination": "body",
       "email_id": "body",
       "phone_id": "body",
       "single_use": "body",
@@ -1384,6 +1385,7 @@
     "inputs": {
       "action_type": "body",
       "channel": "body",
+      "destination": "body",
       "email_id": "body",
       "phone_id": "body",
       "single_use": "body",
