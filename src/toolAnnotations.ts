@@ -146,6 +146,8 @@ export const DESTRUCTIVE_TOOLS: ReadonlySet<string> = new Set([
   // PUT / PATCH
   'set_primary_email',
   'set_primary_phone',
+  'set_email_account_access',
+  'set_phone_account_access',
   'upload_approval_channel_keys',
   'update_sub_account_page_proofs',
   'update_public_page',

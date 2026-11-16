@@ -1321,6 +1321,24 @@
       "id": "path"
     }
   },
+  "set_email_account_access": {
+    "operations": [
+      "PUT /api/v1/me/emails/{id}/account-access"
+    ],
+    "inputs": {
+      "account_access": "body",
+      "id": "path"
+    }
+  },
+  "set_phone_account_access": {
+    "operations": [
+      "PUT /api/v1/me/phones/{id}/account-access"
+    ],
+    "inputs": {
+      "account_access": "body",
+      "id": "path"
+    }
+  },
   "set_primary_email": {
     "operations": [
       "PUT /api/v1/me/emails/{id}/primary"

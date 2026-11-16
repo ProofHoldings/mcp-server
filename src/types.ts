@@ -59,6 +59,8 @@ export const ENVELOPE_RETRYABLE: Readonly<Record<string, boolean>> = {
   http_502: true,
   http_503: true,
   http_504: true,
+  access_change_unavailable: true,
+  account_unnamed: true,
   artifact_claim_busy: true,
   artifact_claim_unavailable: true,
   audit_unavailable: true,

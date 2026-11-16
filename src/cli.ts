@@ -428,6 +428,12 @@ function showChallenge(io: CliIO, r: Challenge): void {
  */
 const COMPLETED_ELSEWHERE = `That sign-in went elsewhere: the link signed in the browser you opened the link in, not this terminal. Run ${LOGIN_COMMAND} again and, on the link's page, press "Sign in the browser that requested this".`;
 
+/**
+ * A messenger or SMS sign-in from a number whose Account access is off (m-asset-sign-in-choice) — the approved page
+ * sentence, verbatim (the backend's `ACCOUNT_ACCESS_COPY.pageNumberOff`; this package cannot import it).
+ */
+const ACCOUNT_ACCESS_OFF = "This number can't be used to sign in. Account access is turned off for it. Sign in with an email or phone that has account access.";
+
 /** Poll until `verified`; a 404 or the deadline means the challenge expired. Network blips are ridden out. */
 async function waitForVerified(ctx: Context, http: HttpClient, path: string, expiresAt: string | undefined, expired: string): Promise<void> {
   const deadline = Date.parse(expiresAt ?? '') || ctx.now() + 600_000;
@@ -438,6 +444,7 @@ async function waitForVerified(ctx: Context, http: HttpClient, path: string, exp
       if (r.status === 'verified') return;
       if (r.status === 'expired' || r.status === 'failed') throw new LoginFailed(expired);
       if (r.status === 'completed_elsewhere') throw new LoginFailed(COMPLETED_ELSEWHERE);
+      if (r.status === 'account_access_off') throw new LoginFailed(ACCOUNT_ACCESS_OFF);
     } catch (e) {
       if (e instanceof LoginFailed) throw e;
       if (!(e instanceof ApiError)) throw e;

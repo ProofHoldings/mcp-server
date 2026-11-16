@@ -109,6 +109,8 @@ export const SESSION_TOOLS: ReadonlySet<string> = new Set([
   'revoke_my_proof',
   'set_primary_email',
   'set_primary_phone',
+  'set_email_account_access',
+  'set_phone_account_access',
   'setup_domain_email',
   'share_request_email',
   'start_2fa',

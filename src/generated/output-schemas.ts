@@ -3031,7 +3031,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "Authentication channel"
         },
         "status": {
-          "description": "Status of an auth session. `completed_elsewhere` (terminal, no cookies): an email sign-in the person completed in ANOTHER browser by pressing \"Sign in here\" on the link's page — this session will never become `verified`."
+          "description": "Status of an auth session. `completed_elsewhere` (terminal, no cookies): an email sign-in the person completed in ANOTHER browser by pressing \"Sign in here\" on the link's page — this session will never become `verified`. `account_access_off` (terminal, no cookies): a WhatsApp, Telegram or SMS sign-in from a number whose account has turned its Account access off — the number signs in to nothing and no account is created for it. An email sign-in never reads it: that session simply expires, so the page discloses nothing about the address."
         },
         "deep_link": {},
         "qr_code": {
@@ -11007,6 +11007,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
               "is_primary": {
                 "type": "boolean"
               },
+              "account_access": {
+                "type": "boolean"
+              },
               "verified_at": {
                 "type": "string"
               },
@@ -11826,6 +11829,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
                 }
               },
               "is_primary": {
+                "type": "boolean"
+              },
+              "account_access": {
                 "type": "boolean"
               },
               "verified_at": {
@@ -14112,6 +14118,42 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
       }
     }
   },
+  "set_email_account_access": {
+    "precision": "described",
+    "operations": [
+      "PUT /api/v1/me/emails/{id}/account-access 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "MongoDB ObjectId"
+        },
+        "type": {},
+        "account_access": {
+          "description": "The switch as it now stands."
+        }
+      }
+    }
+  },
+  "set_phone_account_access": {
+    "precision": "described",
+    "operations": [
+      "PUT /api/v1/me/phones/{id}/account-access 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "description": "MongoDB ObjectId"
+        },
+        "type": {},
+        "account_access": {
+          "description": "The switch as it now stands."
+        }
+      }
+    }
+  },
   "set_primary_email": {
     "precision": "proven",
     "operations": [
@@ -15524,7 +15566,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "Authentication channel"
         },
         "status": {
-          "description": "Status of an auth session. `completed_elsewhere` (terminal, no cookies): an email sign-in the person completed in ANOTHER browser by pressing \"Sign in here\" on the link's page — this session will never become `verified`."
+          "description": "Status of an auth session. `completed_elsewhere` (terminal, no cookies): an email sign-in the person completed in ANOTHER browser by pressing \"Sign in here\" on the link's page — this session will never become `verified`. `account_access_off` (terminal, no cookies): a WhatsApp, Telegram or SMS sign-in from a number whose account has turned its Account access off — the number signs in to nothing and no account is created for it. An email sign-in never reads it: that session simply expires, so the page discloses nothing about the address."
         },
         "deep_link": {},
         "qr_code": {
@@ -17847,7 +17889,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "Authentication channel"
         },
         "status": {
-          "description": "Status of an auth session. `completed_elsewhere` (terminal, no cookies): an email sign-in the person completed in ANOTHER browser by pressing \"Sign in here\" on the link's page — this session will never become `verified`."
+          "description": "Status of an auth session. `completed_elsewhere` (terminal, no cookies): an email sign-in the person completed in ANOTHER browser by pressing \"Sign in here\" on the link's page — this session will never become `verified`. `account_access_off` (terminal, no cookies): a WhatsApp, Telegram or SMS sign-in from a number whose account has turned its Account access off — the number signs in to nothing and no account is created for it. An email sign-in never reads it: that session simply expires, so the page discloses nothing about the address."
         },
         "deep_link": {},
         "qr_code": {
@@ -17934,7 +17976,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           "description": "Authentication channel"
         },
         "status": {
-          "description": "Status of an auth session. `completed_elsewhere` (terminal, no cookies): an email sign-in the person completed in ANOTHER browser by pressing \"Sign in here\" on the link's page — this session will never become `verified`."
+          "description": "Status of an auth session. `completed_elsewhere` (terminal, no cookies): an email sign-in the person completed in ANOTHER browser by pressing \"Sign in here\" on the link's page — this session will never become `verified`. `account_access_off` (terminal, no cookies): a WhatsApp, Telegram or SMS sign-in from a number whose account has turned its Account access off — the number signs in to nothing and no account is created for it. An email sign-in never reads it: that session simply expires, so the page discloses nothing about the address."
         },
         "deep_link": {},
         "qr_code": {

@@ -38,6 +38,24 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
   );
 
   tool(
+    'set_phone_account_access',
+    'Turn Account access on or off for one of the account\'s phone numbers: whether it signs in to the account and confirms its sensitive actions (2FA step-ups). Every new phone number starts on. Either direction requires one code: start_2fa_for_action with action_type account_access and targets ["act:access_on", "<id>"] to turn it on or ["act:access_off", "<id>"] to turn it off; without it the call answers 403 2fa_required. Turning off the last way into the account answers 409 last_account_access. Turning it off ends the sign-in sessions this number opened within 15 minutes (at their next renewal) and signs out no other device; MCP sign-ins and API keys are not sessions and are not affected.',
+    {
+      id: z.string().describe('Phone number record ID'),
+      account_access: z.boolean().describe('true: it signs in and confirms sensitive actions; false: it does neither'),
+    },
+    async ({ id, account_access }) => {
+      try {
+        const result = await http.put(`/api/v1/me/phones/${encodeURIComponent(id)}/account-access`, { account_access });
+        return jsonResult(result);
+      } catch (e) {
+        if (e instanceof ApiError) return apiErrorResult(e);
+        throw e;
+      }
+    },
+  );
+
+  tool(
     'set_primary_phone',
     'Set a phone number as the primary phone for the account. Always requires one code: start_2fa_for_action with action_type phone_primary (no targets); without it the call answers 403 2fa_required.',
     {

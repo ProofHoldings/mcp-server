@@ -1378,13 +1378,20 @@ describe('emails tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 8 email tools', () => {
-    expect(tools).toHaveLength(8);
+  it('registers all 9 email tools', () => {
+    expect(tools).toHaveLength(9);
     expect(tools.map(t => t.name)).toEqual([
-      'list_emails', 'remove_email', 'set_primary_email',
+      'list_emails', 'remove_email', 'set_email_account_access', 'set_primary_email',
       'start_add_email', 'get_add_email_status', 'verify_email_otp', 'resend_email_otp',
       'preview_email_removal',
     ]);
+  });
+
+  it('set_email_account_access calls PUT /api/v1/me/emails/:id/account-access with the switch', async () => {
+    http.put.mockResolvedValueOnce({ id: 'e1', type: 'email', account_access: false });
+    const tool = findTool(tools, 'set_email_account_access');
+    await tool.handler({ id: 'e1', account_access: false });
+    expect(http.put).toHaveBeenCalledWith('/api/v1/me/emails/e1/account-access', { account_access: false });
   });
 
   it('list_emails calls GET /api/v1/me/emails', async () => {
@@ -1457,13 +1464,20 @@ describe('phones tools', () => {
     tools = captureTools(mod.registerTools, http);
   });
 
-  it('registers all 6 phone tools', () => {
-    expect(tools).toHaveLength(6);
+  it('registers all 7 phone tools', () => {
+    expect(tools).toHaveLength(7);
     expect(tools.map(t => t.name)).toEqual([
-      'list_phones', 'remove_phone', 'set_primary_phone',
+      'list_phones', 'remove_phone', 'set_phone_account_access', 'set_primary_phone',
       'start_add_phone', 'get_add_phone_status',
       'preview_phone_removal',
     ]);
+  });
+
+  it('set_phone_account_access calls PUT /api/v1/me/phones/:id/account-access with the switch', async () => {
+    http.put.mockResolvedValueOnce({ id: 'p1', type: 'phone', account_access: true });
+    const tool = findTool(tools, 'set_phone_account_access');
+    await tool.handler({ id: 'p1', account_access: true });
+    expect(http.put).toHaveBeenCalledWith('/api/v1/me/phones/p1/account-access', { account_access: true });
   });
 
   it('list_phones calls GET /api/v1/me/phones', async () => {

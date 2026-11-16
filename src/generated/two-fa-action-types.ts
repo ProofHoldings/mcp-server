@@ -14,6 +14,7 @@ export const PUBLIC_TWO_FA_ACTION_TYPES = [
   "email_add",
   "email_remove",
   "email_primary",
+  "account_access",
   "account_delete",
   "master_key_change",
   "hitl_key_rotate",

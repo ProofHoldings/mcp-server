@@ -162,7 +162,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
       // `src/__tests__/drift/delegation-publication.test.ts` (h-npm-registry-release). If this is
       // ever replaced by a real read, delete the pin in the same change: a pin over a derived
       // value guards nothing.
-      version: '1.11.0',
+      version: '1.12.0',
     },
     { instructions: serverInstructions(access) },
   );

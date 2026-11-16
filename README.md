@@ -2,7 +2,7 @@
 
 [![Proof of Delegation](https://proof.holdings/badge/npm/@proof-holdings/mcp-server)](https://proof.holdings/npm/@proof-holdings/mcp-server)
 
-MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 193 tools for AI agents — 192 for the API plus one delegation status tool — to create verifications, validate proofs, manage assets, and more.
+MCP (Model Context Protocol) server for the [proof.holdings](https://proof.holdings) API. Exposes 195 tools for AI agents — 194 for the API plus one delegation status tool — to create verifications, validate proofs, manage assets, and more.
 
 ## Two ways to connect
 
@@ -121,7 +121,7 @@ Config file location by client:
 Keep the scoped `npx -y @proof-holdings/mcp-server` command even after a global install. A bare command
 name is looked up on `PATH`, or by `npx` in the npm registry, where it can belong to someone else's package.
 
-## Tools (193 tools)
+## Tools (195 tools)
 
 **Renamed in 1.10.0 and 1.11.0.** 24 of the tools took the dashboard's names for what they act on — approval channel, Your proofs, sub-account, Public page. Their old names still answer, hosted and local alike, as deprecated aliases listed in the changelog, until 2.0.0: update any permission rule, skill or script that names a tool by hand before then.
 
@@ -152,7 +152,7 @@ server answers from.
 | `verify_domain_with_credentials` | Prove control using stored credentials |
 | `setup_domain_email` | Set up sending from the domain |
 
-### Account, settings & billing (42 tools)
+### Account, settings & billing (44 tools)
 
 | Tool | Description |
 |---|---|

@@ -26,7 +26,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
 
   tool(
     'wait_for_login',
-    'Poll a login session until the user completes authentication. Uses exponential backoff (2s initial, 1.5x, 30s max) with jitter.\n\nAgent usage: Call this after start_login with the returned session ID. Terminal states: "verified" (login succeeded — this server keeps the session for this connection and signs your own account records with it: emails, phones, domains, API keys, 2FA, DNS credentials, verification requests, your Public page\'s username and proof list), "failed", "expired", "completed_elsewhere" (email only: the user pressed "Sign in here" on the email link\'s page, so the browser they clicked from is signed in and this connection never will be — tell them so, and start a new login if this connection still needs one). A result with status "pending" means the wait ran out before the user finished — call this tool again with the same id.\n\n' + WAIT_AFTER_REPLY,
+    'Poll a login session until the user completes authentication. Uses exponential backoff (2s initial, 1.5x, 30s max) with jitter.\n\nAgent usage: Call this after start_login with the returned session ID. Terminal states: "verified" (login succeeded — this server keeps the session for this connection and signs your own account records with it: emails, phones, domains, API keys, 2FA, DNS credentials, verification requests, your Public page\'s username and proof list), "failed", "expired", "completed_elsewhere" (email only: the user pressed "Sign in here" on the email link\'s page, so the browser they clicked from is signed in and this connection never will be — tell them so, and start a new login if this connection still needs one), "account_access_off" (WhatsApp, Telegram or SMS only: the number signs in to an account that turned its Account access off, so nobody is signed in and no account is created — tell the user to sign in with an email or phone that has account access). A result with status "pending" means the wait ran out before the user finished — call this tool again with the same id.\n\n' + WAIT_AFTER_REPLY,
     {
       id: z.string().describe('Auth session ID from start_login'),
       timeout_seconds: z.number().int().min(1).max(600).optional().describe(`Maximum wait time in seconds (default: ${WAIT_DEFAULT_SECONDS}, max: 600). Keep it under your MCP client's request timeout (the SDK default is 60 s) — a longer wait is cut off by the client while the server is still polling. On timeout the tool answers status "pending"; call it again with the same identifier.`),
@@ -35,7 +35,7 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       try {
         return await pollUntilTerminal(
           () => http.get(`/api/v1/auth/sessions/${encodeURIComponent(id)}`) as Promise<Record<string, unknown>>,
-          ['verified', 'failed', 'expired', 'completed_elsewhere'],
+          ['verified', 'failed', 'expired', 'completed_elsewhere', 'account_access_off'],
           timeout_seconds ?? WAIT_DEFAULT_SECONDS,
           `login session ${id}`,
         );
