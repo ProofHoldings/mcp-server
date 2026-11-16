@@ -107,6 +107,7 @@ export const SESSION_TOOLS: ReadonlySet<string> = new Set([
   'resend_email_otp',
   'revoke_api_key',
   'revoke_my_proof',
+  'set_api_key_expiry',
   'set_primary_email',
   'set_primary_phone',
   'set_email_account_access',

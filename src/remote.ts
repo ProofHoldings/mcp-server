@@ -517,7 +517,7 @@ async function resolvePresentedToken(
   baseUrl: string,
   res: ServerResponse,
   budget: { take(): boolean },
-): Promise<boolean> {
+): Promise<false | { managedBySignIn: unknown }> {
   if (!budget.take()) {
     rateLimited(res, 'This server is checking too many credentials right now. Try again in a moment.', RESOLVE_RETRY_AFTER_SECONDS);
     return false;
@@ -529,8 +529,10 @@ async function resolvePresentedToken(
     // which is neither true nor one of the arms below. Unreachable today (the constructor only
     // normalises a string), and cheaper to keep correct than to explain.
     const probe = new HttpClient({ apiKey: presented, baseUrl, maxRetries: 0, timeout: RESOLVE_TIMEOUT_MS });
-    await probe.get('/api/v1/me/api-key');
-    return true;
+    // `managed_by_sign_in` (absent on an older API) is what the session's client reads to decide whether this key is one
+    // a person must replace — the ONE grant read the key-expiry note costs, made here at open and never per call (SC-11).
+    const self = await probe.get<{ managed_by_sign_in?: unknown }>('/api/v1/me/api-key');
+    return { managedBySignIn: self?.managed_by_sign_in };
   } catch (error) {
     const status = error instanceof ApiError ? error.statusCode : 0;
     const code = error instanceof ApiError ? error.code : '';
@@ -929,9 +931,11 @@ export function createRemoteServer(options: RemoteServerOptions): RemoteServer {
       // check above states: build nothing for a request that is about to be refused. A full server
       // is the whole tool set, ~1.84MB of heap by the table above, and a garbage bearer is the
       // cheapest request an attacker can send.
-      if (presented && !(await resolvePresentedToken(presented, options.baseUrl, res, resolveBudget))) return;
+      const resolved = presented ? await resolvePresentedToken(presented, options.baseUrl, res, resolveBudget) : undefined;
+      if (resolved === false) return;
 
       const { server, http, toolNames } = createProofServer({ baseUrl: options.baseUrl, apiKey: presented, remote: true, delegationToken: options.delegationToken });
+      if (resolved) http.noteKeyManagedBySignIn(resolved.managedBySignIn);
 
       const transport = new StreamableHTTPServerTransport({
         // `<replica>.<uuid>` — the prefix is what the proxy routes on. See `replicaId` above.

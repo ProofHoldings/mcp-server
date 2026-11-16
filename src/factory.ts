@@ -141,6 +141,21 @@ function withNotFoundHint(name: string, registered: ReadonlySet<string>, handler
   };
 }
 
+/**
+ * SC-11: the one line telling the user this server's key stops working soon (`HttpClient.takeKeyExpiryWarning` holds
+ * the whole rule), appended as its own text block to a SUCCESSFUL result only — an error keeps its one-block envelope,
+ * and the line waits for the next success. The structured answer is untouched; a failure to build the note costs
+ * nothing.
+ */
+function withKeyExpiryNote(http: HttpClient, handler: (...args: unknown[]) => unknown) {
+  return async (...args: unknown[]) => {
+    const result = (await handler(...args)) as { isError?: boolean; content?: Array<{ type: string; text?: string }> };
+    if (!result || result.isError || !Array.isArray(result.content)) return result;
+    const note = await http.takeKeyExpiryWarning().catch(() => undefined);
+    return note ? { ...result, content: [...result.content, { type: 'text', text: note }] } : result;
+  };
+}
+
 export function createProofServer(options: ProofServerOptions): ProofServerInstance {
   const http = new HttpClient({
     apiKey: options.apiKey,
@@ -162,7 +177,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
       // `src/__tests__/drift/delegation-publication.test.ts` (h-npm-registry-release). If this is
       // ever replaced by a real read, delete the pin in the same change: a pin over a derived
       // value guards nothing.
-      version: '1.12.0',
+      version: '1.13.0',
     },
     { instructions: serverInstructions(access) },
   );
@@ -196,7 +211,7 @@ export function createProofServer(options: ProofServerOptions): ProofServerInsta
     // comes back `insufficient_scope` (`REMOTE_UNAVAILABLE_TOOLS`).
     const handler = (options.remote && REMOTE_UNAVAILABLE_TOOLS.has(name)
       ? async () => errorResult(`tool_unavailable_remote: ${REMOTE_UNAVAILABLE_TEXT}`)
-      : withNotFoundHint(name, toolNames, (withInput ? fourth : third) as (...args: unknown[]) => unknown)) as never;
+      : withKeyExpiryNote(http, withNotFoundHint(name, toolNames, (withInput ? fourth : third) as (...args: unknown[]) => unknown))) as never;
     const registered = server.registerTool(
       name,
       {

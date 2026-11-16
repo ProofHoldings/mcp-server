@@ -165,6 +165,7 @@ export const DESTRUCTIVE_TOOLS: ReadonlySet<string> = new Set([
   'pause_proof',
   'resume_proof',
   'regenerate_api_key',
+  'set_api_key_expiry',
   'rotate_webhook_endpoint_secret',
   'rotate_callback_secret',
   'connect_cloudflare',

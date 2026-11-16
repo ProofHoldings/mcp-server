@@ -8,6 +8,7 @@ export const PUBLIC_TWO_FA_ACTION_TYPES = [
   "api_key_create",
   "api_key_revoke",
   "api_key_regenerate",
+  "api_key_expiry",
   "phone_add",
   "phone_remove",
   "phone_primary",

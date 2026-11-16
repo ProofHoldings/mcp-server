@@ -156,11 +156,19 @@ const keyCreated = {
 };
 const err = (code: string, message: string, extra: Record<string, unknown> = {}) => ({ error: { code, message, ...extra } });
 
+// The create is sent first with no code, and its refusal says which step-up to start. This is the refusal of a
+// server that does NOT bind the code to the key (an API before #932's bound create): no `targets`.
+const probeUntargeted: Step = {
+  method: 'POST', path: '/api/v1/me/api-keys', status: 403,
+  body: err('2fa_required', '2FA verification required to create API keys', { action_type: 'api_key_create' }),
+};
+
 // The happy path after the login is verified: Telegram login, WhatsApp step-up, key minted.
 function stepUpAndMint(channelAnswer = '1'): { answers: string[]; steps: Step[] } {
   return {
     answers: [channelAnswer],
     steps: [
+      probeUntargeted,
       { method: 'POST', path: '/api/v1/me/2fa/start', body: { ...twofaTelegram, channel: 'whatsapp', deep_link: 'https://wa.me/1555?text=Verify%20X' } },
       { method: 'GET', path: '/api/v1/me/2fa/2fa_abcdef', body: { session_id: '2fa_abcdef', status: 'pending', action_type: 'api_key_create' } },
       { method: 'GET', path: '/api/v1/me/2fa/2fa_abcdef', body: twofaVerified },
@@ -219,7 +227,7 @@ describe('proof-mcp commands', () => {
       expect(api.seen[0].headers.Authorization).toBeUndefined();
       expect(api.seen[0].body).toEqual({ channel: 'telegram' });
       expect(api.seen[3].headers.Authorization).toBe(`Bearer ${SESSION_JWT}`);
-      expect(api.seen[6].headers.Authorization).toBe(`Bearer ${SESSION_JWT}`);
+      expect(api.seen[7].headers.Authorization).toBe(`Bearer ${SESSION_JWT}`);
       expect(saved()[BASE]).toEqual({
         api_key: SECRET_KEY, key_id: keyCreated.id, name: 'proof-mcp login · alex-laptop · 2026-10-13',
         environment: 'production', created_at: keyCreated.created_at,
@@ -461,11 +469,12 @@ describe('proof-mcp commands', () => {
       return [
         { method: 'POST', path: '/api/v1/auth/sessions', status: 201, body: loginStart.telegram },
         { method: 'GET', path: `/api/v1/auth/sessions/${loginStart.telegram.id}`, body: verifiedPoll('telegram'), cookies: true },
+        probeUntargeted,
       ];
     }
     const mint: Step = { method: 'POST', path: '/api/v1/me/api-keys', status: 201, body: keyCreated };
 
-    it('lists the login channel last and never sends targets', async () => {
+    it('lists the login channel last, and sends no targets when the refusal names none', async () => {
       const api = fakeApi([
         ...loggedIn(),
         { method: 'POST', path: '/api/v1/me/2fa/start', body: { ...twofaTelegram, channel: 'whatsapp' } },
@@ -478,7 +487,7 @@ describe('proof-mcp commands', () => {
       expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(0);
       const menu = t.out.join('\n');
       expect(menu.indexOf('WhatsApp')).toBeLessThan(menu.indexOf('Telegram (used to log in)'));
-      expect(api.seen[2].body).toEqual({ action_type: 'api_key_create', channel: 'whatsapp' });
+      expect(api.seen[3].body).toEqual({ action_type: 'api_key_create', channel: 'whatsapp' });
       expect(t.out.join('\n')).toContain('QR-2FA');
     });
 
@@ -524,8 +533,8 @@ describe('proof-mcp commands', () => {
       const t = fakeIO(['3', '2', '111111', '222222']);
 
       expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(0);
-      expect(api.seen[3].body).toEqual({ action_type: 'api_key_create', channel: 'email', email_id: 'e2e2e2e2e2e2e2e2e2e2e2e2' });
-      expect(api.seen[5].body).toEqual({ code: '222222' });
+      expect(api.seen[4].body).toEqual({ action_type: 'api_key_create', channel: 'email', email_id: 'e2e2e2e2e2e2e2e2e2e2e2e2' });
+      expect(api.seen[6].body).toEqual({ code: '222222' });
       expect(t.out.join('\n')).toContain('home@example.com');
     });
 
@@ -575,6 +584,7 @@ describe('proof-mcp commands', () => {
     const signedIn: Step[] = [
       { method: 'POST', path: '/api/v1/auth/sessions', status: 201, body: loginStart.telegram },
       { method: 'GET', path: `/api/v1/auth/sessions/${loginStart.telegram.id}`, body: verifiedPoll('telegram'), cookies: true },
+      probeUntargeted,
       { method: 'POST', path: '/api/v1/me/2fa/start', body: { ...twofaTelegram, channel: 'whatsapp' } },
       { method: 'GET', path: '/api/v1/me/2fa/2fa_abcdef', body: twofaVerified },
     ];
@@ -654,11 +664,108 @@ describe('proof-mcp commands', () => {
     });
   });
 
+  describe('the create sent first, with no code', () => {
+    function signedIn(): Step[] {
+      return [
+        { method: 'POST', path: '/api/v1/auth/sessions', status: 201, body: loginStart.telegram },
+        { method: 'GET', path: `/api/v1/auth/sessions/${loginStart.telegram.id}`, body: verifiedPoll('telegram'), cookies: true },
+      ];
+    }
+    const refusal = (targets: string[], status: 'missing' | 'mismatch' = 'missing'): Step => ({
+      method: 'POST', path: '/api/v1/me/api-keys', status: 403,
+      body: err('2fa_required', status === 'mismatch' ? 'Your verification code was confirmed for different items.' : '2FA verification required to create this API key.', {
+        action_type: 'api_key_create', targets, ...(status === 'mismatch' ? { reason: 'target_mismatch' } : {}),
+      }),
+    });
+    const bound = ['act:create', 'environment:production', 'scope:proofs:*', 'sub_account:none', 'expires_at:never'];
+    const grant: Step[] = [
+      { method: 'POST', path: '/api/v1/me/2fa/start', body: { ...twofaTelegram, channel: 'whatsapp' } },
+      { method: 'GET', path: '/api/v1/me/2fa/2fa_abcdef', body: twofaVerified },
+    ];
+    const mint: Step = { method: 'POST', path: '/api/v1/me/api-keys', status: 201, body: keyCreated };
+
+    it('a server that binds the code: starts the step-up with exactly the targets the refusal names', async () => {
+      const api = fakeApi([...signedIn(), refusal(bound), ...grant, mint]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+
+      expect(await run('login', ['--channel', 'telegram'], fakeIO(['1']).io)).toBe(0);
+      expect(api.seen[3].body).toEqual({ action_type: 'api_key_create', channel: 'whatsapp', targets: bound });
+      // The probe and the create are the same request, so the key confirmed is the key created.
+      expect(api.seen[2].body).toEqual(api.seen[5].body);
+      expect(api.remaining()).toBe(0);
+    });
+
+    it('requires_email_selection keeps the targets on the restarted step-up', async () => {
+      const api = fakeApi([
+        ...signedIn(),
+        refusal(bound),
+        { method: 'POST', path: '/api/v1/me/2fa/start', body: {
+          requires_email_selection: true, message: 'Please select which email to use for 2FA verification.',
+          available_emails: [{ id: 'e2e2e2e2e2e2e2e2e2e2e2e2', email: 'a@example.com', is_primary: false }],
+        } },
+        { method: 'POST', path: '/api/v1/me/2fa/start', body: { ...twofaTelegram, channel: 'whatsapp' } },
+        { method: 'GET', path: '/api/v1/me/2fa/2fa_abcdef', body: twofaVerified },
+        mint,
+      ]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+
+      expect(await run('login', ['--channel', 'telegram'], fakeIO(['1', '1']).io)).toBe(0);
+      expect(api.seen[3].body).toEqual({ action_type: 'api_key_create', channel: 'whatsapp', targets: bound });
+      expect(api.seen[4].body).toEqual({ action_type: 'api_key_create', channel: 'whatsapp', email_id: 'e2e2e2e2e2e2e2e2e2e2e2e2', targets: bound });
+    });
+
+    it('a second refusal (lapsed or mismatched) confirms once more with ITS targets', async () => {
+      const other = bound.map((t) => (t === 'scope:proofs:*' ? 'scope:proofs:read' : t));
+      const api = fakeApi([...signedIn(), refusal(bound), ...grant, refusal(other, 'mismatch'), ...grant, mint]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO(['1', '1']);
+
+      expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(0);
+      expect(api.seen[6].body).toEqual({ action_type: 'api_key_create', channel: 'whatsapp', targets: other });
+      expect(t.all()).toContain('The confirmation was for a different key');
+      expect(t.all()).not.toContain('lapsed');
+      expect(api.remaining()).toBe(0);
+    });
+
+    it('stops after two confirmations rather than asking forever', async () => {
+      const api = fakeApi([...signedIn(), refusal(bound), ...grant, refusal(bound), ...grant, refusal(bound)]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO(['1', '1']);
+
+      expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(1);
+      expect(t.all()).toContain('Could not create the API key');
+      expect(api.seen.filter((r) => r.path === '/api/v1/me/2fa/start')).toHaveLength(2);
+    });
+
+    it('a create the server accepts at once (a grant already held) mints with no step-up', async () => {
+      const api = fakeApi([...signedIn(), mint]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+
+      expect(await run('login', ['--channel', 'telegram'], fakeIO([]).io)).toBe(0);
+      expect(api.seen.some((r) => r.path === '/api/v1/me/2fa/start')).toBe(false);
+      expect(saved()[BASE].key_id).toBe(keyCreated.id);
+    });
+
+    it('a create refused for another reason ends the login before any step-up is sent', async () => {
+      const api = fakeApi([
+        ...signedIn(),
+        { method: 'POST', path: '/api/v1/me/api-keys', status: 403, body: err('account_scheduled_for_deletion', 'This account is scheduled for deletion. Cancel the deletion to continue.') },
+      ]);
+      globalThis.fetch = api.fetchMock as typeof fetch;
+      const t = fakeIO([]);
+
+      expect(await run('login', ['--channel', 'telegram'], t.io)).toBe(1);
+      expect(t.all()).toContain('scheduled for deletion');
+      expect(api.seen.some((r) => r.path === '/api/v1/me/2fa/start')).toBe(false);
+    });
+  });
+
   describe('minting the key', () => {
     function upToGrant(): Step[] {
       return [
         { method: 'POST', path: '/api/v1/auth/sessions', status: 201, body: loginStart.telegram },
         { method: 'GET', path: `/api/v1/auth/sessions/${loginStart.telegram.id}`, body: verifiedPoll('telegram'), cookies: true },
+        probeUntargeted,
         { method: 'POST', path: '/api/v1/me/2fa/start', body: { ...twofaTelegram, channel: 'whatsapp' } },
         { method: 'GET', path: '/api/v1/me/2fa/2fa_abcdef', body: twofaVerified },
       ];
@@ -677,7 +784,7 @@ describe('proof-mcp commands', () => {
       globalThis.fetch = api.fetchMock as typeof fetch;
 
       expect(await run('login', ['--channel', 'telegram'], fakeIO(['1']).io)).toBe(0);
-      expect(api.seen[4].body).toEqual({
+      expect(api.seen[5].body).toEqual({
         name: 'proof-mcp login · alex-laptop · 2026-10-13', environment: 'production', scopes: defaultScopes(),
       });
     });
@@ -687,7 +794,7 @@ describe('proof-mcp commands', () => {
       globalThis.fetch = api.fetchMock as typeof fetch;
 
       expect(await run('login', ['--channel', 'telegram', '--test', '--scopes', 'proofs:read, verifications:*'], fakeIO(['1']).io)).toBe(0);
-      expect(api.seen[4].body).toEqual({
+      expect(api.seen[5].body).toEqual({
         name: 'proof-mcp login · alex-laptop · 2026-10-13', environment: 'test', scopes: ['proofs:read', 'verifications:*'],
       });
       expect(saved()[BASE].environment).toBe('test');
@@ -712,7 +819,7 @@ describe('proof-mcp commands', () => {
       });
 
       expect(code).toBe(0);
-      const name = (api.seen[4].body as { name: string }).name;
+      const name = (api.seen[5].body as { name: string }).name;
       expect(name.length).toBeLessThanOrEqual(100);
       expect(name.startsWith('proof-mcp login · hhh')).toBe(true);
       expect(name.endsWith(' · 2026-10-13')).toBe(true);

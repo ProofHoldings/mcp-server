@@ -1537,9 +1537,9 @@ describe('api keys tools', () => {
   });
 
   it('registers all 4 api key tools', () => {
-    expect(tools).toHaveLength(4);
+    expect(tools).toHaveLength(5);
     expect(tools.map(t => t.name)).toEqual([
-      'list_api_keys', 'create_api_key', 'revoke_api_key', 'regenerate_api_key',
+      'list_api_keys', 'create_api_key', 'revoke_api_key', 'regenerate_api_key', 'set_api_key_expiry',
     ]);
   });
 
@@ -1576,11 +1576,76 @@ describe('api keys tools', () => {
     expect(http.del).toHaveBeenCalledWith('/api/v1/me/api-keys/key_1');
   });
 
+  it('create_api_key passes expires_at through to the POST body', async () => {
+    http.post.mockResolvedValueOnce({ id: 'key_1', secret: 'sk_...' });
+    const tool = findTool(tools, 'create_api_key');
+    await tool.handler({ name: 'CI', expires_at: '2027-02-13T23:59:59.999+01:00' });
+    expect(http.post).toHaveBeenCalledWith('/api/v1/me/api-keys', { name: 'CI', expires_at: '2027-02-13T23:59:59.999+01:00' });
+  });
+
+  it('set_api_key_expiry calls PUT /api/v1/me/api-keys/:id/expiry with the date, or null for never', async () => {
+    const tool = findTool(tools, 'set_api_key_expiry');
+    http.put.mockResolvedValueOnce({ data: { id: 'key_1' } });
+    await tool.handler({ id: 'key_1', expires_at: '2027-02-13T23:59:59.999+01:00' });
+    expect(http.put).toHaveBeenCalledWith('/api/v1/me/api-keys/key_1/expiry', { expires_at: '2027-02-13T23:59:59.999+01:00' });
+    http.put.mockResolvedValueOnce({ data: { id: 'key_1' } });
+    await tool.handler({ id: 'key_1', expires_at: null });
+    expect(http.put).toHaveBeenLastCalledWith('/api/v1/me/api-keys/key_1/expiry', { expires_at: null });
+  });
+
+  it('set_api_key_expiry requires expires_at (a string or null), so leaving it out is not read as "never"', () => {
+    const tool = findTool(tools, 'set_api_key_expiry');
+    const schema = z.object(tool.schema as z.ZodRawShape);
+    expect(schema.safeParse({ id: 'key_1' }).success).toBe(false);
+    expect(schema.safeParse({ id: 'key_1', expires_at: null }).success).toBe(true);
+  });
+
+  it('set_api_key_expiry says the code is bound to the key AND the value, and where the exact targets come from', () => {
+    const text = findTool(tools, 'set_api_key_expiry').description;
+    expect(text).toContain('act:expires_at:never');
+    expect(text).toMatch(/act:expires_at:<[^>]*UTC[^>]*>/);
+    expect(text).toMatch(/2fa_required refusal lists the exact targets/);
+    expect(text).not.toContain('targets ["<this key id>"]');
+  });
+
+  it('set_api_key_expiry names its step-up and both refusals for the agent', () => {
+    const tool = findTool(tools, 'set_api_key_expiry');
+    for (const words of ['api_key_expiry', 'api_key_expired', 'api_key_managed_by_sign_in', 'null']) {
+      expect(tool.description).toContain(words);
+    }
+  });
+
   it('regenerate_api_key calls POST /api/v1/me/api-keys/:id/regenerate', async () => {
     http.post.mockResolvedValueOnce({ id: 'key_1', secret: 'sk_new_...' });
     const tool = findTool(tools, 'regenerate_api_key');
     await tool.handler({ id: 'key_1' });
     expect(http.post).toHaveBeenCalledWith('/api/v1/me/api-keys/key_1/regenerate');
+  });
+
+  it('regenerate_api_key sends expires_at only when given: a date, or null for never', async () => {
+    const tool = findTool(tools, 'regenerate_api_key');
+    expect(Object.keys(tool.schema)).toContain('expires_at');
+    http.post.mockResolvedValueOnce({ id: 'key_2', expires_at: '2027-02-09T14:59:59.999Z' });
+    await tool.handler({ id: 'key_1', expires_at: '2027-02-09T14:59:59.999Z' });
+    expect(http.post).toHaveBeenLastCalledWith('/api/v1/me/api-keys/key_1/regenerate', { expires_at: '2027-02-09T14:59:59.999Z' });
+    http.post.mockResolvedValueOnce({ id: 'key_3' });
+    await tool.handler({ id: 'key_1', expires_at: null });
+    expect(http.post).toHaveBeenLastCalledWith('/api/v1/me/api-keys/key_1/regenerate', { expires_at: null });
+  });
+
+  // The text is the JSON answer and nothing else (output-schemas SC-3); the end date is the answer's own expires_at,
+  // which the description explains (coordinator + Alex, 16 Nov 2026: no extra line, no exemption).
+  it('regenerate_api_key answers the JSON alone, and its description says what expires_at in it means', async () => {
+    const tool = findTool(tools, 'regenerate_api_key');
+    const dated = { id: 'key_2', expires_at: '2027-02-09T14:59:59.999Z' };
+    http.post.mockResolvedValueOnce(dated);
+    const first = (await tool.handler({ id: 'key_1' })) as { content: Array<{ text: string }>; structuredContent?: unknown };
+    expect(first.structuredContent).toEqual(dated);
+    expect(first.content).toHaveLength(1);
+    expect(JSON.parse(first.content[0].text)).toEqual(dated);
+    expect(tool.description).toContain(
+      "The answer's expires_at is when the new key stops working (carried from the old key when you send none); with no expires_at the new key never expires.",
+    );
   });
 
   it('returns error result on ApiError', async () => {

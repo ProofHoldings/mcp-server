@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 // The version this client sends in its own `User-Agent` (`proof-mcp/<version>`), i.e. what the
 // issuer's logs attribute a request to. A LITERAL for the same reason `factory.ts`'s `serverInfo`
 // one is, and safe for the same reason: the pin, not the choice. Held equal to `mcp/package.json`
@@ -5,7 +6,7 @@
 //
 // Of the carriers a version bump has to move, this is the one it misses: a bare constant at the
 // top of a module about HTTP, where nothing about editing the manifest leads a reader.
-const VERSION = '1.12.0';
+const VERSION = '1.13.0';
 
 // Every request names this client: the issuer tells a request an agent made, signed in as a person,
 // from one the person made in the dashboard by this prefix, and labels it with the name the agent's
@@ -195,6 +196,45 @@ function isPublicPath(method: string, path: string): boolean {
   return PUBLIC_PATHS.some((p) => p.method === verb && path.startsWith(p.prefix));
 }
 
+/**
+ * The answer header the API sends on every call accepted with a key that has an expiry (backend
+ * `API_KEY_EXPIRES_AT_HEADER`, `src/constants/apiKeyExpiry.ts`), and the window in which this server tells the user
+ * the key is about to stop working (the backend's owner-notice window, `API_KEY_EXPIRY_NOTICE_WINDOW_MS`). Both are
+ * held to the backend by `src/__tests__/drift/mcp-key-expiry-warning.test.ts` (m-api-key-expiry-parity SC-11).
+ */
+export const KEY_EXPIRES_AT_HEADER = 'X-Proof-Key-Expires-At';
+export const KEY_EXPIRY_WARNING_DAYS = 7;
+const KEY_EXPIRY_WARNING_MS = KEY_EXPIRY_WARNING_DAYS * 24 * 60 * 60 * 1000;
+/** The stdio kind check runs after a tool already succeeded: one try, briefly, never the full retry loop. */
+const KEY_KIND_CHECK_TIMEOUT_MS = 5_000;
+
+/** Who replaces this key when it ends: a person (`hand-made`), its sign-in connection (`sign-in`), or nobody knows. */
+export type KeyKind = 'hand-made' | 'sign-in' | 'unknown';
+
+/**
+ * THE rule for what `managed_by_sign_in` on `GET /me/api-key` means here. Present, it decides. Absent — an API older
+ * than the field — a stdio key is one a person put in PROOF_API_KEY or saved with the login command, so hand-made;
+ * a key a hosted connection presented may be its sign-in's, so unknown, and unknown never warns.
+ */
+export function keyKindFromField(field: unknown, remote: boolean): KeyKind {
+  if (field === true) return 'sign-in';
+  if (field === false) return 'hand-made';
+  return remote ? 'unknown' : 'hand-made';
+}
+
+/** The note itself, the same on stdio and hosted (approved by Alex, 16 Nov 2026). */
+export function keyExpiryNote(when: string, days: number): string {
+  return `Heads up: the Proof Holdings API key this AI client uses stops working on ${when} (in ${days} day${days === 1 ? '' : 's'}). Create a new key and update the client before then.`;
+}
+
+/** `<UTC day>:<key digest>` for every warning given in this process: once per process per UTC day per key. */
+const keyExpiryWarned = new Set<string>();
+
+/** Test hook: forget the warnings this process has given. */
+export function resetKeyExpiryWarningsForTests(): void {
+  keyExpiryWarned.clear();
+}
+
 export class HttpClient {
   public readonly baseUrl: string;
   private readonly apiKey?: string;
@@ -205,6 +245,10 @@ export class HttpClient {
   private sessionToken?: string;
   private refreshToken?: string;
   private refreshing?: Promise<boolean>;
+  /** The expiry the API last reported for this client's own key (`KEY_EXPIRES_AT_HEADER`), epoch ms. */
+  private keyExpiresAt?: number;
+  /** Who replaces the key: noted at a hosted session's open, asked once on stdio. Unset until known. */
+  private keyKind?: KeyKind;
 
   constructor(config: HttpClientConfig) {
     this.apiKey = config.apiKey;
@@ -325,6 +369,7 @@ export class HttpClient {
 
         // Capture the JWT session cookie set by the login / account-creation flows
         this.captureSetCookie(response);
+        if (bearer && bearer === this.apiKey) this.noteKeyExpiry(response, method, path);
 
         if (response.status === 429 && attempt < this.maxRetries) {
           const retryAfter = response.headers.get('Retry-After');
@@ -506,6 +551,67 @@ export class HttpClient {
       path === '/api/v1/auth/me' ||
       SESSION_AUTH_ROUTES.some((route) => route.method === verb && route.pattern.test(path))
     );
+  }
+
+  /**
+   * Records the expiry the API reports for this client's own key. The header rides on every answer to a call the key
+   * was accepted on, so a 2xx on a keyed route WITHOUT it means the key no longer has an expiry (set to never) and the
+   * old date is forgotten. A refusal, or a public route that never reads the key, says nothing either way.
+   */
+  private noteKeyExpiry(response: Response, method: string, path: string): void {
+    const header = response.headers.get(KEY_EXPIRES_AT_HEADER);
+    if (header) {
+      const at = Date.parse(header);
+      if (Number.isFinite(at)) this.keyExpiresAt = at;
+      return;
+    }
+    // Public and session-exempt routes may answer without ever reading the key, so their silence proves nothing.
+    if (response.ok && !isPublicPath(method, path) && !isSessionExempt(method, path)) this.keyExpiresAt = undefined;
+  }
+
+  /** The hosted server's note from the self-inspection it made at session open (`managed_by_sign_in`). */
+  noteKeyManagedBySignIn(field: unknown): void {
+    this.keyKind = keyKindFromField(field, this.remote);
+  }
+
+  /**
+   * The one line telling the user this key stops working soon, or nothing. Only for a hand-made key, only with 7 days
+   * or fewer left, and once per process per UTC day per key (SC-11). On stdio the key's kind is asked once
+   * (`GET /me/api-key`), and only when a warning would otherwise be given; a failed ask gives nothing and is asked again,
+   * except `insufficient_scope`: a sign-in key always holds `settings:read` (backend `MCP_OAUTH_MANDATORY_SCOPE`), so a
+   * key refused it is hand-made. The memo entry is taken BEFORE the ask, so two calls finishing together warn once.
+   */
+  async takeKeyExpiryWarning(now: number = Date.now()): Promise<string | undefined> {
+    if (!this.apiKey || this.keyExpiresAt === undefined) return undefined;
+    const expiresAt = this.keyExpiresAt;
+    const left = expiresAt - now;
+    if (left <= 0 || left > KEY_EXPIRY_WARNING_MS) return undefined;
+    const day = new Date(now).toISOString().slice(0, 10);
+    const memo = `${day}:${createHash('sha256').update(this.apiKey).digest('hex')}`;
+    if (keyExpiryWarned.has(memo)) return undefined;
+    for (const old of keyExpiryWarned) if (!old.startsWith(`${day}:`)) keyExpiryWarned.delete(old);
+    keyExpiryWarned.add(memo);
+    if (this.keyKind === undefined && !this.remote) {
+      try {
+        const probe = new HttpClient({ apiKey: this.apiKey, baseUrl: this.baseUrl, maxRetries: 0, timeout: KEY_KIND_CHECK_TIMEOUT_MS });
+        const self = await probe.get<{ managed_by_sign_in?: unknown }>('/api/v1/me/api-key');
+        this.keyKind = keyKindFromField(self?.managed_by_sign_in, false);
+      } catch (err) {
+        if (err instanceof ApiError && err.statusCode === 403 && err.code === 'insufficient_scope') {
+          this.keyKind = 'hand-made';
+        } else {
+          keyExpiryWarned.delete(memo);
+          return undefined;
+        }
+      }
+    }
+    if ((this.keyKind ?? 'unknown') !== 'hand-made') {
+      keyExpiryWarned.delete(memo);
+      return undefined;
+    }
+    const when = `${new Date(expiresAt).toISOString().slice(0, 16).replace('T', ' ')} UTC`;
+    const days = Math.max(1, Math.ceil(left / (24 * 60 * 60 * 1000)));
+    return keyExpiryNote(when, days);
   }
 
   /** Capture the `token` / `refresh_token` cookies the login + refresh flows set via Set-Cookie. */

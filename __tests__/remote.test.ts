@@ -47,10 +47,18 @@ const MCP_HEADERS = {
 let running: RemoteServer | undefined;
 const stubs: Server[] = [];
 
+/**
+ * Every listener here binds the address the cases dial, never the wildcard. macOS hands a wildcard
+ * `listen(0)` a port that another process already holds on 127.0.0.1 (a Claude Code session does,
+ * in the ephemeral range), and a `fetch` to 127.0.0.1 then reaches THAT process: a 404 from a
+ * stranger, read as this server's answer. Bound to 127.0.0.1, the kernel cannot pick a taken port.
+ */
+const LOOPBACK = '127.0.0.1';
+
 async function start(options?: Partial<Parameters<typeof createRemoteServer>[0]>) {
   running = createRemoteServer({ baseUrl: 'https://api.proof.holdings', ...options });
   const port = await new Promise<number>((resolve) => {
-    running!.httpServer.listen(0, () => resolve((running!.httpServer.address() as ReturnType<Server['address']> & { port: number }).port));
+    running!.httpServer.listen(0, LOOPBACK, () => resolve((running!.httpServer.address() as ReturnType<Server['address']> & { port: number }).port));
   });
   return { url: `http://127.0.0.1:${port}`, remote: running };
 }
@@ -59,6 +67,43 @@ async function start(options?: Partial<Parameters<typeof createRemoteServer>[0]>
 async function startRaw(options?: Partial<Parameters<typeof createRemoteServer>[0]>) {
   const { url, remote } = await start(options);
   return { port: Number(new URL(url).port), remote };
+}
+
+/**
+ * The idle clock, held by the case instead of by the machine.
+ *
+ * `remote.ts` stamps `lastSeen` with `Date.now()` and its sweeper drops a session once `lastSeen` falls
+ * behind `Date.now() - ttl`. Against the real clock, a case with a TTL of a few hundred milliseconds
+ * races its own pauses: one stall between two steps (a loaded runner, a GC) that outlasts the TTL
+ * sweeps the session correctly and reddens a case that needs it ALIVE at some point. So the cases that
+ * do freeze `Date` alone (real timers keep the sockets and the sweeper's `setInterval` running) and
+ * move it with `age`, the only thing that ages a session there. A real pause, however long, ages
+ * nothing.
+ */
+function holdIdleClock() {
+  vi.useFakeTimers({ toFake: ['Date'] });
+}
+
+/** Real time for the sweeper (every case here sweeps each 20ms) to run against a moved clock. */
+const SWEEP_SETTLE_MS = 100;
+
+function realPause(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Moves the held clock on by `ms`, then gives the real sweeper time to look at it. */
+async function age(ms: number) {
+  vi.setSystemTime(Date.now() + ms);
+  await realPause(SWEEP_SETTLE_MS);
+}
+
+/**
+ * Waits for the sweeper to empty the map, up to a real deadline. A "gone" assertion then rests on the
+ * held clock, not on how soon a tick happened to run on a busy machine.
+ */
+async function swept(remote: RemoteServer) {
+  const deadline = performance.now() + 2000;
+  while (remote.sessionCount() > 0 && performance.now() < deadline) await realPause(10);
 }
 
 /**
@@ -181,7 +226,7 @@ async function startStubBackend(reply: (path: string, request: StubRequest) => S
       .end(JSON.stringify(answer.body));
   });
   const port = await new Promise<number>((resolve) => {
-    server.listen(0, () => resolve((server.address() as { port: number }).port));
+    server.listen(0, LOOPBACK, () => resolve((server.address() as { port: number }).port));
   });
   stubs.push(server);
   return { url: `http://127.0.0.1:${port}`, requests };
@@ -191,6 +236,7 @@ async function startStubBackend(reply: (path: string, request: StubRequest) => S
 const SELF_KEY_OK = { status: 200, body: { id: 'key_1', name: 'MCP: example.com', scopes: ['settings:read'] } };
 
 afterEach(async () => {
+  vi.useRealTimers();
   await running?.close();
   running = undefined;
   await Promise.all(stubs.splice(0).map((server) => new Promise<void>((resolve) => server.close(() => resolve()))));
@@ -350,22 +396,25 @@ describe('remote server — SC-1: a refused tool call is a refusal, not work', (
     // permanently "busy" and the sweeper skips it forever; and stamping `lastSeen` on a 401 would
     // let a stream of refusals hold a session open for free — the same defect the 413 case below
     // pins for oversized bodies.
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 400, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
-    // Refusals spread across the window, all comfortably inside the TTL — so the sweep below is
-    // about whether they MOVED the clock, not about whether the session had time to age.
+    // Refusals spread across the window, all inside the TTL — so the sweep below is about whether
+    // they MOVED the clock, not about whether the session had time to age.
     for (let i = 0; i < 4; i++) {
       const refused = await callTool(url, sessionId, 'list_verifications');
       await refused.text();
       expect(refused.status).toBe(401);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await age(50);
     }
     expect(remote.sessionCount()).toBe(1);
 
-    // Past the TTL measured from the LAST accepted request. A refusal that stamped `lastSeen`
-    // would push this out; one that kept the in-flight slot would make the sweeper skip it.
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Past the TTL measured from the LAST accepted request (450 > 400), but not from the last
+    // refusal (300 < 400). A refusal that stamped `lastSeen` would keep it; one that kept the
+    // in-flight slot would make the sweeper skip it.
+    await age(300);
+    await swept(remote);
     expect(remote.sessionCount()).toBe(0);
   });
 });
@@ -1148,8 +1197,7 @@ describe('remote server — the two counters release symmetrically', () => {
     // under a live POST. Written when a GET opened a stream; since SC-8 a GET is declined ahead of
     // the session code entirely, and this case keeps proving that declining it touches no counter:
     // drive a GET first, then run a POST across more than one TTL.
-    // TTL generous enough that the GET phase alone cannot age the session out, so the POST phase is
-    // the thing under test.
+    holdIdleClock();
     const { port, remote } = await startRaw({ sessionTtlMs: 400, sweepIntervalMs: 20 });
     const sessionId = await openSessionRaw(port);
 
@@ -1176,7 +1224,7 @@ describe('remote server — the two counters release symmetrically', () => {
     socket.write(payload.slice(0, payload.length - 1));
     // Outlives the TTL: only the in-flight skip keeps the session, and a negative counter (the
     // defect this case exists for) disables that skip.
-    await new Promise((resolve) => setTimeout(resolve, 520));
+    await age(520);
     const reply = await socket.sendAndRead(payload.slice(payload.length - 1));
     socket.end();
 
@@ -1382,6 +1430,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // The second deletion is the worse one — an oversized or aborted upload would pin the session
     // as permanently "in flight", the sweeper would skip it forever, and the slot would never come
     // back. Hence the second half of this case: after the refusal, the session must still age out.
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 120, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
@@ -1394,9 +1443,9 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     expect(response.status).toBe(413);
     expect(await response.json()).toMatchObject({ error: 'body_too_large' });
 
-    // The slot returns: a session left counted as busy would be skipped by every sweep. Generous
-    // margin on purpose — a tight one turns a real property into a flaky assertion.
-    await new Promise((resolve) => setTimeout(resolve, 450));
+    // The slot returns: a session left counted as busy would be skipped by every sweep.
+    await age(450);
+    await swept(remote);
     expect(remote.sessionCount()).toBe(0);
   });
 
@@ -1405,6 +1454,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // and close refreshed the clock, so a client that only reconnected its stream held its session
     // forever (measured before that fix: six 200ms streams against a 300ms TTL). Since SC-8 every
     // GET is a 405, and a refusal must not move the clock either — the rule is "an ACCEPTED POST".
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 150, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
@@ -1416,12 +1466,13 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
       });
       statuses.push(refused.status);
       await refused.text();
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await age(60);
     }
 
     // Anti-vacuity: these were refusals, so the case measures what a refusal does to the clock.
     expect(statuses).toEqual([405, 405, 405, 405]);
-    // ~240ms of retries against a 150ms TTL, and no work at all.
+    // 240ms of retries against a 150ms TTL, and no work at all.
+    await swept(remote);
     expect(remote.sessionCount()).toBe(0);
   });
 
@@ -1429,6 +1480,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // The third shape of the same claim: a POST that is rejected before it reaches the transport
     // did no work, so it must not refresh the clock. An arrival stamp did refresh it, and five
     // oversized bodies held a session across twice its TTL with every case still green.
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 150, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
@@ -1441,7 +1493,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
       });
       statuses.push(refused.status);
       await refused.text();
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await age(60);
     }
 
     // The FIRST refusal must be the size bound — otherwise this case is measuring something else.
@@ -1449,6 +1501,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // Later ones may be 404: once the session ages out mid-sequence, an unknown id is the correct
     // answer, and that IS the behaviour under test. What must not happen is the session surviving.
     for (const status of statuses.slice(1)) expect([413, 404]).toContain(status);
+    await swept(remote);
     expect(remote.sessionCount()).toBe(0);
   });
 
@@ -1519,6 +1572,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // stamped every completed POST refreshed the clock for them just the same. Measured before the
     // fix: four rounds of these against a 150ms TTL kept the session alive indefinitely, so a
     // 16-byte piece of garbage postponed the TTL while a 5MB one did not.
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 150, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
     const withSession = { ...MCP_HEADERS, 'mcp-session-id': sessionId };
@@ -1536,7 +1590,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
       const response = await fetch(`${url}/mcp`, init);
       statuses.push(response.status);
       await response.text();
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await age(60);
     }
 
     // The FIRST must be the transport's refusal — otherwise this case is measuring something else.
@@ -1544,7 +1598,8 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // Later ones may be 404: once the session ages out mid-sequence, an unknown id is the correct
     // answer, and that IS the behaviour under test.
     for (const status of statuses.slice(1)) expect([400, 404]).toContain(status);
-    // ~240ms of refusals against a 150ms TTL.
+    // 240ms of refusals against a 150ms TTL.
+    await swept(remote);
     expect(remote.sessionCount()).toBe(0);
   });
 
@@ -1559,12 +1614,9 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // So this case pins the behaviour the sentence describes, not a behaviour anyone prefers. Refuse
     // `[]` some day and it goes red — which is the point: the sentence in `remote.ts` and in
     // `README.md` gets rewritten in the same change, instead of quietly becoming a different claim.
-    // Unlike its neighbours this case asserts SURVIVAL, so its margin is the gap between requests,
-    // not the total: one stall longer than the TTL kills the session and reddens it on a loaded
-    // machine. Hence 8 × 40ms against a 200ms TTL — 320ms of sleeping alone, well past the TTL, with
-    // up to 160ms of slack per gap rather than 90ms (up to: each request's own duration eats into
-    // it). A stall that does beat it is self-diagnosing: the swept
-    // session shows up as a 404 inside the pinned `statuses` array.
+    // Unlike its neighbours this case asserts SURVIVAL, which is why it holds the clock: 8 × 40ms
+    // against a 200ms TTL is 320ms in all, well past the TTL, and only the gaps age the session.
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 200, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
@@ -1577,13 +1629,13 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
       });
       statuses.push(response.status);
       await response.text();
-      await new Promise((resolve) => setTimeout(resolve, 40));
+      await age(40);
     }
 
     // Accepted every time — a 400 here would mean something started refusing the shape, and the
     // survival assertion below would then be measuring a session nobody kept alive.
     expect(statuses).toEqual([202, 202, 202, 202, 202, 202, 202, 202]);
-    // ~320ms of them against a 200ms TTL, and the session is still here.
+    // 320ms of them against a 200ms TTL, and the session is still here.
     expect(remote.sessionCount()).toBe(1);
   });
 
@@ -1593,6 +1645,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // the SDK client opened it right after `initialize`. Since SC-8 the GET is answered at once: a
     // response that ARRIVES (rather than a stream that stays open) is the property, timed against a
     // deadline far shorter than the old hold.
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 100, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
@@ -1603,7 +1656,8 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     ]);
     expect(answered).toBe(405);
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await age(500);
+    await swept(remote);
     expect(remote.sessionCount()).toBe(0);
   });
 
@@ -1810,6 +1864,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
     // protects it is `inFlight`. Reproduced by dribbling the body in over more than one TTL: a `fetch` cannot
     // express it (it sends the whole body at once), which is why an earlier version of this test
     // passed against the unfixed code.
+    holdIdleClock();
     const { port, remote } = await startRaw({ sessionTtlMs: 120, sweepIntervalMs: 20 });
     const sessionId = await openSessionRaw(port);
     expect(remote.sessionCount()).toBe(1);
@@ -1826,13 +1881,13 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
       '',
     ].join('\r\n'));
 
-    // Dribble: three chunks, ~80ms apart, so the request spans ~240ms against a 120ms TTL.
+    // Dribble: three chunks, 80ms apart, so the request spans 160ms against a 120ms TTL.
     const head = payload.slice(0, payload.length - 2);
     const tail = payload.slice(payload.length - 2);
     socket.write(head.slice(0, head.length - 1));
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await age(80);
     socket.write(head.slice(head.length - 1));
-    await new Promise((resolve) => setTimeout(resolve, 80));
+    await age(80);
     const reply = await socket.sendAndRead(tail);
     socket.end();
 
@@ -1842,21 +1897,24 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
   });
 
   it('sweeps a session that has been idle past its TTL', async () => {
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 40, sweepIntervalMs: 20 });
     await openSession(url);
     expect(remote.sessionCount()).toBe(1);
 
-    await new Promise((resolve) => setTimeout(resolve, 200));
+    await age(200);
+    await swept(remote);
 
     expect(remote.sessionCount()).toBe(0);
   });
 
   it('keeps a session alive while it is being used', async () => {
+    holdIdleClock();
     const { url, remote } = await start({ sessionTtlMs: 150, sweepIntervalMs: 20 });
     const sessionId = await openSession(url);
 
     for (let i = 0; i < 4; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 60));
+      await age(60);
       await fetch(`${url}/mcp`, {
         method: 'POST',
         headers: { ...MCP_HEADERS, 'mcp-session-id': sessionId },
@@ -1864,7 +1922,7 @@ describe('remote server — SC-3: sessions are bounded in count and in lifetime'
       });
     }
 
-    // Total elapsed (~240ms) is well past the 150ms TTL; only the touches keep it alive.
+    // Total elapsed (240ms) is well past the 150ms TTL; only the touches keep it alive.
     expect(remote.sessionCount()).toBe(1);
   });
 });
@@ -1960,5 +2018,41 @@ describe('remote server — gated by its own delegation', () => {
     const source = readFileSync(new URL('../src/remote.ts', import.meta.url), 'utf8');
     const entry = source.slice(source.indexOf('if (isEntrypoint())'));
     expect(entry).toMatch(/createRemoteServer\(\{[\s\S]*?delegationToken: process\.env\.PROOF_DELEGATION_TOKEN \|\| undefined,[\s\S]*?\}\);/);
+  });
+});
+
+describe('remote server — SC-11: the key-expiry note follows managed_by_sign_in read at open', () => {
+  const BALANCE = (JSON.parse(readFileSync(new URL('../src/generated/output-samples.json', import.meta.url), 'utf8')) as Record<string, unknown[]>)[
+    'GET /api/v1/billing/balance 200'
+  ][0];
+  const soon = () => new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString();
+
+  async function noteFor(self: Record<string, unknown>, key: string) {
+    const stub = await startStubBackend((path) =>
+      path === '/api/v1/me/api-key'
+        ? { status: 200, body: { ...SELF_KEY_OK.body, ...self }, headers: { 'X-Proof-Key-Expires-At': soon() } }
+        : { status: 200, body: BALANCE, headers: { 'X-Proof-Key-Expires-At': soon() } },
+    );
+    const { url } = await start({ baseUrl: stub.url });
+    const sessionId = await openSession(url, { authorization: `Bearer ${key}` });
+    const body = await (await callTool(url, sessionId, 'get_balance', { authorization: `Bearer ${key}` })).text();
+    return { body, inspections: stub.requests.filter((entry) => entry.path === '/api/v1/me/api-key').length };
+  }
+
+  it('present-false: a hand-made key gets the note, from the one self-inspection made at open', async () => {
+    const { body, inspections } = await noteFor({ managed_by_sign_in: false }, 'pk_live_remote_handmade_one');
+    expect(body).toContain('stops working on');
+    expect(inspections).toBe(1);
+  });
+
+  it('present-true: a sign-in connection never gets it', async () => {
+    const { body } = await noteFor({ managed_by_sign_in: true }, 'pk_live_remote_signin_one');
+    expect(body).not.toContain('stops working on');
+  });
+
+  it('absent (an older API): unknown, so no note and no second self-inspection', async () => {
+    const { body, inspections } = await noteFor({}, 'pk_live_remote_unknown_one');
+    expect(body).not.toContain('stops working on');
+    expect(inspections).toBe(1);
   });
 });

@@ -3102,7 +3102,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "expires_at": {
           "type": "string",
-          "description": "When the key stops working. Present only on a regenerated key that has an expiry (the old key's instant, carried over); absent on a key that never expires."
+          "description": "When the key stops working. Present when the key has an expiry: the one asked for at creation; on a regenerated key the one asked for while regenerating, else the old key's instant, carried over. Absent on a key that never expires."
         },
         "warning": {
           "type": "string"
@@ -8179,6 +8179,10 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
           ],
           "description": "When the key was revoked; null while it is live"
         },
+        "managed_by_sign_in": {
+          "type": "boolean",
+          "description": "True while an MCP sign-in connection holds this key and renews it itself; false for a key a person made and must replace by hand."
+        },
         "replaced_key_ids": {
           "type": "array",
           "items": {
@@ -9633,6 +9637,9 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
                   "string",
                   "null"
                 ]
+              },
+              "managed_by_sign_in": {
+                "type": "boolean"
               },
               "created_at": {
                 "type": "string"
@@ -13109,7 +13116,7 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         },
         "expires_at": {
           "type": "string",
-          "description": "When the key stops working. Present only on a regenerated key that has an expiry (the old key's instant, carried over); absent on a key that never expires."
+          "description": "When the key stops working. Present when the key has an expiry: the one asked for at creation; on a regenerated key the one asked for while regenerating, else the old key's instant, carried over. Absent on a key that never expires."
         },
         "warning": {
           "type": "string"
@@ -14116,6 +14123,90 @@ export const OUTPUT_SCHEMAS: Record<string, OutputSchemaEntry> = {
         "email_sent": {},
         "email_error": {}
       }
+    }
+  },
+  "set_api_key_expiry": {
+    "precision": "proven",
+    "operations": [
+      "PUT /api/v1/me/api-keys/{id}/expiry 200"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "prefix": {
+              "type": "string"
+            },
+            "environment": {
+              "type": "string"
+            },
+            "scopes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "profile_id": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "last_used_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "expires_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "managed_by_sign_in": {
+              "type": "boolean"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "replaced_key_ids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "prefix",
+            "environment",
+            "scopes",
+            "profile_id",
+            "expires_at",
+            "created_at",
+            "replaced_key_ids"
+          ],
+          "description": "A live API key as the owner's key list shows it. Never carries the key value."
+        }
+      },
+      "required": [
+        "data"
+      ],
+      "description": "The key with its new expiry, as the owner's key list shows it. Never carries the key value."
     }
   },
   "set_email_account_access": {

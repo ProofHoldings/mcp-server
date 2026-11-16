@@ -289,8 +289,7 @@ async function mintAndSave(
 ): Promise<number> {
   const environment = test ? 'test' : 'production';
   const name = keyName(ctx.hostname(), ctx.now());
-  await stepUp(ctx, http, channel);
-  const key = await mintKey(ctx, http, { name, environment, scopes }, () => stepUp(ctx, http, channel));
+  const key = await mintKey(ctx, http, { name, environment, scopes }, (targets) => stepUp(ctx, http, channel, targets));
 
   const entry: StoredCredential = {
     api_key: key.key,
@@ -521,19 +520,22 @@ async function logIn(ctx: Context, http: HttpClient, channel: Channel, emailFlag
   }
 }
 
-/** The `api_key_create` step-up, on a channel the person picks — the login channel offered last. */
-async function stepUp(ctx: Context, http: HttpClient, loginChannel: Channel): Promise<void> {
+/**
+ * The `api_key_create` step-up, on a channel the person picks — the login channel offered last. `targets` are the
+ * ones the create's own refusal named, passed on unchanged; none when the server named none.
+ */
+async function stepUp(ctx: Context, http: HttpClient, loginChannel: Channel, targets: readonly string[] | undefined): Promise<void> {
   const { io } = ctx;
   const order: Channel[] = [...CHANNELS.filter((c) => c !== loginChannel), loginChannel];
   const options = order.map((c) => ({ label: c === loginChannel ? `${CHANNEL_LABEL[c]} (used to log in)` : CHANNEL_LABEL[c], value: c }));
   io.print('');
   io.print('Creating an API key needs one more confirmation, preferably on a different channel.');
+  const named = targets && targets.length > 0 ? { targets: [...targets] } : {};
   for (;;) {
     const channel = await choose(io, 'Confirm with:', options);
     let r: StepUpStart;
     try {
-      // Never `targets`: the key routes consume an UNTARGETED grant, and a targeted one is refused.
-      r = await http.post<StepUpStart>('/api/v1/me/2fa/start', { action_type: 'api_key_create', channel });
+      r = await http.post<StepUpStart>('/api/v1/me/2fa/start', { action_type: 'api_key_create', channel, ...named });
       if (r.requires_email_selection) {
         if (!r.available_emails?.length) throw new LoginFailed('The server asked which email to use but listed none. Choose another channel.');
         const emailId = await choose(
@@ -541,7 +543,7 @@ async function stepUp(ctx: Context, http: HttpClient, loginChannel: Channel): Pr
           'Send the code to:',
           (r.available_emails ?? []).map((e) => ({ label: `${e.email}${e.is_primary ? ' (primary)' : ''}`, value: e.id })),
         );
-        r = await http.post<StepUpStart>('/api/v1/me/2fa/start', { action_type: 'api_key_create', channel, email_id: emailId });
+        r = await http.post<StepUpStart>('/api/v1/me/2fa/start', { action_type: 'api_key_create', channel, email_id: emailId, ...named });
       }
     } catch (e) {
       if (e instanceof ApiError && STEP_UP_RETRY_CODES.has(e.code)) {
@@ -575,9 +577,12 @@ async function mintKey(
   ctx: Context,
   http: HttpClient,
   body: { name: string; environment: 'production' | 'test'; scopes: string[] },
-  stepUpAgain: () => Promise<void>,
+  stepUpFor: (targets: readonly string[] | undefined) => Promise<void>,
 ): Promise<CreatedKey> {
-  for (let attempt = 0; ; attempt++) {
+  // The create is sent FIRST with no code. Its refusal says which step-up this server wants: one bound to the key
+  // it creates (`targets`, from this release) or an untargeted one (every server before it). The refusal comes from
+  // the route's guard before anything is written, so asking costs nothing, and one CLI works against both.
+  for (let confirmations = 0; ; confirmations++) {
     try {
       const key = await http.post<CreatedKey>('/api/v1/me/api-keys', body);
       if (typeof key.key !== 'string' || !key.key.startsWith('pk_') || typeof key.id !== 'string') {
@@ -586,9 +591,16 @@ async function mintKey(
       return key;
     } catch (e) {
       if (e instanceof LoginFailed) throw e;
-      if (e instanceof ApiError && e.code === '2fa_required' && attempt === 0) {
-        ctx.io.print('The confirmation lapsed before the key was created. Confirm once more.');
-        await stepUpAgain();
+      // One confirmation, and one more if it lapsed before the key was created.
+      if (e instanceof ApiError && e.code === '2fa_required' && confirmations < 2) {
+        if (confirmations > 0) {
+          ctx.io.print(
+            e.stepUp?.reason === 'target_mismatch'
+              ? 'The confirmation was for a different key (another confirmation may have replaced it). Confirm once more.'
+              : 'The confirmation lapsed before the key was created. Confirm once more.',
+          );
+        }
+        await stepUpFor(e.stepUp?.targets);
         continue;
       }
       if (e instanceof ApiError && (e.code === 'timeout' || e.code === 'network_error')) {

@@ -167,6 +167,7 @@
     ],
     "inputs": {
       "environment": "body",
+      "expires_at": "body",
       "name": "body",
       "profile_id": "body",
       "scopes": "body"
@@ -1128,6 +1129,7 @@
       "POST /api/v1/me/api-keys/{id}/regenerate"
     ],
     "inputs": {
+      "expires_at": "body",
       "id": "path"
     }
   },
@@ -1318,6 +1320,15 @@
       "POST /api/v1/accounts/{id}/send"
     ],
     "inputs": {
+      "id": "path"
+    }
+  },
+  "set_api_key_expiry": {
+    "operations": [
+      "PUT /api/v1/me/api-keys/{id}/expiry"
+    ],
+    "inputs": {
+      "expires_at": "body",
       "id": "path"
     }
   },
