@@ -810,6 +810,7 @@
       "POST /api/v1/circles/{id}/members/invite"
     ],
     "inputs": {
+      "channel": "body",
       "id": "path",
       "member_id": "body"
     }

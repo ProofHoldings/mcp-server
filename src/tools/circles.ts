@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, apiErrorResult } from '../types.js';
+import { jsonResult, apiErrorResult, errorResult, TELEGRAM_USER_ID_REGEX, TELEGRAM_CIRCLE_MEMBER_MESSAGE } from '../types.js';
 import { ApiError } from '../http.js';
 
 const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/);
@@ -16,7 +16,8 @@ const ownerName = z.string().max(100).nullable().optional().describe(
 // circleMemberInputSchema). A member may be added by name only and enrolled later.
 const circleMemberInput = z.object({
   name: z.string().min(1).max(100).describe('Display name of the member'),
-  telegram_chat_id: z.string().max(50).optional().describe('Telegram chat id (declared; usually captured at enrollment instead)'),
+  telegram_chat_id: z.string().regex(TELEGRAM_USER_ID_REGEX, TELEGRAM_CIRCLE_MEMBER_MESSAGE).or(z.literal('')).optional()
+    .describe("The member's numeric Telegram user ID (a group id cannot be used); usually captured by the invite instead"),
   whatsapp_phone: e164.optional().describe('E.164 WhatsApp phone with a leading + (declared)'),
 });
 
@@ -164,10 +165,19 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
     {
       id: objectId.describe('Circle ID'),
       member_id: objectId.describe('Member ID to invite'),
+      channel: z
+        .enum(['telegram', 'whatsapp'])
+        .optional()
+        .describe(
+          "The channel the invite is for: the QR code then carries that channel's link. Omitted: WhatsApp when it is the member's only channel, otherwise Telegram. `whatsapp` needs the member's WhatsApp number saved first (add_circle_member_channel); without one the API refuses it 400 whatsapp_channel_required and no invite is created.",
+        ),
     },
-    async ({ id, member_id }) => {
+    async ({ id, member_id, channel }) => {
       try {
-        const result = await http.post(`/api/v1/circles/${encodeURIComponent(id)}/members/invite`, { member_id });
+        const result = await http.post(
+          `/api/v1/circles/${encodeURIComponent(id)}/members/invite`,
+          channel ? { member_id, channel } : { member_id },
+        );
         return jsonResult(result);
       } catch (e) {
         if (e instanceof ApiError) return apiErrorResult(e);
@@ -223,9 +233,13 @@ export function registerTools(tool: ToolRegistrar, http: HttpClient) {
       id: objectId.describe('Circle ID'),
       member_id: objectId.describe('Member ID to add the channel to'),
       channel: circleChannel.describe('Channel type (telegram or whatsapp)'),
-      identifier: z.string().min(1).max(100).describe('Telegram chat id, or E.164 WhatsApp phone with a leading +'),
+      identifier: z.string().min(1).max(100).describe("The member's numeric Telegram user ID, or an E.164 WhatsApp phone with a leading +"),
     },
     async ({ id, member_id, ...body }) => {
+      // The identifier's format depends on `channel`, so the Telegram rule is checked here, not in the schema.
+      if (body.channel === 'telegram' && !TELEGRAM_USER_ID_REGEX.test(body.identifier)) {
+        return errorResult(`invalid_arguments: ${TELEGRAM_CIRCLE_MEMBER_MESSAGE}`);
+      }
       try {
         const result = await http.post(
           `/api/v1/circles/${encodeURIComponent(id)}/members/${encodeURIComponent(member_id)}/channels`,

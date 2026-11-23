@@ -125,6 +125,9 @@ const ARG_OVERRIDES: Record<string, Json> = {
   verify_delegations: { items: [DELEGATION_ITEM] },
   // A 24-hex asset id: the tool refuses any other shape by a refinement the advertised schema cannot express (T8c).
   revoke_my_proof: { id: '0123456789abcdef01234567' },
+  // A telegram identifier must be a person's numeric user id, a rule on `identifier` that depends on `channel`, so the
+  // handler checks it and the advertised schema cannot express it (l-fix-telegram-group-chat-id).
+  add_circle_member_channel: { identifier: '123456789' },
 };
 
 // ---- Recording fetch ----

@@ -2455,6 +2455,21 @@ describe('hitl tools', () => {
     }) as { isError?: boolean };
     expect(result.isError).toBe(true);
   });
+
+  // l-fix-telegram-group-chat-id: refused where the agent types it, before any call; the API refuses it too.
+  it.each(['create_approval_channel', 'update_approval_channel'])(
+    '%s refuses a Telegram chat_id that is not a person\'s user id, with the sentence',
+    (name) => {
+      const input = z.object(findTool(tools, name).schema as z.ZodRawShape);
+      const base = name === 'update_approval_channel' ? { id: '65f0c0ffee0123456789abcd' } : { name: 'Ops' };
+      for (const chatId of ['-1001234567890', '@name', '0', '12a', '+37061593090']) {
+        const parsed = input.safeParse({ ...base, channels: [{ type: 'telegram', config: { chat_id: chatId } }] });
+        expect(parsed.success).toBe(false);
+        expect(parsed.error!.issues.map((i) => i.message)).toContain("Telegram approvals go to one person's private chat: use their numeric user ID (a group cannot be used).");
+      }
+      expect(input.safeParse({ ...base, channels: [{ type: 'telegram', config: { chat_id: '123456789' } }] }).success).toBe(true);
+    },
+  );
 });
 
 // ============================================================
@@ -3096,6 +3111,36 @@ describe('circles tools', () => {
     });
   });
 
+  it('invite_circle_member passes the channel the invite is for, and sends no channel key when none is given', async () => {
+    const tool = findTool(tools, 'invite_circle_member');
+    http.post.mockResolvedValueOnce({ token: 'pm_abc' });
+    await tool.handler({ id: CIRCLE_ID, member_id: MEMBER_ID, channel: 'telegram' });
+    expect(http.post).toHaveBeenLastCalledWith(`/api/v1/circles/${CIRCLE_ID}/members/invite`, {
+      member_id: MEMBER_ID,
+      channel: 'telegram',
+    });
+
+    http.post.mockResolvedValueOnce({ token: 'pm_def' });
+    await tool.handler({ id: CIRCLE_ID, member_id: MEMBER_ID });
+    expect(Object.keys(http.post.mock.calls.at(-1)![1] as object)).toEqual(['member_id']);
+  });
+
+  it('invite_circle_member accepts only telegram or whatsapp as the channel', () => {
+    const input = z.object(findTool(tools, 'invite_circle_member').schema as z.ZodRawShape);
+    for (const channel of ['telegram', 'whatsapp']) {
+      expect(input.safeParse({ id: CIRCLE_ID, member_id: MEMBER_ID, channel }).success).toBe(true);
+    }
+    expect(input.safeParse({ id: CIRCLE_ID, member_id: MEMBER_ID }).success).toBe(true);
+    for (const channel of ['sms', 'Telegram', '']) {
+      expect(input.safeParse({ id: CIRCLE_ID, member_id: MEMBER_ID, channel }).success).toBe(false);
+    }
+  });
+
+  it("invite_circle_member's channel says a WhatsApp invite needs the saved number (the API refuses it otherwise)", () => {
+    const shape = findTool(tools, 'invite_circle_member').schema as z.ZodRawShape;
+    expect(shape.channel.description).toContain('400 whatsapp_channel_required');
+  });
+
   it('create_circle_member_drill calls POST .../members/:memberId/drill', async () => {
     http.post.mockResolvedValueOnce({ id: 'chal', status: 'pending' });
     const tool = findTool(tools, 'create_circle_member_drill');
@@ -3121,6 +3166,38 @@ describe('circles tools', () => {
       channel: 'telegram',
       identifier: '123456789',
     });
+  });
+
+  it('create_circle refuses a member telegram_chat_id that is not a user id; blank stays accepted', () => {
+    const input = z.object(findTool(tools, 'create_circle').schema as z.ZodRawShape);
+    const parsed = input.safeParse({ name: 'Family', members: [{ name: 'Ana', telegram_chat_id: '-1001234567890' }] });
+    expect(parsed.success).toBe(false);
+    expect(parsed.error!.issues.map((i) => i.message)).toContain("A circle member is reached in their own private Telegram chat: use their numeric user ID (a group cannot be used).");
+    expect(input.safeParse({ name: 'Family', members: [{ name: 'Ana', telegram_chat_id: '123456789' }] }).success).toBe(true);
+    expect(input.safeParse({ name: 'Family', members: [{ name: 'Ana', telegram_chat_id: '' }] }).success).toBe(true);
+  });
+
+  it.each(['-1001234567890', '@name', '0', '12a'])(
+    'add_circle_member_channel refuses telegram identifier %s before calling the API',
+    async (identifier) => {
+      const tool = findTool(tools, 'add_circle_member_channel');
+      const result = await tool.handler({ id: CIRCLE_ID, member_id: MEMBER_ID, channel: 'telegram', identifier }) as {
+        isError?: boolean; content: Array<{ text: string }>;
+      };
+      expect(result.isError).toBe(true);
+      expect(JSON.parse(result.content[0].text)).toEqual(expect.objectContaining({
+        error: 'invalid_arguments',
+        message: "A circle member is reached in their own private Telegram chat: use their numeric user ID (a group cannot be used).",
+      }));
+      expect(http.post).not.toHaveBeenCalled();
+    },
+  );
+
+  it('add_circle_member_channel leaves a WhatsApp identifier to the API as before', async () => {
+    http.post.mockResolvedValueOnce({ id: CHANNEL_ID, channel: 'whatsapp' });
+    const tool = findTool(tools, 'add_circle_member_channel');
+    await tool.handler({ id: CIRCLE_ID, member_id: MEMBER_ID, channel: 'whatsapp', identifier: '+15551112222' });
+    expect(http.post).toHaveBeenCalledTimes(1);
   });
 
   it('list_circle_member_channels calls GET .../channels', async () => {

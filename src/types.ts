@@ -14,6 +14,17 @@ export const credentialsSchema = z
 /** Canonical BSUID regex — must match src/utils/hitl-crypto.ts BSUID_REGEX */
 export const BSUID_REGEX = /^[A-Z]{2}\.[a-zA-Z0-9]{10,140}$/;
 
+/**
+ * A Telegram recipient is one person's private chat: their positive numeric user id (a group id is negative, and an
+ * approval or check sent there can never be answered). Same rule and sentences as the API's
+ * `src/middleware/validate.ts` (TELEGRAM_USER_ID_REGEX); the API stays the authority, this refuses it where it is typed.
+ */
+export const TELEGRAM_USER_ID_REGEX = /^[1-9]\d{0,19}$/;
+export const TELEGRAM_APPROVAL_RECIPIENT_MESSAGE =
+  "Telegram approvals go to one person's private chat: use their numeric user ID (a group cannot be used).";
+export const TELEGRAM_CIRCLE_MEMBER_MESSAGE =
+  "A circle member is reached in their own private Telegram chat: use their numeric user ID (a group cannot be used).";
+
 /** Canonical asset-type enum — must match src/middleware/validate.ts verificationTypeSchema */
 export const VERIFICATION_TYPE_VALUES = [
   'phone', 'email', 'domain', 'social', 'wallet', 'account', 'telegram_bot',

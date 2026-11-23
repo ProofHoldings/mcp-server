@@ -1,14 +1,17 @@
 import { z } from 'zod';
 import type { HttpClient } from '../http.js';
 import type { ToolRegistrar } from '../types.js';
-import { jsonResult, pollUntilTerminal, BSUID_REGEX, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY, apiErrorResult } from '../types.js';
+import { jsonResult, pollUntilTerminal, BSUID_REGEX, WAIT_DEFAULT_SECONDS, CHALLENGE_IN_REPLY, WAIT_AFTER_REPLY, apiErrorResult, TELEGRAM_USER_ID_REGEX, TELEGRAM_APPROVAL_RECIPIENT_MESSAGE } from '../types.js';
 import { ApiError } from '../http.js';
 
 const hitlStatusEnum = z.enum(['pending', 'active', 'archived']);
 
 const telegramChannelConfig = z.object({
   type: z.literal('telegram'),
-  config: z.object({ chat_id: z.string().min(1).max(50) }),
+  config: z.object({
+    chat_id: z.string().regex(TELEGRAM_USER_ID_REGEX, TELEGRAM_APPROVAL_RECIPIENT_MESSAGE)
+      .describe("The person's numeric Telegram user ID (a group id cannot be used)"),
+  }),
 });
 
 const whatsappChannelConfig = z.object({
